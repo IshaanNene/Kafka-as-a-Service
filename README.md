@@ -8,9 +8,13 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 
 ```bash
 go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
+kaas -b localhost:9092                   # terminal UI (: command · / filter · ? help)
 kaas snapshot -b localhost:9092          # one-shot cluster summary
 kaas watch -b localhost:9092 -t orders   # stream events and record growth
+kaas art maintenance-mode                # play a piece from the design system
 ```
+
+Themes: `--theme amber` (Amber Phosphor, default) or `--theme ice`. `NO_COLOR` and pipes get plain text; `KAAS_REDUCED_MOTION=1` freezes animation.
 
 ## Develop
 
@@ -38,5 +42,7 @@ deploy/         kind configs, Helm charts
 test/           kfake/Testcontainers harness, simulation, chaos, benchmarks
 docs/           design docs, ADRs, runbooks
 ```
+
+Animated art comes from [ascii-magic](https://www.ascii-magic.com/ascii) (MIT), baked into frame packs by `task asciipack` (ADR-0006); its licence and notice ship in `ui/asciipack/packs/`.
 
 Apache Kafka is a trademark of the Apache Software Foundation. KaaS is not affiliated with or endorsed by the ASF.

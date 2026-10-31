@@ -1,0 +1,30 @@
+K A A S  ·  topics                                     v0kwmoCzR2OR… · 3 brokers · ctrl 2 · gen 42 ●
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+  / v2▏   1 of 4
+  TOPIC                                                        PARTS   URP    RECORDS  OFFSETS AGE
+▸ orders-v2                                                        1     0         12           4s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  E V E N T S
+  09:29:58  LeaderMoved orders/1 1 → 2
+  09:29:58  ISRShrunk orders/1 -[1]
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+ q quit · : command · / filter · enter open · esc back · ? help

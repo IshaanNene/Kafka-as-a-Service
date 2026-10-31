@@ -1,0 +1,9 @@
+{
+  "name": "kaas-asciipack",
+  "private": true,
+  "description": "Bakes ascii-magic-art pieces into frame packs that ui/asciipack plays from Go. Only needed to re-bake; the Go build uses the committed packs.",
+  "type": "module",
+  "dependencies": {
+    "ascii-magic-art": "1.1.0"
+  }
+}

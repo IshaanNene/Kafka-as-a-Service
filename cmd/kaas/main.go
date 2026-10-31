@@ -16,6 +16,7 @@ import (
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/internal/version"
+	"github.com/IshaanNene/Kafka-as-a-Service/ui/theme"
 )
 
 func main() {
@@ -28,14 +29,19 @@ func main() {
 }
 
 func newRoot() *cobra.Command {
-	var brokers string
+	var brokers, themeName string
 	root := &cobra.Command{
 		Use:           "kaas",
 		Short:         "Kafka As A Service: CLI and TUI for Apache Kafka",
 		SilenceUsage:  true,
 		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runTUI(cmd, brokers, themeName)
+		},
 	}
 	root.PersistentFlags().StringVarP(&brokers, "brokers", "b", envOr("KAAS_BROKERS", "localhost:9092"), "comma-separated seed brokers")
+	root.PersistentFlags().StringVar(&themeName, "theme", envOr("KAAS_THEME", theme.Default), "colour theme: "+strings.Join(theme.Names(), ", "))
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
@@ -67,6 +73,8 @@ func newRoot() *cobra.Command {
 	snap.Flags().StringVarP(&output, "output", "o", "table", "output format: table|json")
 	root.AddCommand(snap)
 	root.AddCommand(newWatchCmd(&brokers))
+	root.AddCommand(newArtCmd(&themeName))
+	root.AddCommand(newTUICmd(&brokers, &themeName))
 	return root
 }
 

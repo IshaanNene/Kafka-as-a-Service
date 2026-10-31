@@ -28,6 +28,13 @@ tasks:
     cmds:
       - golangci-lint run ./...
 
+  asciipack:
+    desc: Re-bake ascii-magic frame packs into ui/asciipack/packs (needs Node; the Go build does not)
+    dir: tools/asciipack
+    cmds:
+      - npm ci --ignore-scripts --no-audit --no-fund
+      - node bake.mjs ../../ui/asciipack/packs {{.CLI_ARGS}}
+
   vuln:
     desc: govulncheck
     cmds:

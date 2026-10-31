@@ -89,8 +89,13 @@ func (t Table) Render(k kit.Kit, width int) []string {
 	if kit.Width(t.Foot)+kit.Width(t.FootRight)+4 <= inner {
 		body = append(body, " "+spread(k.S(kit.Muted, t.Foot), k.S(kit.Muted, t.FootRight), inner-2))
 	} else {
-		for _, l := range append(kit.Wrap(t.Foot, inner-2), kit.Wrap(t.FootRight, inner-2)...) {
-			body = append(body, " "+k.S(kit.Muted, l))
+		for _, part := range []string{t.Foot, t.FootRight} {
+			if part == "" {
+				continue
+			}
+			for _, l := range kit.Wrap(part, inner-2) {
+				body = append(body, " "+k.S(kit.Muted, l))
+			}
 		}
 	}
 	if len(t.Tiles) > 0 {
@@ -119,8 +124,9 @@ func (c col) pad(s string) string {
 	return kit.Fit(s, c.w)
 }
 
-// fit picks the columns that fit in w and their widths. The first column
-// takes what is left and is the only one that may truncate.
+// fit picks the columns that fit in w and their widths. Names matter more
+// than numbers: low-priority columns go before the first column is cut,
+// so two long names never shorten into the same text.
 func (t Table) fit(w int) []col {
 	widths := make([]int, len(t.Columns))
 	for i, c := range t.Columns {
@@ -147,8 +153,9 @@ func (t Table) fit(w int) []col {
 		}
 		return n
 	}
-	firstMin := min(widths[0], 12)
-	for total()-widths[0]+firstMin > w {
+	// Drop columns until the first one fits whole; only when nothing is
+	// left to drop does the first column shrink.
+	for total() > w {
 		drop, worst := -1, 0
 		for i, c := range t.Columns {
 			if keep[i] && c.Drop > worst {

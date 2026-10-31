@@ -35,12 +35,15 @@ func (r topicRow) statusText() string {
 	return "healthy"
 }
 
-// topicRows summarises the non-internal topics, sorted by key; it also
-// reports how many internal topics it left out.
-func topicRows(s *snapshot.Snapshot, key string) (rows []topicRow, internal int) {
+// topicRows summarises the topics keep accepts, sorted by key; it also
+// reports how many it left out. A nil keep hides internal topics.
+func topicRows(s *snapshot.Snapshot, key string, keep func(snapshot.Topic) bool) (rows []topicRow, hidden int) {
+	if keep == nil {
+		keep = func(t snapshot.Topic) bool { return !t.Internal }
+	}
 	for _, t := range s.Topics {
-		if t.Internal {
-			internal++
+		if !keep(t) {
+			hidden++
 			continue
 		}
 		r := topicRow{name: t.Name, partitions: len(t.Partitions)}
@@ -81,7 +84,7 @@ func topicRows(s *snapshot.Snapshot, key string) (rows []topicRow, internal int)
 		sev := func(r topicRow) int { return map[kit.Status]int{kit.Down: 2, kit.Degraded: 1}[r.status] }
 		return cmp.Or(cmp.Compare(sev(b), sev(a)), cmp.Compare(b.urp, a.urp), cmp.Compare(b.records, a.records), cmp.Compare(a.name, b.name))
 	})
-	return rows, internal
+	return rows, hidden
 }
 
 func printSnapshot(cmd *cobra.Command, s *snapshot.Snapshot, output, sortBy, themeName string) error {
@@ -91,7 +94,7 @@ func printSnapshot(cmd *cobra.Command, s *snapshot.Snapshot, output, sortBy, the
 		enc.SetIndent("", "  ")
 		return enc.Encode(s)
 	}
-	rows, internal := topicRows(s, sortBy)
+	rows, internal := topicRows(s, sortBy, nil)
 	if surf := detect(out, themeName); surf.rich {
 		surf.print(snapshotScreen(s, rows, internal, sortBy).Render(surf.kit, surf.width))
 		return nil

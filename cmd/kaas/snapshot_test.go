@@ -20,7 +20,7 @@ func TestTopicRows(t *testing.T) {
 		{Name: "dark", Partitions: []snapshot.Partition{part(-1, []int32{}, snapshot.UnknownOffset, snapshot.UnknownOffset)}},
 	}}
 
-	rows, internal := topicRows(s, "status")
+	rows, internal := topicRows(s, "status", nil)
 	if internal != 1 {
 		t.Errorf("internal = %d, want 1", internal)
 	}
@@ -41,7 +41,7 @@ func TestTopicRows(t *testing.T) {
 		t.Errorf("big = %+v, want 1500 records at RF 3", rows[2])
 	}
 
-	rows, _ = topicRows(s, "name")
+	rows, _ = topicRows(s, "name", nil)
 	if rows[0].name != "audit" {
 		t.Errorf("name sort starts with %s", rows[0].name)
 	}

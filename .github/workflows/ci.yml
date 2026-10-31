@@ -30,7 +30,7 @@ jobs:
           check-latest: true
       - uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.12.2
+          version: v2.15.0
 
   vuln:
     runs-on: ubuntu-latest

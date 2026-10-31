@@ -43,7 +43,12 @@ tasks:
     cmds:
       - kind get clusters | grep -qx {{.KIND_CLUSTER}} || kind create cluster --name {{.KIND_CLUSTER}} --config deploy/kind/kind-config.yaml
       - kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
-      - kubectl apply -n kafka -f "https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{.STRIMZI_VERSION}}/strimzi-cluster-operator-{{.STRIMZI_VERSION}}.yaml"
+      # The release manifest binds the operator's service account in namespace
+      # "myproject"; rewrite it or the operator gets 403s on every call.
+      - >-
+        curl -fsSL "https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{.STRIMZI_VERSION}}/strimzi-cluster-operator-{{.STRIMZI_VERSION}}.yaml"
+        | sed 's/namespace: myproject/namespace: kafka/'
+        | kubectl apply -n kafka -f -
       - kubectl -n kafka rollout status deploy/strimzi-cluster-operator --timeout=5m
       - kubectl apply -n kafka -f deploy/kind/kafka.yaml
       - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m

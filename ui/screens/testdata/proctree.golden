@@ -1,0 +1,14 @@
+╭─ kaas brokers · cluster 5L6g3nSh ────────────────────────────────────────────────────────────────╮
+│ ID  LEADS     DISK  NODE                                                               4 brokers │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│                     cluster 5L6g3nSh · controller 2                                              │
+│  1      9  1.2 GiB  ├─ broker 1 kafka-1:9092 · rack a                                            │
+│         4           │  ├─ orders p0-2 p5                                                         │
+│         3           │  ├─ payments p0-2                                                 1 behind │
+│                     │  └─ audit follows 2                                                        │
+│  2      5  980 MiB  ├─ broker 2 kafka-2:9092 · rack b                                 controller │
+│  3      4  1.1 GiB  ├─ broker 3 kafka-3:9092 · rack c                                            │
+│  4      0        -  └─ broker 4 not in metadata                                          offline │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ skew 1.50x  ● controller  ● behind  ● offline                           4 topics · 18 partitions │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -99,6 +99,8 @@ func TestGoldens(t *testing.T) {
 	golden(t, "partitions_narrow", partitionsFixture().Render(k, 50))
 	golden(t, "groups", groupsFixture().Render(k, 100))
 	golden(t, "groups_narrow", groupsFixture().Render(k, 50))
+	golden(t, "proctree", procFixture().Render(k, 100))
+	golden(t, "proctree_narrow", procFixture().Render(k, 44))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
@@ -222,6 +224,7 @@ func TestFits(t *testing.T) {
 		"tree":        func(w int) []string { return treeFixture().Render(k, w) },
 		"partitions":  func(w int) []string { return partitionsFixture().Render(k, w) },
 		"groups":      func(w int) []string { return groupsFixture().Render(k, w) },
+		"proctree":    func(w int) []string { return procFixture().Render(k, w) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -308,6 +311,7 @@ func TestLiveScreensNeverTruncate(t *testing.T) {
 		lines = append(lines, treeFixture().Render(k, w)...)
 		lines = append(lines, partitionsFixture().Render(k, w)...)
 		lines = append(lines, groupsFixture().Render(k, w)...)
+		lines = append(lines, procFixture().Render(k, w)...)
 		for i, l := range lines {
 			if strings.Contains(l, "…") {
 				t.Fatalf("width %d line %d truncated: %q", w, i, l)
@@ -370,5 +374,31 @@ func TestSpan(t *testing.T) {
 		if got := Span(sec); got != want {
 			t.Errorf("Span(%v) = %q, want %q", sec, got, want)
 		}
+	}
+}
+
+func procFixture() ProcTree {
+	topic := func(name string, leads, args string, role kit.Role, tags ...Cell) ProcNode {
+		return ProcNode{Cells: []Cell{{Text: leads, Role: kit.Rule}}, Name: name, NameRole: role, Args: args, Tags: tags}
+	}
+	return ProcTree{
+		Title: "kaas brokers · cluster 5L6g3nSh", IDName: "ID", TreeName: "NODE", Count: "4 brokers",
+		Columns: []Column{{Name: "LEADS", Right: true}, {Name: "DISK", Right: true, Drop: 1}},
+		Root: ProcNode{Name: "cluster", NameRole: kit.Accent2, Args: "5L6g3nSh · controller 2", Children: []ProcNode{
+			{ID: "1", Cells: []Cell{{Text: "9", Role: kit.Warn}, {Text: "1.2 GiB"}}, Name: "broker 1", NameRole: kit.Accent,
+				Args: "kafka-1:9092 · rack a", Children: []ProcNode{
+					topic("orders", "4", "p0-2 p5", kit.Info),
+					topic("payments", "3", "p0-2", kit.Info, Cell{Text: "1 behind", Role: kit.Warn}),
+					topic("audit", "", "follows 2", kit.Accent),
+				}},
+			{ID: "2", Cells: []Cell{{Text: "5"}, {Text: "980 MiB"}}, Name: "broker 2", NameRole: kit.Accent,
+				Args: "kafka-2:9092 · rack b", Tags: []Cell{{Text: "controller", Role: kit.Notice}}},
+			{ID: "3", Cells: []Cell{{Text: "4"}, {Text: "1.1 GiB"}}, Name: "broker 3", NameRole: kit.Accent, Args: "kafka-3:9092 · rack c"},
+			{ID: "4", Cells: []Cell{{Text: "0"}, {Text: "-"}}, Name: "broker 4", NameRole: kit.Err,
+				Args: "not in metadata", Tags: []Cell{{Text: "offline", Role: kit.Err}}},
+		}},
+		Load: "skew", LoadValue: "1.50x", LoadRole: kit.Warn,
+		Legend:    []Legend{{"controller", kit.Notice}, {"behind", kit.Warn}, {"offline", kit.Err}},
+		FootRight: "4 topics · 18 partitions",
 	}
 }

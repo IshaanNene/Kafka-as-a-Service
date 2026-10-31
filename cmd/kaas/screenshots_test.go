@@ -19,6 +19,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/bench"
+	brokerload "github.com/IshaanNene/Kafka-as-a-Service/core/brokers"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
@@ -179,6 +180,16 @@ loop:
 		t.Fatal(err)
 	}
 	save("topics-describe", "kaas topics describe users.profiles", td.screen().Render(k, 90))
+
+	// Brokers: the cluster above, its leaders spread by kfake, topics led
+	// most under each broker.
+	bsnap, err := snapshot.Fetch(ctx, cl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disk, derr := brokerload.Disk(ctx, adm)
+	bl := brokerList{snap: bsnap, brokers: brokerload.Summarize(bsnap, disk), diskErr: derr, top: 4}
+	save("brokers", "kaas brokers", bl.screen().Render(k, 100))
 
 	// Groups: a live consumer, and committed groups that consume at their
 	// own pace over twelve 2s refreshes while orders keep arriving.

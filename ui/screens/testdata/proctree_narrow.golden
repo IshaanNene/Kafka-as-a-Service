@@ -1,0 +1,15 @@
+╭─ kaas brokers · cluster 5L6g3nSh ────────╮
+│ ID  LEADS  NODE                4 brokers │
+│──────────────────────────────────────────│
+│            cluster                       │
+│  1      9  ├─ broker 1                   │
+│         4  │  ├─ orders p0-2 p5          │
+│         3  │  ├─ payments p0-2  1 behind │
+│            │  └─ audit follows 2         │
+│  2      5  ├─ broker 2        controller │
+│  3      4  ├─ broker 3                   │
+│  4      0  └─ broker 4           offline │
+│──────────────────────────────────────────│
+│ skew 1.50x  ● controller  ● behind       │
+│ ● offline       4 topics · 18 partitions │
+╰──────────────────────────────────────────╯

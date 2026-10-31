@@ -153,6 +153,21 @@ Every partition's leader, replicas, in-sync replicas, offsets, records and size,
 
 On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
 
+### `kaas brokers`: who does the work
+
+The cluster as a process tree: every broker, what it leads, and the topics it leads most.
+
+```bash
+kaas brokers            # brokers and their top 5 topics
+kaas brokers --top 0    # brokers only
+```
+
+Each broker row shows the partitions it leads, the replicas it holds, and its disk use across all log directories. The controller is marked, and replicas out of sync show as `N behind` in orange. A broker that partitions still name but metadata no longer lists is shown in red as `offline`. Leader counts well above the even share turn orange. **Skew** in the footer is the busiest broker's leaders over the even share, where `1.00x` is balanced. Internal topics fold into one row unless you pass `--internal`.
+
+![kaas brokers: the cluster, each broker's leaders, replicas and disk, and the topics it leads](img/brokers.svg)
+
+On a pipe it prints one line per broker with a `STATUS` of `controller`, `online` or `offline`. With `-o json` you get every broker's topics with the partition IDs it leads.
+
 ### `kaas groups`: who is behind, and for how long
 
 Every consumer group, worst lag first, refreshing in place like a task manager:

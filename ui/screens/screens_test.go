@@ -94,6 +94,7 @@ func TestGoldens(t *testing.T) {
 	golden(t, "watch", watchFixture().Render(k, 100, 30))
 	golden(t, "table", tableFixture().Render(k, 100))
 	golden(t, "table_narrow", tableFixture().Render(k, 44))
+	golden(t, "tree", treeFixture().Render(k, 80))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
@@ -114,6 +115,43 @@ func tableFixture() Table {
 		Tiles: []Tile{{Label: "Brokers", Value: "3 · ctrl 2"}, {Label: "Partitions", Value: "22"},
 			{Label: "Under-replicated", Value: "3", Role: kit.Warn}, {Label: "Offline", Value: "1", Role: kit.Err},
 			{Label: "Records", Value: "2,422,308"}, {Label: "leaders · 3 brokers", Value: "▇█▅", Role: kit.Accent}},
+	}
+}
+
+func treeFixture() Tree {
+	leaf := func(full string) TreeNode {
+		n := TreeNode{Dot: kit.OK, Info: "3p · 1,204"}
+		switch full {
+		case "payments.eu.refunds":
+			n.Dot, n.Mark, n.MarkRole, n.Changed = kit.Warn, "U", kit.Warn, true
+		case "users.profiles":
+			n.Mark, n.MarkRole = "C", kit.Accent2
+		}
+		return n
+	}
+	return Tree{
+		Title: "TOPICS", Root: "5L6g3nSh", Badge: "cluster 5L6g3nSh · 6 topics",
+		Head: "6 topics in 4 prefixes", HeadRight: "1 unhealthy topic",
+		Nodes: Nest([]string{"orders", "orders.dlq", "payments.eu.charges", "payments.eu.refunds", "payments.us.charges", "users.profiles"}, ".", leaf),
+		Foot:  "• orders  33,308 records", FootRight: "U under-replicated · C compacted",
+	}
+}
+
+func TestNest(t *testing.T) {
+	nodes := Nest([]string{"b", "a.x", "a.y", "deep.one.two.leaf", "c.d"}, ".", func(string) TreeNode { return TreeNode{} })
+	var names []string
+	for _, n := range nodes {
+		names = append(names, n.Name)
+	}
+	// Folders first, sorted, then leaves; a chain of single folders merges.
+	if got := strings.Join(names, " "); got != "a c deep.one.two b" {
+		t.Errorf("top level = %q", got)
+	}
+	if len(nodes[0].Children) != 2 || nodes[0].Children[1].Name != "y" {
+		t.Errorf("a/ children = %+v", nodes[0].Children)
+	}
+	if flat := Nest([]string{"x.y"}, "", func(string) TreeNode { return TreeNode{} }); len(flat) != 1 || flat[0].Name != "x.y" {
+		t.Errorf("no separator should not nest: %+v", flat)
 	}
 }
 
@@ -146,6 +184,7 @@ func TestFits(t *testing.T) {
 		"bench":       func(w int) []string { return benchFixture().Render(k, w) },
 		"watch":       func(w int) []string { return watchFixture().Render(k, w, 30) },
 		"table":       func(w int) []string { return tableFixture().Render(k, w) },
+		"tree":        func(w int) []string { return treeFixture().Render(k, w) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -229,6 +268,7 @@ func TestLiveScreensNeverTruncate(t *testing.T) {
 		lines = append(lines, watchFixture().Render(k, w, 40)...)
 		lines = append(lines, quiet.Render(k, w, 40)...)
 		lines = append(lines, tableFixture().Render(k, w)...)
+		lines = append(lines, treeFixture().Render(k, w)...)
 		for i, l := range lines {
 			if strings.Contains(l, "…") {
 				t.Fatalf("width %d line %d truncated: %q", w, i, l)

@@ -25,7 +25,7 @@
 <text x="847.6" y="75.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16.0" y="93.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="32.8" y="93.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
-<text x="360.4" y="93.0" fill="#79c0ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▅▄▆▄▅▆▄▆█▁▆▄▅▆▄▆▅▄▆▃▆▅▄▆▄▅</text>
+<text x="360.4" y="93.0" fill="#79c0ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▅▄▇▄▅▆▄▆█▂▇▄▅▆▄▆▅▄▇▃▆▅▄▇▄▅</text>
 <text x="587.2" y="93.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">▆</text>
 <text x="646.0" y="93.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">980/s</text>
 <text x="696.4" y="93.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">↑</text>
@@ -36,7 +36,7 @@
 <text x="847.6" y="111.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16.0" y="129.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="32.8" y="129.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
-<text x="360.4" y="129.0" fill="#d2a8ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▇▇▄▇▇▄▇▇▇▄▇▄▇▇▄▇▇▄▇▄▇▇▄█▇▄</text>
+<text x="360.4" y="129.0" fill="#d2a8ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▇▇▄▇▇▄▇▇▇▄▇▄▇▇▄▇▇▄▇▄▇▇▄▇█▄</text>
 <text x="587.2" y="129.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">▇</text>
 <text x="646.0" y="129.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">4.0/s</text>
 <text x="696.4" y="129.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">↑</text>

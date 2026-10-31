@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 10 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 11 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -29,7 +29,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Data Table](#data-table) | `kaas snapshot`, `kaas topics` | built |
 | [Toast Stack](#toast-stack) | `kaas watch` | built |
 | [Benchmark Results](#benchmark-results) | `kaas bench produce`, `kaas bench consume` | built |
-| [File Tree](#file-tree) | `kaas topics` | P1 |
+| [File Tree](#file-tree) | `kaas topics` | built |
 | [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | P1 |
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | P1 |
@@ -214,7 +214,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`data-table`](https://www.ascii-magic.com/ascii/data-table) · **built** · A service status table that re-sorts by a new column every few seconds while a selection bar walks the rows.
 
 - `kaas snapshot`: Topics, partitions and URPs, sortable
-- `kaas topics`: Topic list; prefix hierarchy as a tree
+- `kaas topics`: Topic list with retention, cleanup and disk; prefix hierarchy as a tree
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/data-table.svg" alt="ascii-magic Data Table" width="100%"></td><td width="50%"><img src="img/snapshot.svg" alt="kaas screen built from Data Table" width="100%"></td></tr></table>
@@ -240,11 +240,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### File Tree
 
-[`file-tree`](https://www.ascii-magic.com/ascii/file-tree) · **P1** · A project explorer where a cursor walks the tree, opening and closing folders as it goes.
+[`file-tree`](https://www.ascii-magic.com/ascii/file-tree) · **built** · A project explorer where a cursor walks the tree, opening and closing folders as it goes.
 
-- `kaas topics`: Topic list; prefix hierarchy as a tree
+- `kaas topics`: Topic list with retention, cleanup and disk; prefix hierarchy as a tree
 
-<img src="img/ui/file-tree.svg" alt="ascii-magic File Tree" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/file-tree.svg" alt="ascii-magic File Tree" width="100%"></td><td width="50%"><img src="img/topics-tree.svg" alt="kaas screen built from File Tree" width="100%"></td></tr></table>
 
 ### Partition Editor
 

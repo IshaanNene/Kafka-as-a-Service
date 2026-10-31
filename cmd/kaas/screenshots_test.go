@@ -152,6 +152,28 @@ loop:
 	view.draw(time.Now())
 	save("watch", "kaas watch -t orders -t payments", view.lv.last)
 
+	// Topics: prefixed families and a compacted topic that sets its own
+	// retention, through the command's own listing path.
+	compact, month := "compact", "2592000000"
+	_, _ = adm.CreateTopics(ctx, 3, 3, nil, "payments.eu.charges", "payments.eu.refunds", "payments.us.charges", "orders.dlq")
+	_, _ = adm.CreateTopic(ctx, 6, 3, map[string]*string{"cleanup.policy": &compact, "retention.ms": &month}, "users.profiles")
+	for i := range 400 {
+		cl.Produce(ctx, &kgo.Record{Topic: "payments.eu.charges", Value: []byte("a charge of some size")}, nil)
+		if i%2 == 0 {
+			cl.Produce(ctx, &kgo.Record{Topic: "users.profiles", Key: []byte{byte(i)}, Value: []byte(`{"name":"ada"}`)}, nil)
+		}
+	}
+	if err := cl.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tl, err := listTopics(ctx, cl, "", false, "status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	save("topics", "kaas topics", tl.tableScreen().Render(k, 100))
+	tl.sep = "."
+	save("topics-tree", "kaas topics --tree", tl.treeScreen().Render(k, 84))
+
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)
 	if err != nil {
@@ -166,7 +188,7 @@ loop:
 			snap = snapshot.WithOffsets(snap, names, starts, ends, time.Now())
 		}
 	}
-	rows, internal := topicRows(snap, "status")
+	rows, internal := topicRows(snap, "status", nil)
 	save("snapshot", "kaas snapshot", snapshotScreen(snap, rows, internal, "status").Render(k, 100))
 
 	// The TUI over the same cluster, with the events the engine just saw.

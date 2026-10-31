@@ -121,6 +121,25 @@ One row per topic: partitions, replication factor, under-replicated and offline 
 
 ![kaas snapshot: topics with status dots, and cluster totals underneath](img/snapshot.svg)
 
+### `kaas topics`: what each topic keeps, and what it costs
+
+```bash
+kaas topics                         # every topic, problems first
+kaas topics 'payments.*' --sort disk
+kaas topics --tree                  # names grouped by prefix
+kaas topics --internal              # include __consumer_offsets and friends
+```
+
+Each topic shows its partitions and replication factor. It also shows records retained, disk used across every replica, retention and cleanup policy. Retention or cleanup that a topic sets for itself is purple. Grey values are inherited from the broker, so you can spot a topic that quietly keeps data forever.
+
+![kaas topics: retention and cleanup per topic, topic-level settings in purple](img/topics.svg)
+
+With `--tree`, names split on `.` (or `--sep`) into folders, and single-child chains merge. Each topic is a leaf with its status, size, and a flag: `!` offline, `U` under-replicated, `C` compacted.
+
+![kaas topics --tree: topic prefixes as folders](img/topics-tree.svg)
+
+The pattern is a glob. A plain name that isn't a topic gets the 404 page with the closest real names. On a pipe the table prints raw numbers (records, `DISK_BYTES`), so `sort -n` and `awk` work. `-o json` gives `retentionMs`, `cleanupPolicy`, `diskBytes` and the rest per topic.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

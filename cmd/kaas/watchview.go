@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
@@ -163,6 +164,9 @@ func toastFor(e engine.Event) screens.Toast {
 func plural(n int, s string) string {
 	if n == 1 {
 		return "1 " + s
+	}
+	if strings.HasSuffix(s, "x") || strings.HasSuffix(s, "s") || strings.HasSuffix(s, "ch") {
+		return fmt.Sprintf("%d %ses", n, s)
 	}
 	return fmt.Sprintf("%d %ss", n, s)
 }

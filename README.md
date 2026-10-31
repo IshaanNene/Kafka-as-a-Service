@@ -16,6 +16,7 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
 kaas -b localhost:9092                   # terminal UI (: command · / filter · ? help)
 kaas snapshot -b localhost:9092          # one-shot cluster summary
+kaas topics -b localhost:9092            # retention, cleanup and disk per topic
 kaas watch -b localhost:9092 -t orders   # stream events and record growth
 kaas bench produce -t orders --size 100,1024 --compression none,lz4   # throughput and latency matrix
 kaas help watch                          # usage and examples

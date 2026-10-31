@@ -140,6 +140,19 @@ With `--tree`, names split on `.` (or `--sep`) into folders, and single-child ch
 
 The pattern is a glob. A plain name that isn't a topic gets the 404 page with the closest real names. On a pipe the table prints raw numbers (records, `DISK_BYTES`), so `sort -n` and `awk` work. `-o json` gives `retentionMs`, `cleanupPolicy`, `diskBytes` and the rest per topic.
 
+#### `kaas topics describe`: one topic, partition by partition
+
+```bash
+kaas topics describe orders
+kaas topics describe orders -o json | jq '.partitions[] | select(.isr | length < 3) | .id'
+```
+
+Every partition's leader, replicas, in-sync replicas, offsets, records and size, with `>>` on the one that needs attention (offline, then under-replicated, else the largest). The layout shows one bar per broker: each replica is a segment in its partition's colour, sized by its bytes on that broker. `█` is a leader, `▒` a follower and `░` an out-of-sync replica, so skew and lagging replicas show at a glance. Below are the leader spread, how many partitions are in sync, and the configs the topic sets itself.
+
+![kaas topics describe: partitions, replicas per broker sized by bytes, and the topic's own settings](img/topics-describe.svg)
+
+On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

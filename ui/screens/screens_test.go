@@ -95,6 +95,8 @@ func TestGoldens(t *testing.T) {
 	golden(t, "table", tableFixture().Render(k, 100))
 	golden(t, "table_narrow", tableFixture().Render(k, 44))
 	golden(t, "tree", treeFixture().Render(k, 80))
+	golden(t, "partitions", partitionsFixture().Render(k, 90))
+	golden(t, "partitions_narrow", partitionsFixture().Render(k, 50))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
@@ -134,6 +136,37 @@ func treeFixture() Tree {
 		Head: "6 topics in 4 prefixes", HeadRight: "1 unhealthy topic",
 		Nodes: Nest([]string{"orders", "orders.dlq", "payments.eu.charges", "payments.eu.refunds", "payments.us.charges", "users.profiles"}, ".", leaf),
 		Foot:  "• orders  33,308 records", FootRight: "U under-replicated · C compacted",
+	}
+}
+
+// partitionsFixture has one partition of each kind: healthy, under-
+// replicated with an out-of-sync follower, and offline.
+func partitionsFixture() Partitions {
+	all := []int32{1, 2, 3}
+	return Partitions{
+		Topic: "orders",
+		Info:  []string{"4 partitions · RF 3 · 251,038 records · 609 MiB on disk", "cleanup delete · retention 7d · cluster 5L6g3nSh"},
+		Parts: []Part{
+			{ID: 0, Leader: 1, Replicas: all, ISR: all, Start: 0, End: 82_113, Bytes: 70 << 20},
+			{ID: 1, Leader: 2, Replicas: []int32{2, 3, 1}, ISR: []int32{2, 3}, Start: 1_200, End: 91_004, Bytes: 80 << 20},
+			{ID: 2, Leader: -1, Replicas: []int32{3, 1, 2}, ISR: nil, Start: -1, End: -1, Bytes: -1},
+			{ID: 3, Leader: 1, Replicas: []int32{1, 3, 2}, ISR: []int32{1, 3, 2}, Start: 0, End: 79_121, Bytes: 53 << 20},
+		},
+		Focus: 2, Brokers: all,
+		ReplicaBytes: map[int32]map[int32]int64{
+			1: {0: 70 << 20, 1: 30 << 20, 3: 53 << 20},
+			2: {0: 70 << 20, 1: 80 << 20, 3: 53 << 20},
+			3: {0: 70 << 20, 1: 80 << 20, 3: 53 << 20},
+		},
+		Details: []Detail{
+			{Label: "Leaders", Value: "broker 1: 2 · broker 2: 1 · broker 3: 0", Role: kit.Info},
+			{Label: "In sync", Value: "2 of 4 partitions", Role: kit.Warn},
+			{Label: "Set on topic", Value: "broker defaults"},
+		},
+		Actions:    []string{"kaas watch -t orders", "kaas topics", "kaas bench produce -t orders"},
+		Status:     "Partition 2 has no leader: its producers and consumers are stuck.",
+		StatusRole: kit.Err,
+		Hint:       "-o json for scripts · kaas topics for every topic",
 	}
 }
 
@@ -185,6 +218,7 @@ func TestFits(t *testing.T) {
 		"watch":       func(w int) []string { return watchFixture().Render(k, w, 30) },
 		"table":       func(w int) []string { return tableFixture().Render(k, w) },
 		"tree":        func(w int) []string { return treeFixture().Render(k, w) },
+		"partitions":  func(w int) []string { return partitionsFixture().Render(k, w) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -269,6 +303,7 @@ func TestLiveScreensNeverTruncate(t *testing.T) {
 		lines = append(lines, quiet.Render(k, w, 40)...)
 		lines = append(lines, tableFixture().Render(k, w)...)
 		lines = append(lines, treeFixture().Render(k, w)...)
+		lines = append(lines, partitionsFixture().Render(k, w)...)
 		for i, l := range lines {
 			if strings.Contains(l, "…") {
 				t.Fatalf("width %d line %d truncated: %q", w, i, l)

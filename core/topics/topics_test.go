@@ -44,6 +44,18 @@ func TestDescribe(t *testing.T) {
 	if orders.Disk <= 0 {
 		t.Errorf("orders disk = %d, want the bytes just produced", orders.Disk)
 	}
+	var replicas int64
+	for _, parts := range orders.Replicas {
+		for _, b := range parts {
+			replicas += b
+		}
+	}
+	if replicas != orders.Disk {
+		t.Errorf("per-replica bytes sum to %d, topic disk is %d", replicas, orders.Disk)
+	}
+	if users.Set["cleanup.policy"] != "compact" || users.Set["retention.ms"] != "604800000" {
+		t.Errorf("users set configs = %v", users.Set)
+	}
 }
 
 func TestParseMillis(t *testing.T) {

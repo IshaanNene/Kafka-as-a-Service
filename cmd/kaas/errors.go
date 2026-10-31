@@ -162,14 +162,20 @@ func unknownCommand(cmd *cobra.Command, args []string) error {
 // usageError is a bad flag value or argument. It is drawn as a form: every
 // flag the user set, the bad one marked, and why.
 func usageError(cmd *cobra.Command, flag, value, msg string) *cliError {
+	// A name that isn't one of the command's flags is a positional
+	// argument, shown as <topic> rather than a --topic that doesn't exist.
+	label := "--" + flag
+	if cmd.Flags().Lookup(flag) == nil {
+		label = "<" + flag + ">"
+	}
 	e := &cliError{
 		Code: "usage", Exit: exitUsage,
-		Message: fmt.Sprintf("--%s %q: %s", flag, value, msg),
+		Message: fmt.Sprintf("%s %q: %s", label, value, msg),
 		Hints:   []string{"see " + cmd.CommandPath() + " --help"},
 		Detail:  map[string]string{"flag": flag, "value": value, "reason": msg},
 	}
 	if value == "" {
-		e.Message = fmt.Sprintf("--%s: %s", flag, msg)
+		e.Message = fmt.Sprintf("%s: %s", label, msg)
 	}
 	e.screen = func(k kit.Kit, w int) []string {
 		var fields []screens.Field
@@ -184,7 +190,7 @@ func usageError(cmd *cobra.Command, flag, value, msg string) *cliError {
 			}
 		})
 		if !seen {
-			fields = append(fields, screens.Field{Label: "--" + flag, Value: value, State: kit.Degraded, Focus: true, Msg: msg})
+			fields = append(fields, screens.Field{Label: label, Value: value, State: kit.Degraded, Focus: true, Msg: msg})
 		}
 		return screens.Invalid{Title: cmd.CommandPath(), Fields: fields, Action: cmd.CommandPath() + " --help"}.Render(k, w)
 	}

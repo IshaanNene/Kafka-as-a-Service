@@ -14,6 +14,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
+	"github.com/IshaanNene/Kafka-as-a-Service/ui/screens"
 )
 
 func TestTopicsCommand(t *testing.T) {
@@ -79,8 +80,8 @@ func TestTopicsCommand(t *testing.T) {
 
 func TestSizesAndRetention(t *testing.T) {
 	for in, want := range map[int64]string{-1: "-", 0: "0 B", 1023: "1023 B", 1536: "1.5 KiB", 6084061: "5.8 MiB", 300 << 30: "300 GiB"} {
-		if got := bytesText(in); got != want {
-			t.Errorf("bytesText(%d) = %q, want %q", in, got, want)
+		if got := screens.Bytes(in); got != want {
+			t.Errorf("Bytes(%d) = %q, want %q", in, got, want)
 		}
 	}
 	for in, want := range map[time.Duration]string{-1: "forever", 0: "-", 7 * 24 * time.Hour: "7d", 12 * time.Hour: "12h", 90 * time.Minute: "90m"} {

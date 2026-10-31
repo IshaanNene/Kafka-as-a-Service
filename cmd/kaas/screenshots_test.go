@@ -173,6 +173,11 @@ loop:
 	save("topics", "kaas topics", tl.tableScreen().Render(k, 100))
 	tl.sep = "."
 	save("topics-tree", "kaas topics --tree", tl.treeScreen().Render(k, 84))
+	td, err := describeTopic(ctx, cl, "users.profiles")
+	if err != nil {
+		t.Fatal(err)
+	}
+	save("topics-describe", "kaas topics describe users.profiles", td.screen().Render(k, 90))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

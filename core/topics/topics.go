@@ -21,13 +21,15 @@ const Forever time.Duration = -1
 // Details is one topic's retention, cleanup and disk use. Zero values mean
 // unknown: the broker did not answer for that part.
 type Details struct {
-	Retention         time.Duration // retention.ms; Forever for -1
-	RetentionBytes    int64         // retention.bytes per partition; -1 unlimited
-	Cleanup           string        // cleanup.policy: delete, compact or compact,delete
-	RetentionOverride bool          // retention.ms is set on the topic itself
-	CleanupOverride   bool          // cleanup.policy is set on the topic itself
-	Overrides         int           // configs set on the topic itself
-	Disk              int64         // bytes on disk across every replica; -1 unknown
+	Retention         time.Duration             // retention.ms; Forever for -1
+	RetentionBytes    int64                     // retention.bytes per partition; -1 unlimited
+	Cleanup           string                    // cleanup.policy: delete, compact or compact,delete
+	RetentionOverride bool                      // retention.ms is set on the topic itself
+	CleanupOverride   bool                      // cleanup.policy is set on the topic itself
+	Overrides         int                       // configs set on the topic itself
+	Set               map[string]string         // those configs and their values
+	Disk              int64                     // bytes on disk across every replica; -1 unknown
+	Replicas          map[int32]map[int32]int64 // broker → partition → bytes, when known
 }
 
 // Describe fetches details for names in two requests: DescribeConfigs for
@@ -57,6 +59,12 @@ func Describe(ctx context.Context, adm *kadm.Client, names []string) (map[string
 			set := c.Source == kmsg.ConfigSourceDynamicTopicConfig
 			if set {
 				d.Overrides++
+				if c.Value != nil {
+					if d.Set == nil {
+						d.Set = map[string]string{}
+					}
+					d.Set[c.Key] = *c.Value
+				}
 			}
 			if c.Value == nil {
 				continue
@@ -78,21 +86,32 @@ func Describe(ctx context.Context, adm *kadm.Client, names []string) (map[string
 		errs = append(errs, fmt.Errorf("log dirs: %w", err))
 		return out, errors.Join(errs...)
 	}
-	sizes := make(map[string]int64)
+	for n, d := range out {
+		d.Disk = 0
+		out[n] = d
+	}
 	dirs.Each(func(dir kadm.DescribedLogDir) {
 		if dir.Err != nil {
 			return
 		}
 		for topic, parts := range dir.Topics {
-			for _, p := range parts {
-				sizes[topic] += p.Size
+			d, ok := out[topic]
+			if !ok {
+				continue
 			}
+			for id, p := range parts {
+				d.Disk += p.Size
+				if d.Replicas == nil {
+					d.Replicas = map[int32]map[int32]int64{}
+				}
+				if d.Replicas[dir.Broker] == nil {
+					d.Replicas[dir.Broker] = map[int32]int64{}
+				}
+				d.Replicas[dir.Broker][id] += p.Size
+			}
+			out[topic] = d
 		}
 	})
-	for n, d := range out {
-		d.Disk = sizes[n]
-		out[n] = d
-	}
 	return out, errors.Join(errs...)
 }
 

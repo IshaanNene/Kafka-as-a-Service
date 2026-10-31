@@ -79,6 +79,7 @@ suggests the closest ones. --tree groups topics by name prefix.`,
 			return l.print(cmd, output, *themeName)
 		},
 	}
+	cmd.AddCommand(newTopicsDescribeCmd(brokers, themeName))
 	f := cmd.Flags()
 	f.StringVarP(&output, "output", "o", "table", "output format: table|json")
 	f.StringVar(&sortBy, "sort", "status", "sort by: "+strings.Join(topicSorts, "|"))
@@ -301,7 +302,7 @@ func (l topicList) tableScreen() screens.Table {
 			{Text: strconv.Itoa(r.partitions)},
 			{Text: strconv.Itoa(r.rf)},
 			{Text: recordsText(r.records)},
-			{Text: bytesText(d.Disk)},
+			{Text: screens.Bytes(d.Disk)},
 			set(retentionText(d.Retention), d.RetentionOverride),
 			set(cmp.Or(d.Cleanup, "-"), d.CleanupOverride),
 			{Text: "● " + r.statusText(), Role: statusRole(r.status)},
@@ -315,7 +316,7 @@ func (l topicList) tableScreen() screens.Table {
 		{Label: "Topics", Value: strconv.Itoa(len(l.rows))},
 		{Label: "Partitions", Value: strconv.Itoa(parts)},
 		{Label: "Records", Value: screens.Num(float64(records))},
-		{Label: "Disk", Value: bytesText(disk)},
+		{Label: "Disk", Value: screens.Bytes(disk)},
 		{Label: "Compacted", Value: strconv.Itoa(compacted), Role: kit.Accent2},
 		{Label: "Unhealthy", Value: strconv.Itoa(unhealthy), Role: bad},
 	}
@@ -390,23 +391,6 @@ func recordsText(n int64) string {
 		return "-"
 	}
 	return screens.Num(float64(n))
-}
-
-// bytesText prints a size in binary units: 512 B, 3.4 KiB, 120 MiB.
-func bytesText(n int64) string {
-	if n < 0 {
-		return "-"
-	}
-	units := []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB"}
-	v, i := float64(n), 0
-	for v >= 1024 && i < len(units)-1 {
-		v /= 1024
-		i++
-	}
-	if i == 0 || v >= 100 {
-		return fmt.Sprintf("%.0f %s", v, units[i])
-	}
-	return fmt.Sprintf("%.1f %s", v, units[i])
 }
 
 // retentionText prints retention.ms in the largest whole unit: 7d, 12h.

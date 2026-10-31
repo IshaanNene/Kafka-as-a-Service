@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 13 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 14 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -32,7 +32,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [File Tree](#file-tree) | `kaas topics` | built |
 | [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | built |
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
-| [Process Tree Live](#process-tree-live) | `kaas brokers` | P1 |
+| [Process Tree Live](#process-tree-live) | `kaas brokers` | built |
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | P1 |
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | P1 |
@@ -268,11 +268,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Process Tree Live
 
-[`process-tree`](https://www.ascii-magic.com/ascii/process-tree) · **P1** · A live process tree with branch lines where build workers and request handlers spawn in green, run and exit in red.
+[`process-tree`](https://www.ascii-magic.com/ascii/process-tree) · **built** · A live process tree with branch lines where build workers and request handlers spawn in green, run and exit in red.
 
 - `kaas brokers`: Broker → leaders → partitions tree; disk, network and request gauges
 
-<img src="img/ui/process-tree.svg" alt="ascii-magic Process Tree Live" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/process-tree.svg" alt="ascii-magic Process Tree Live" width="100%"></td><td width="50%"><img src="img/brokers.svg" alt="kaas screen built from Process Tree Live" width="100%"></td></tr></table>
 
 ### Process Task Manager
 

@@ -31,6 +31,7 @@ const SHOTS = {
   "file-tree": "topics-tree",
   "disk-partitioner": "topics-describe",
   "process-task-manager": "groups",
+  "process-tree": "brokers",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

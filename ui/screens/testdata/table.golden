@@ -1,0 +1,13 @@
+╭─ Topics ───────────────────────────────────────────────────────── ● cluster 5L6g3nSh · 3 topics ─╮
+│ Topic     Parts  RF  URP  Offline    Records  Status ▼                                           │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ payments      6   3    2        1    120,431  ● offline                                          │
+│ orders       12   3    1        0  2,301,877  ● under-replicated                                 │
+│ audit         4   3    0        0          0  ● healthy                                          │
+│                                                                                                  │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ sorted by status, worst first                                            1 internal topic hidden │
+│                                                                                                  │
+│ Brokers       Partitions    Under-replicated    Offline    Records      leaders · 3 brokers      │
+│ 3 · ctrl 2    22            3                   1          2,422,308    ▇█▅                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

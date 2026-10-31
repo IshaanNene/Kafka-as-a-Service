@@ -25,7 +25,7 @@
 <text x="847.6" y="75.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16.0" y="93.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="32.8" y="93.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
-<text x="360.4" y="93.0" fill="#79c0ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▅▄▇▄▅▆▄▆█▂▇▄▅▆▄▆▅▄▇▄▅▅▄▇▄▅</text>
+<text x="360.4" y="93.0" fill="#79c0ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▅▄▆▄▅▆▄▆█▁▆▄▅▆▄▆▅▄▆▃▆▅▄▆▄▅</text>
 <text x="587.2" y="93.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">▆</text>
 <text x="646.0" y="93.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">980/s</text>
 <text x="696.4" y="93.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">↑</text>
@@ -36,7 +36,7 @@
 <text x="847.6" y="111.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16.0" y="129.0" fill="#30363d" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="32.8" y="129.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
-<text x="360.4" y="129.0" fill="#d2a8ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▇▇▄▇▇▄▇▇▇▄▇▄▇█▄▇▇▄▇▇▄▇▄▇▇▄</text>
+<text x="360.4" y="129.0" fill="#d2a8ff" textLength="226.8" lengthAdjust="spacingAndGlyphs">▁▇▇▄▇▇▄▇▇▇▄▇▄▇▇▄▇▇▄▇▄▇▇▄█▇▄</text>
 <text x="587.2" y="129.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">▇</text>
 <text x="646.0" y="129.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">4.0/s</text>
 <text x="696.4" y="129.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">↑</text>
@@ -73,7 +73,7 @@
 <text x="419.2" y="237.0" fill="#e6edf3" font-weight="bold" textLength="84.0" lengthAdjust="spacingAndGlyphs">Partitions</text>
 <text x="511.6" y="237.0" fill="#e6edf3" font-weight="bold" textLength="42.0" lengthAdjust="spacingAndGlyphs">added</text>
 <text x="570.4" y="237.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
-<text x="822.4" y="237.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">6s</text>
+<text x="822.4" y="237.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">5s</text>
 <text x="847.6" y="237.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="385.6" y="255.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="419.2" y="255.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">+2;</text>
@@ -93,7 +93,7 @@
 <text x="419.2" y="309.0" fill="#e6edf3" font-weight="bold" textLength="42.0" lengthAdjust="spacingAndGlyphs">Topic</text>
 <text x="469.6" y="309.0" fill="#e6edf3" font-weight="bold" textLength="58.8" lengthAdjust="spacingAndGlyphs">created</text>
 <text x="545.2" y="309.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">audit</text>
-<text x="822.4" y="309.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">6s</text>
+<text x="822.4" y="309.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">5s</text>
 <text x="847.6" y="309.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="385.6" y="327.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="419.2" y="327.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">4</text>

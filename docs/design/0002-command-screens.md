@@ -34,7 +34,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | Command | Piece(s) | What it shows | Status |
 |---|---|---|---|
 | `kaas` / `kaas tui` | split-pane-session, window-tiling-manager | Topics, events and meters in panes; panes tile as you open more | P1 (TUI built; tiling next) |
-| `kaas snapshot` | data-table | Topics, partitions and URPs, sortable | P1 |
+| `kaas snapshot` | data-table | Topics, partitions and URPs, sortable | **built** |
 | `kaas watch` | toast-stack, sparkline-row (Live Data) | Events slide in as toasts; one records/sec sparkline per `-t` topic | **built** |
 | `kaas bench produce` | benchmark-table, histogram (Live Data), network-traffic (Live Data) | One row per case (size × acks × compression), a live counter, a latency histogram and a throughput graph | **built** |
 | `kaas bench consume` | benchmark-table, network-traffic | Same, for fetch | P1 |

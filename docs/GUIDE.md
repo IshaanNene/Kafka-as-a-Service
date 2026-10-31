@@ -112,9 +112,14 @@ For scripts, use `kaas watch -o json` (one object per line) or pipe the output f
 ### `kaas snapshot`: one look, for scripts too
 
 ```bash
-kaas snapshot                  # summary table
+kaas snapshot                  # every topic, problems first
+kaas snapshot --sort records   # biggest first (also: name, partitions)
 kaas snapshot -o json | jq .   # everything: brokers, topics, partitions, offsets
 ```
+
+One row per topic: partitions, replication factor, under-replicated and offline partitions, records retained, and a status dot. Offline topics sort first, then under-replicated ones. The strip underneath totals the cluster and draws leaders per broker, so an unbalanced cluster shows at a glance. On narrow terminals the least important columns drop out before anything is cut.
+
+![kaas snapshot: topics with status dots, and cluster totals underneath](img/snapshot.svg)
 
 ### `kaas bench produce`: measure, don't guess
 

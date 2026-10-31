@@ -92,12 +92,52 @@ func TestGoldens(t *testing.T) {
 	golden(t, "bench_narrow", benchFixture().Render(k, 64))
 	golden(t, "bench_phone", benchFixture().Render(k, 45))
 	golden(t, "watch", watchFixture().Render(k, 100, 30))
+	golden(t, "table", tableFixture().Render(k, 100))
+	golden(t, "table_narrow", tableFixture().Render(k, 44))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
 
 // TestFits renders every screen, coloured, at a range of widths and checks
 // none spills past the terminal.
+func tableFixture() Table {
+	return Table{
+		Title: "Topics", Badge: "cluster 5L6g3nSh · 3 topics",
+		Columns: []Column{{Name: "Topic"}, {Name: "Parts", Right: true}, {Name: "RF", Right: true, Drop: 2},
+			{Name: "URP", Right: true, Drop: 1}, {Name: "Offline", Right: true, Drop: 3}, {Name: "Records", Right: true, Drop: 4}, {Name: "Status"}},
+		Rows: [][]Cell{
+			{{Text: "payments"}, {Text: "6"}, {Text: "3"}, {Text: "2", Role: kit.Warn}, {Text: "1", Role: kit.Err}, {Text: "120,431"}, {Text: "● offline", Role: kit.Err}},
+			{{Text: "orders"}, {Text: "12"}, {Text: "3"}, {Text: "1", Role: kit.Warn}, {Text: "0"}, {Text: "2,301,877"}, {Text: "● under-replicated", Role: kit.Warn}},
+			{{Text: "audit"}, {Text: "4"}, {Text: "3"}, {Text: "0"}, {Text: "0"}, {Text: "0"}, {Text: "● healthy", Role: kit.OK}},
+		},
+		Sorted: 6, Foot: "sorted by status, worst first", FootRight: "1 internal topic hidden",
+		Tiles: []Tile{{Label: "Brokers", Value: "3 · ctrl 2"}, {Label: "Partitions", Value: "22"},
+			{Label: "Under-replicated", Value: "3", Role: kit.Warn}, {Label: "Offline", Value: "1", Role: kit.Err},
+			{Label: "Records", Value: "2,422,308"}, {Label: "leaders · 3 brokers", Value: "▇█▅", Role: kit.Accent}},
+	}
+}
+
+func TestTableDropsColumnsBeforeNames(t *testing.T) {
+	k, _ := kits(t)
+	for _, w := range []int{40, 60, 100} {
+		out := kit.Join(tableFixture().Render(k, w))
+		for _, want := range []string{"payments", "under-replicated", "healthy", "Status ▼"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("width %d: %q missing\n%s", w, want, out)
+			}
+		}
+	}
+	if head := tableFixture().Render(k, 40)[1]; strings.Contains(head, "Records") || !strings.Contains(head, "Topic") {
+		t.Errorf("width 40 should drop the Records column first: %q", head)
+	}
+	empty := tableFixture()
+	empty.Rows = nil
+	empty.Empty = "No topics yet."
+	if out := kit.Join(empty.Render(k, 80)); !strings.Contains(out, "No topics yet.") {
+		t.Errorf("empty table lost its message\n%s", out)
+	}
+}
+
 func TestFits(t *testing.T) {
 	_, k := kits(t)
 	screens := map[string]func(w int) []string{
@@ -105,6 +145,7 @@ func TestFits(t *testing.T) {
 		"unreachable": func(w int) []string { return Unreachable(refused()).Render(k, w) },
 		"bench":       func(w int) []string { return benchFixture().Render(k, w) },
 		"watch":       func(w int) []string { return watchFixture().Render(k, w, 30) },
+		"table":       func(w int) []string { return tableFixture().Render(k, w) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -187,6 +228,7 @@ func TestLiveScreensNeverTruncate(t *testing.T) {
 		lines = append(lines, benchFixture().Render(k, w)...)
 		lines = append(lines, watchFixture().Render(k, w, 40)...)
 		lines = append(lines, quiet.Render(k, w, 40)...)
+		lines = append(lines, tableFixture().Render(k, w)...)
 		for i, l := range lines {
 			if strings.Contains(l, "…") {
 				t.Fatalf("width %d line %d truncated: %q", w, i, l)

@@ -1,0 +1,30 @@
+K A A S  ·  brokers                                    v0kwmoCzR2OR… · 3 brokers · ctrl 2 · gen 42 ●
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+    ID  ADDRESS                                                    RACK          LEADS  ROLE
+▸    1  dev-dual-0.kafka:9092                                      a                 2
+     2  dev-dual-1.kafka:9092                                      b                 2  controller
+     3  dev-dual-2.kafka:9092                                      c                 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  E V E N T S
+  09:29:58  LeaderMoved orders/1 1 → 2
+  09:29:58  ISRShrunk orders/1 -[1]
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+ q quit · : command · / filter · enter open · esc back · ? help

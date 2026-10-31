@@ -1,0 +1,8 @@
+         Connecting to localhost:9092, kafka-1:9092...
+[    0.000000] dns: localhost → 127.0.0.1
+[  OK  ] Resolved localhost:9092. (400µs)
+[FAILED] Could not connect to localhost:9092. (1.0ms)
+[    0.000000] tcp: connect: connection refused
+[FAILED] Could not resolve kafka-1:9092. (1.0ms)
+[    0.000000] dns: no such host
+[ WARN ] Cluster unreachable after 3.0ms

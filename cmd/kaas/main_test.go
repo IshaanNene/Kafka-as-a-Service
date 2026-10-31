@@ -84,3 +84,54 @@ func TestWatchCommand(t *testing.T) {
 		t.Errorf("baseline=%v created=%v records=%v; output:\n%s", sawBaseline, sawCreated, sawRecords, out.String())
 	}
 }
+
+// TestErrorContract pins the exit codes and the plain and JSON error output
+// scripts see when stderr is not a terminal.
+func TestErrorContract(t *testing.T) {
+	c, _ := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	brokers := strings.Join(c.ListenAddrs(), ",")
+	tests := []struct {
+		args []string
+		exit int
+		want string
+	}{
+		{[]string{"brokrs"}, exitNotFound, `unknown command "brokrs"`},
+		{[]string{"snapshot", "-o", "yaml"}, exitUsage, `--output "yaml": must be one of table, json`},
+		{[]string{"watch", "--tpoic", "x"}, exitUsage, "did you mean --topic?"},
+		{[]string{"watch", "--budget", "abc"}, exitUsage, "not a valid float64"},
+		{[]string{"snapshot", "-b", "127.0.0.1:1"}, exitUnavailable, "cannot reach cluster at 127.0.0.1:1: tcp"},
+		{[]string{"watch", "-b", brokers, "-t", "oders"}, exitNotFound, "did you mean orders?"},
+	}
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
+			var out, errOut bytes.Buffer
+			root := newRoot()
+			root.SetOut(&out)
+			root.SetErr(&errOut)
+			root.SetArgs(tt.args)
+			cmd, err := root.ExecuteC()
+			if code := report(detect(&errOut, "amber"), err, wantsJSON(cmd)); code != tt.exit {
+				t.Errorf("exit = %d, want %d (err %v)", code, tt.exit, err)
+			}
+			if !strings.Contains(errOut.String(), tt.want) {
+				t.Errorf("stderr = %q, want %q", errOut.String(), tt.want)
+			}
+		})
+	}
+
+	var errOut bytes.Buffer
+	root := newRoot()
+	root.SetErr(&errOut)
+	root.SetArgs([]string{"snapshot", "-b", "127.0.0.1:1", "-o", "json"})
+	cmd, err := root.ExecuteC()
+	report(detect(&errOut, "amber"), err, wantsJSON(cmd))
+	var got struct {
+		Error struct {
+			Code string
+			Exit int
+		}
+	}
+	if err := json.Unmarshal(errOut.Bytes(), &got); err != nil || got.Error.Code != "unavailable" || got.Error.Exit != exitUnavailable {
+		t.Errorf("json error = %s (%v)", errOut.String(), err)
+	}
+}

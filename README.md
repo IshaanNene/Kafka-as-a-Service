@@ -8,9 +8,15 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 
 ```bash
 go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
+kaas -b localhost:9092                   # terminal UI (: command · / filter · ? help)
 kaas snapshot -b localhost:9092          # one-shot cluster summary
 kaas watch -b localhost:9092 -t orders   # stream events and record growth
+kaas help watch                          # usage and examples
 ```
+
+On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007).
+
+Themes: `--theme amber` (Amber Phosphor, default) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
 
 ## Develop
 
@@ -28,7 +34,7 @@ task dev                # kind + Strimzi + 3-broker KRaft cluster
 ```
 cmd/            kaas (agent, gateway, api, operator to come)
 core/           cluster-state engine; no UI or transport imports
-ui/             Bubble Tea screens and theme engine (Phase 1)
+ui/             TUI, shared command screens, grid kit and themes (Phase 1)
 proto/          Protobuf APIs (Phase 2)
 controlplane/   API services, reconcilers, outbox relay (Phase 2)
 dataplane/      agent, gateway, sniff decoder
@@ -38,5 +44,7 @@ deploy/         kind configs, Helm charts
 test/           kfake/Testcontainers harness, simulation, chaos, benchmarks
 docs/           design docs, ADRs, runbooks
 ```
+
+Screen layouts are Go ports of [ascii-magic](https://www.ascii-magic.com/ascii) UI pieces (MIT), drawn from live data (ADR-0007). A few decorative pieces are baked into frame packs by `task asciipack` (ADR-0006). Its licence and notice ship in `ui/asciipack/packs/`.
 
 Apache Kafka is a trademark of the Apache Software Foundation. KaaS is not affiliated with or endorsed by the ASF.

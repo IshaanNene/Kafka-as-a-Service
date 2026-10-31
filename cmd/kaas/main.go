@@ -16,30 +16,47 @@ import (
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/internal/version"
+	"github.com/IshaanNene/Kafka-as-a-Service/ui/theme"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	err := newRoot().ExecuteContext(ctx)
+	root := newRoot()
+	cmd, err := root.ExecuteContextC(ctx)
 	stop()
-	if err != nil {
-		os.Exit(1)
-	}
+	theme, _ := root.PersistentFlags().GetString("theme")
+	os.Exit(report(detect(os.Stderr, theme), err, wantsJSON(cmd)))
 }
 
 func newRoot() *cobra.Command {
-	var brokers string
+	var brokers, themeName string
 	root := &cobra.Command{
-		Use:           "kaas",
-		Short:         "Kafka As A Service: CLI and TUI for Apache Kafka",
+		Use:   "kaas",
+		Short: "Kafka As A Service: CLI and TUI for Apache Kafka",
+		Long:  "Kafka As A Service: one binary to watch, operate and eventually host Apache Kafka. Run with no command to open the terminal UI.",
+		Example: `  # Open the terminal UI against the local dev cluster
+  kaas
+  # Point at another cluster
+  kaas -b kafka-0.prod:9092,kafka-1.prod:9092
+  # One-shot snapshot for scripts
+  kaas snapshot -o json | jq '.Topics[].Name'`,
 		SilenceUsage:  true,
-		SilenceErrors: false,
+		SilenceErrors: true,
+		Args:          unknownCommand,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runTUI(cmd, brokers, themeName)
+		},
 	}
 	root.PersistentFlags().StringVarP(&brokers, "brokers", "b", envOr("KAAS_BROKERS", "localhost:9092"), "comma-separated seed brokers")
+	root.PersistentFlags().StringVar(&themeName, "theme", envOr("KAAS_THEME", theme.Default), "colour theme: "+strings.Join(theme.Names(), ", "))
+	root.SetFlagErrorFunc(flagError)
+	root.CompletionOptions.HiddenDefaultCmd = true
+	installHelp(root, &themeName)
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
+		Args:  unknownCommand,
 		Run: func(cmd *cobra.Command, _ []string) {
 			fmt.Fprintf(cmd.OutOrStdout(), "kaas %s (%s, %s)\n", version.Version, version.Commit, version.Date)
 		},
@@ -49,7 +66,19 @@ func newRoot() *cobra.Command {
 	snap := &cobra.Command{
 		Use:   "snapshot",
 		Short: "Print a one-shot cluster snapshot",
+		Long:  "Fetch metadata and log offsets once and print the cluster: brokers, topics, partitions and under-replication.",
+		Example: `  # Summary table
+  kaas snapshot
+  # Everything, as JSON, for scripts
+  kaas snapshot -o json | jq '.Topics[] | {Name, n: (.Partitions | length)}'`,
+		Args: unknownCommand,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := oneOf(cmd, "output", output, "table", "json"); err != nil {
+				return err
+			}
+			if err := connect(cmd, brokers, themeName); err != nil {
+				return err
+			}
 			cl, err := kgo.NewClient(kgo.SeedBrokers(strings.Split(brokers, ",")...))
 			if err != nil {
 				return err
@@ -66,7 +95,8 @@ func newRoot() *cobra.Command {
 	}
 	snap.Flags().StringVarP(&output, "output", "o", "table", "output format: table|json")
 	root.AddCommand(snap)
-	root.AddCommand(newWatchCmd(&brokers))
+	root.AddCommand(newWatchCmd(&brokers, &themeName))
+	root.AddCommand(newTUICmd(&brokers, &themeName))
 	return root
 }
 

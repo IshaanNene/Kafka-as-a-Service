@@ -1,0 +1,23 @@
+╭─ kaas watch ───────────────────────────────────────────────────────── usage ─╮
+│ > kaas watch█                                                        4 flags │
+│──────────────────────────────────────────────────────────────────────────────│
+│  Stream cluster events: leader moves, ISR changes, topics created and        │
+│  deleted                                                                     │
+│                                                                              │
+│ F L A G S                                                                    │
+│ ▌░-t,░--topic░strings░░topics░to░watch░closely░(repeatable)░░░░░░░░░░░░░░░░░░│
+│   -o, --output string  output format: text|json                        text  │
+│       --budget float   requests per second                               20  │
+│                                                                              │
+│ G L O B A L   F L A G S                                                      │
+│   -b, --brokers string  comma-separated seed brokers         localhost:9092  │
+│                                                                              │
+│──────────────────────────────────────────────────────────────────────────────│
+│ ◆ kaas v0.2.0   kaas watch [flags]                           -h  this screen │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭─●─●─●─────────────────────────────────────────────────────── dev@box: ~/src ─╮
+│ # Follow two topics                                                          │
+│ $ kaas watch -t orders -t payments                                           │
+│ $ kaas watch -o json | jq .event                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯

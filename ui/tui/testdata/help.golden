@@ -1,0 +1,30 @@
+K A A S  ·  topics                                     v0kwmoCzR2OR… · 3 brokers · ctrl 2 · gen 42 ●
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+  H E L P
+
+  :topics         list topics
+  :brokers        list brokers
+  :topic <name>   open a topic (or just :<name>)
+  /               filter the list; start with _ to include internal topics
+  enter           open the selected topic
+  esc             clear filter, then go back
+  j k ↑ ↓ g G     move
+  ctrl+d          debug overlay: request budget
+  q               quit
+
+  CLI twins: kaas snapshot · kaas watch -t <topic>    any key closes
+
+
+
+
+
+
+
+
+
+
+
+
+
+· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
+ q quit · : command · / filter · enter open · esc back · ? help

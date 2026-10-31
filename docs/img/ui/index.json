@@ -1,0 +1,397 @@
+[
+ {
+  "slug": "api-request-inspector",
+  "name": "API Request Inspector",
+  "note": "A request inspector where API calls stream in with method, path, status and timing bars, and one is opened to show its headers."
+ },
+ {
+  "slug": "benchmark-table",
+  "name": "Benchmark Results",
+  "note": "A benchmark runner that measures each case with a live iteration counter and fills a table of timings compared to the last baseline."
+ },
+ {
+  "slug": "bios-setup",
+  "name": "Firmware Setup Utility",
+  "note": "A retro firmware setup screen where a cursor walks the tabs, enables a setting, reorders boot devices and saves."
+ },
+ {
+  "slug": "bisect-hunt",
+  "name": "Bisect Hunt",
+  "note": "A bisect session that tests the middle commit, marks it good or bad and halves the range until the first bad commit is found."
+ },
+ {
+  "slug": "boot-sequence",
+  "name": "Boot Sequence",
+  "note": "A system boot log scrolls past with green OK tags, then the machine waits at a login prompt."
+ },
+ {
+  "slug": "calculator-app",
+  "name": "Calculator Keypad",
+  "note": "A calculator where keys light up as they are pressed, the display builds an expression and the result rolls in on equals."
+ },
+ {
+  "slug": "calendar-month",
+  "name": "Calendar Month",
+  "note": "A month calendar with coloured event dots, today marked, and a selection hopping between days with an agenda panel."
+ },
+ {
+  "slug": "chat-thread",
+  "name": "Chat Thread",
+  "note": "A chat conversation where bubbles appear after a typing indicator and replies are typed in the composer."
+ },
+ {
+  "slug": "checkout-payment-flow",
+  "name": "Checkout Payment Flow",
+  "note": "A checkout page fills shipping and card details, processes the payment and lands on a confirmed order."
+ },
+ {
+  "slug": "cluster-rollout",
+  "name": "Rolling Deployment",
+  "note": "A cluster rolling update where new pods start, pass readiness and replace old ones while a status line counts up to a successful rollout."
+ },
+ {
+  "slug": "code-editor",
+  "name": "Code Editor",
+  "note": "An editor window with line numbers where a small rate limiter is typed out in syntax colours."
+ },
+ {
+  "slug": "color-picker-sliders",
+  "name": "Color Picker Sliders",
+  "note": "A colour picker where the hue strip, the shade field and the RGB sliders move together and the swatch and hex code follow."
+ },
+ {
+  "slug": "command-palette",
+  "name": "Command Palette",
+  "note": "A command palette drops over a dimmed editor, filters commands as a query is typed and runs the pick."
+ },
+ {
+  "slug": "compiler-output",
+  "name": "Compiler Warnings",
+  "note": "A compiler build log that compiles dependencies, prints an unused variable warning with a pointed snippet and finishes green."
+ },
+ {
+  "slug": "coverage-report",
+  "name": "Coverage Report",
+  "note": "A code coverage report where per-file bars fill up, colour by threshold and then re-sort so the weakest files rise to the top."
+ },
+ {
+  "slug": "data-table",
+  "name": "Data Table",
+  "note": "A service status table that re-sorts by a new column every few seconds while a selection bar walks the rows."
+ },
+ {
+  "slug": "date-range-picker",
+  "name": "Date Range Picker",
+  "note": "A two month calendar where a start date is clicked, the range stretches with the cursor and the night count updates."
+ },
+ {
+  "slug": "delivery-route-tracker",
+  "name": "Delivery Route Tracker",
+  "note": "A delivery tracking screen where the route draws across a street grid, the courier moves along it and the order steps tick to delivered."
+ },
+ {
+  "slug": "dialup-handshake",
+  "name": "Dial-Up Handshake",
+  "note": "A retro terminal program that dials out, shows the modem handshake as a noisy signal with front panel lights, connects and lands on a bulletin board."
+ },
+ {
+  "slug": "disk-partitioner",
+  "name": "Partition Editor",
+  "note": "A curses-style partition editor that carves a new partition out of free space, writes the table and formats it."
+ },
+ {
+  "slug": "dns-resolver-chain",
+  "name": "DNS Resolver Chain",
+  "note": "A DNS lookup diagram where a query packet hops from the client to the resolver, root, TLD and authoritative servers and the answer returns."
+ },
+ {
+  "slug": "download-queue",
+  "name": "Download Queue",
+  "note": "A download manager where six files report size, speed and time left, then finish one by one."
+ },
+ {
+  "slug": "file-tree",
+  "name": "File Tree",
+  "note": "A project explorer where a cursor walks the tree, opening and closing folders as it goes."
+ },
+ {
+  "slug": "flame-graph",
+  "name": "Profiler Flame Graph",
+  "note": "A CPU profiler flame graph whose stacks grow and settle as samples come in while a cursor inspects the hottest frames."
+ },
+ {
+  "slug": "form-validation-errors",
+  "name": "Form Validation Errors",
+  "note": "A form is submitted half filled, red errors drop in under each bad field, then each one is corrected until it submits clean."
+ },
+ {
+  "slug": "git-log-graph",
+  "name": "Git Log Graph",
+  "note": "A git log graph with feature branches merging back into main as new commits land on top."
+ },
+ {
+  "slug": "heap-map",
+  "name": "Heap Allocator Map",
+  "note": "A memory allocator page map where blocks are allocated and freed, fragmentation builds up and a compaction pass packs it tight."
+ },
+ {
+  "slug": "ide-debugger-stepping",
+  "name": "Debugger Stepping",
+  "note": "An editor debugger steps line by line through a loop, pausing on breakpoints while locals, watches and the call stack change."
+ },
+ {
+  "slug": "image-layer-pull",
+  "name": "Container Layer Pull",
+  "note": "A container image pull where each layer downloads with its own progress bar, extracts and completes, ending with a digest."
+ },
+ {
+  "slug": "inbox-list",
+  "name": "Inbox List",
+  "note": "An email inbox with unread dots, stars and previews, where new mail slides in at the top."
+ },
+ {
+  "slug": "infra-plan-diff",
+  "name": "Infra Plan and Apply",
+  "note": "An infrastructure-as-code plan that lists resources to add, change and destroy in coloured diffs, then applies them with elapsed timers."
+ },
+ {
+  "slug": "install-log",
+  "name": "Install Log",
+  "note": "A package manager install log resolving, fetching and linking packages, ending in a green summary."
+ },
+ {
+  "slug": "kanban-board",
+  "name": "Kanban Board",
+  "note": "A three column task board where cards lift, travel across and settle into place."
+ },
+ {
+  "slug": "keyboard-keypress",
+  "name": "Keyboard Keypress",
+  "note": "A keyboard where each key sinks and lights as a sentence is typed into the text field above it, shift and space included."
+ },
+ {
+  "slug": "login-form",
+  "name": "Login Form",
+  "note": "A sign-in card where the email and password fill in, the button presses and a success tick draws itself."
+ },
+ {
+  "slug": "maintenance-mode",
+  "name": "Maintenance Mode",
+  "note": "A be right back page with a turning gear, a rocking wrench and a live list of upgrade steps."
+ },
+ {
+  "slug": "merge-conflict-resolver",
+  "name": "Merge Conflict Resolver",
+  "note": "A three pane merge editor walks through conflicting hunks, accepting ours, theirs or both until the file is clean."
+ },
+ {
+  "slug": "modal-dialog",
+  "name": "Modal Dialog",
+  "note": "A delete confirmation dialog pops up over a dimmed settings page, takes a typed name and closes."
+ },
+ {
+  "slug": "modal-editor",
+  "name": "Modal Editor Session",
+  "note": "A modal terminal text editor where the cursor hops, a line is deleted, a new one inserted, a search and replace runs and the file is saved."
+ },
+ {
+  "slug": "network-waterfall",
+  "name": "Request Waterfall",
+  "note": "A browser network panel where requests appear as a page loads, each with queue, connect, wait and download segments on a waterfall."
+ },
+ {
+  "slug": "onboarding-stepper",
+  "name": "Onboarding Stepper",
+  "note": "A setup wizard walks through four steps, filling fields, picking options and ticking the stepper rail as it goes."
+ },
+ {
+  "slug": "otp-code-entry",
+  "name": "OTP Code Entry",
+  "note": "A two step verification screen where a six digit code is typed, shakes as wrong, is retyped and goes green."
+ },
+ {
+  "slug": "package-publish",
+  "name": "Package Publish",
+  "note": "A terminal packs a package, lists its files, publishes it to the registry, and the weekly downloads graph beside it starts to climb."
+ },
+ {
+  "slug": "packet-sniffer",
+  "name": "Packet Capture",
+  "note": "A packet capture tool streaming colour-coded TCP, UDP, DNS and TLS packets with protocol counters and a hex dump of the selected packet."
+ },
+ {
+  "slug": "page-404",
+  "name": "Lost In Space 404",
+  "note": "A not found page with a big glowing 404 and a lost satellite drifting through twinkling stars."
+ },
+ {
+  "slug": "page-500",
+  "name": "Server Error 500",
+  "note": "A 500 error page with a smoking server rack, blinking fault lights and a retry countdown."
+ },
+ {
+  "slug": "password-strength-meter",
+  "name": "Password Strength Meter",
+  "note": "A password field where each keystroke moves a strength meter from weak to strong and ticks off the rules."
+ },
+ {
+  "slug": "pod-autoscaler",
+  "name": "Pod Autoscaler",
+  "note": "A container cluster view where a traffic spike pushes CPU up, new pods spin up across the nodes, then scale back down as load eases."
+ },
+ {
+  "slug": "post-memory-test",
+  "name": "Power-On Memory Count",
+  "note": "A retro power-on self test that counts up memory, detects drives one by one and hands off to the boot loader."
+ },
+ {
+  "slug": "pr-merged",
+  "name": "Pull Request Merged",
+  "note": "A pull request page where the checks turn green one by one, a review approves it and the merge button lands it, branch deleted."
+ },
+ {
+  "slug": "pricing-toggle-table",
+  "name": "Pricing Plan Toggle",
+  "note": "A three plan pricing table where the billing switch flips between monthly and yearly, prices roll to the new numbers and a plan is picked."
+ },
+ {
+  "slug": "process-sorter",
+  "name": "Process Viewer Sort",
+  "note": "An interactive process viewer with meter bars where the table slides into a new order as the sort column changes."
+ },
+ {
+  "slug": "process-task-manager",
+  "name": "Process Task Manager",
+  "note": "A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended."
+ },
+ {
+  "slug": "process-tree",
+  "name": "Process Tree Live",
+  "note": "A live process tree with branch lines where build workers and request handlers spawn in green, run and exit in red."
+ },
+ {
+  "slug": "progress-loader",
+  "name": "Progress Loader",
+  "note": "Four terminal progress bars filling at their own pace, with percent and a spinner."
+ },
+ {
+  "slug": "readme-badges",
+  "name": "README Badge Row",
+  "note": "A README's badge row where build turns passing, coverage climbs, downloads tick up and the star count rolls over."
+ },
+ {
+  "slug": "rebase-todo",
+  "name": "Interactive Rebase Todo",
+  "note": "An interactive rebase todo list where commits are squashed, reworded, dropped and reordered before the rebase replays them."
+ },
+ {
+  "slug": "relay-chat-channel",
+  "name": "Relay Chat Channel",
+  "note": "A terminal relay chat client where people join and leave a channel, chat with timestamps and the nick list updates beside them."
+ },
+ {
+  "slug": "release-published",
+  "name": "Release Published",
+  "note": "A terminal tags v1.1.0, pushes it, and the release notes type themselves out with new features, fixes and thanks to contributors."
+ },
+ {
+  "slug": "repo-star-button",
+  "name": "Star Button Click",
+  "note": "A repository header with Watch, Fork and Star buttons: the cursor glides over, clicks Star, and the count ticks over to your number."
+ },
+ {
+  "slug": "search-autocomplete",
+  "name": "Search Autocomplete",
+  "note": "A search box where suggestions narrow and highlight with every keystroke, then a result is picked with the arrow keys."
+ },
+ {
+  "slug": "settings-toggles",
+  "name": "Settings Toggles",
+  "note": "A settings panel where a focus marker moves down the list, flipping switches and dragging sliders."
+ },
+ {
+  "slug": "skeleton-loader",
+  "name": "Skeleton Loader",
+  "note": "Shimmering skeleton placeholders for a feed of cards that dissolve into the real content."
+ },
+ {
+  "slug": "smart-home-panel",
+  "name": "Smart Home Panel",
+  "note": "A home dashboard where lights flip on room by room, the thermostat climbs to its target, the door locks and the energy graph scrolls."
+ },
+ {
+  "slug": "spectrum-music-player",
+  "name": "Spectrum Music Player",
+  "note": "A music player window with bouncing spectrum bars, a moving progress bar and a playlist that advances track by track."
+ },
+ {
+  "slug": "spinner-set",
+  "name": "Spinner Set",
+  "note": "Twelve classic terminal spinners side by side, each labelled with its name and frame count."
+ },
+ {
+  "slug": "split-pane-session",
+  "name": "Split Pane Multiplexer",
+  "note": "A terminal multiplexer split into a streaming server log, a live resource meter and a test watcher, with focus hopping between panes."
+ },
+ {
+  "slug": "spreadsheet-recalc",
+  "name": "Spreadsheet Recalc",
+  "note": "A budget spreadsheet where a cell is edited, its formula bar updates and the dependent totals flash as they recalculate."
+ },
+ {
+  "slug": "sql-query-runner",
+  "name": "SQL Query Runner",
+  "note": "A database console types a SQL query with highlighting, runs it and fills a result grid with rows and timing."
+ },
+ {
+  "slug": "ssh-login",
+  "name": "Secure Shell Login",
+  "note": "A remote shell session that accepts a host key, prints a welcome banner with system stats, runs two commands and logs out."
+ },
+ {
+  "slug": "star-rating-review",
+  "name": "Star Rating Review",
+  "note": "A review card where the cursor hovers across five stars, settles on a rating, writes a short review and posts it to the tally."
+ },
+ {
+  "slug": "tab-bar",
+  "name": "Tab Bar",
+  "note": "An editor tab bar where the active underline slides between files and the content swaps beneath."
+ },
+ {
+  "slug": "terminal-session",
+  "name": "Terminal Session",
+  "note": "A shell session where commands are typed at a coloured prompt and their output streams back."
+ },
+ {
+  "slug": "test-runner-dots",
+  "name": "Test Suite Dots",
+  "note": "A test runner that prints a dot per passing test across files, flags a failure with a diff and ends in a coloured summary."
+ },
+ {
+  "slug": "toast-stack",
+  "name": "Toast Stack",
+  "note": "Notification toasts slide into the corner of an app, stack up, count down and slide away."
+ },
+ {
+  "slug": "twin-pane-commander",
+  "name": "Twin Pane Commander",
+  "note": "A retro two-pane file manager where the cursor picks files, a copy dialog fills its progress bar and the files land in the other pane."
+ },
+ {
+  "slug": "upload-dropzone",
+  "name": "Upload Dropzone",
+  "note": "A cursor drags a stack of files onto a drop zone that lights up, then each file uploads with its own progress bar."
+ },
+ {
+  "slug": "weather-city-widget",
+  "name": "Weather City Widget",
+  "note": "A weather widget that slides from city to city, each with an animated sky icon, hourly temperatures and a five day outlook."
+ },
+ {
+  "slug": "window-tiling-manager",
+  "name": "Window Tiling Manager",
+  "note": "A desktop where windows open one by one and the tiling layout slides between halves, columns and a grid."
+ }
+]

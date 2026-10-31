@@ -33,6 +33,14 @@ tasks:
     cmds:
       - go test ./cmd/kaas -run TestScreenshots -count=1 -shots "$PWD/docs/img"
 
+  gallery:
+    desc: Regenerate docs/SCREENS.md, every ascii-magic UI piece beside its kaas command
+    dir: tools/asciipack
+    cmds:
+      - npm ci --silent
+      - node stills.mjs ../../docs/img/ui
+      - node gallery.mjs ../../docs
+
   asciipack:
     desc: Re-bake ascii-magic frame packs into ui/asciipack/packs (needs Node; the Go build does not)
     dir: tools/asciipack

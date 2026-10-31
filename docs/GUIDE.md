@@ -190,7 +190,7 @@ Errors are screens too, and each one says what to do next.
 
 ## What's coming
 
-Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI layouts are assigned to commands ([design 0002](design/0002-command-screens.md)). Highlights:
+Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI layouts are assigned to commands. See them all, side by side with the screens already built, in the [screen gallery](SCREENS.md). Highlights:
 
 | Command | Screen |
 |---|---|

@@ -6,6 +6,8 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 
 **[Read the guide: what KaaS is, every screen, and how to use it →](docs/GUIDE.md)**
 
+**[See the screen gallery: all 79 UI pieces and the command each one belongs to →](docs/SCREENS.md)**
+
 ![The kaas terminal UI](docs/img/tui-topics.svg)
 
 ## Quick start

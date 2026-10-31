@@ -4,7 +4,7 @@ Status: accepted · 2026-10-31 · see ADR-0007
 
 Every `kaas` command draws its own screen on a terminal. Each screen is a Go port of one ascii-magic UI piece's layout, filled with live cluster data (`ui/kit`, `ui/screens`). Pipes get plain text and `-o json` gets JSON, so scripts never see a screen.
 
-This document maps all 79 pieces in ascii-magic's **UI** category to the command or state that uses them. It also maps the **Empty States** and **Live Data** pieces where a command needs a state card or a chart. Piece names link to `https://www.ascii-magic.com/ascii/<slug>`.
+This document maps all 79 pieces in ascii-magic's **UI** category to the command or state that uses them. It also maps the **Empty States** and **Live Data** pieces where a command needs a state card or a chart. Piece names link to `https://www.ascii-magic.com/ascii/<slug>`. To see every piece as an image next to its command, open the [screen gallery](../SCREENS.md), which is generated from these tables (`task gallery`).
 
 **Status** is one of:
 - **built**: the screen is shipped.

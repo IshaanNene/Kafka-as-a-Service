@@ -1,0 +1,65 @@
+version: "3"
+
+vars:
+  KIND_CLUSTER: kaas-dev
+  STRIMZI_VERSION: 1.0.1
+
+tasks:
+  default:
+    cmds: [task --list]
+
+  build:
+    desc: Build the kaas binary into ./bin
+    cmds:
+      - go build -o bin/kaas ./cmd/kaas
+
+  test:
+    desc: Unit, property and kfake tests
+    cmds:
+      - go test -race ./...
+
+  test:integration:
+    desc: Testcontainers tests (needs Docker). Set KAAS_KAFKA_IMAGE to pick a version.
+    cmds:
+      - go test -race -tags integration ./...
+
+  lint:
+    desc: golangci-lint, including the core/ import boundary
+    cmds:
+      - golangci-lint run ./...
+
+  vuln:
+    desc: govulncheck
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  release:snapshot:
+    desc: Local GoReleaser dry run (no signing, no publish)
+    cmds:
+      - goreleaser release --snapshot --clean --skip=sign,sbom
+
+  dev:
+    desc: Local stack on kind — Strimzi operator plus a 3-broker KRaft cluster
+    cmds:
+      - kind get clusters | grep -qx {{.KIND_CLUSTER}} || kind create cluster --name {{.KIND_CLUSTER}} --config deploy/kind/kind-config.yaml
+      - kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
+      # The release manifest binds the operator's service account in namespace
+      # "myproject"; rewrite it or the operator gets 403s on every call.
+      - >-
+        curl -fsSL "https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{.STRIMZI_VERSION}}/strimzi-cluster-operator-{{.STRIMZI_VERSION}}.yaml"
+        | sed 's/namespace: myproject/namespace: kafka/'
+        | kubectl apply -n kafka -f -
+      - kubectl -n kafka rollout status deploy/strimzi-cluster-operator --timeout=5m
+      - kubectl apply -n kafka -f deploy/kind/kafka.yaml
+      - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m
+      - echo "Kafka ready. Run 'task dev:forward' then 'kaas snapshot -b localhost:9092'."
+
+  dev:forward:
+    desc: Port-forward the dev cluster's bootstrap to localhost:9092
+    cmds:
+      - kubectl -n kafka port-forward svc/dev-kafka-bootstrap 9092:9092
+
+  dev:down:
+    desc: Delete the kind cluster
+    cmds:
+      - kind delete cluster --name {{.KIND_CLUSTER}}

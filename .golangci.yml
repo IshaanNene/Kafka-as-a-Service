@@ -1,0 +1,50 @@
+version: "2"
+
+linters:
+  enable:
+    - depguard
+    - errorlint
+    - gocritic
+    - misspell
+    - revive
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+    depguard:
+      rules:
+        # ADR-0003: core/ is the shared engine. It may not depend on any UI or
+        # transport so the agent, API and TUI can all embed it.
+        core-boundary:
+          files:
+            - "**/core/**"
+          deny:
+            - pkg: github.com/IshaanNene/Kafka-as-a-Service/ui
+              desc: core/ must not import ui/
+            - pkg: github.com/IshaanNene/Kafka-as-a-Service/controlplane
+              desc: core/ must not import transports
+            - pkg: github.com/IshaanNene/Kafka-as-a-Service/dataplane
+              desc: core/ must not import transports
+            - pkg: github.com/charmbracelet
+              desc: core/ must not import UI libraries
+            - pkg: connectrpc.com
+              desc: core/ must not import transports
+            - pkg: google.golang.org/grpc
+              desc: core/ must not import transports
+            - pkg: net/http
+              desc: core/ must not import transports
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/IshaanNene/Kafka-as-a-Service

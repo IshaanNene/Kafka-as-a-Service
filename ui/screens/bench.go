@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/ui/kit"
+	"github.com/IshaanNene/Kafka-as-a-Service/ui/theme"
 )
 
 // BenchState is where a case is in the run.
@@ -97,7 +98,7 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 	if barW >= 8 {
 		head += "relative"
 	}
-	body := []string{k.S(kit.Muted, head), k.S(kit.Rule, strings.Repeat("─", inner))}
+	body := []string{k.S(kit.FG, head), k.S(kit.Faint, strings.Repeat("─", inner))}
 
 	best := 0.0
 	for _, r := range b.Rows {
@@ -116,7 +117,7 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 		name := kit.Fit(r.Name, nw)
 		switch r.State {
 		case BenchDone, BenchFailed:
-			line := lead + k.S(kit.FG, name) + "  " + k.S(kit.Accent2, lpad(Num(r.RecsPerSec), numW))
+			line := lead + k.S(kit.FG, name) + "  " + k.B(kit.FG, lpad(Num(r.RecsPerSec), numW))
 			if showMB {
 				line += " " + k.S(kit.FG, lpad(fmt.Sprintf("%.2f", r.MBPerSec), 7))
 			}
@@ -133,7 +134,7 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 				}
 				line += k.S(kit.Err, msg)
 			case barW >= 8 && best > 0:
-				line += k.S(kit.Accent, strings.Repeat("■", max(1, int(float64(barW)*r.RecsPerSec/best))))
+				line += k.S(barRole(r, best), strings.Repeat("■", max(1, int(float64(barW)*r.RecsPerSec/best))))
 			}
 			body = append(body, line)
 		case BenchRunning:
@@ -145,18 +146,18 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 			count := fmt.Sprintf("acked %s/%s", Num(float64(r.Acked)), Num(float64(r.Total)))
 			pw := max(4, min(24, inner-nw-kit.Width(count)-12))
 			fill := int(pct * float64(pw))
-			body = append(body, lead+k.S(kit.Accent2, name)+"  "+k.S(kit.FG, count)+"  "+
-				k.S(kit.Accent, strings.Repeat("█", fill))+k.S(kit.Rule, strings.Repeat("░", pw-fill))+
+			body = append(body, lead+k.S(kit.FG, name)+"  "+k.S(kit.Accent, count)+"  "+
+				k.S(kit.Accent, strings.Repeat("█", fill))+k.S(kit.Accent, strings.Repeat("░", pw-fill))+
 				k.S(kit.Muted, fmt.Sprintf(" %3.0f%%", pct*100)))
 		default:
-			body = append(body, lead+k.S(kit.Muted, name)+"  "+k.S(kit.Rule, "···········"))
+			body = append(body, lead+k.S(kit.Rule, name)+"  "+k.S(kit.Faint, "···········"))
 		}
 	}
-	body = append(body, "", k.S(kit.Rule, strings.Repeat("─", inner)))
+	body = append(body, "", k.S(kit.Faint, strings.Repeat("─", inner)))
 	for _, l := range kit.Wrap(b.Foot, inner-2) {
 		body = append(body, " "+k.S(kit.Muted, l))
 	}
-	out := k.Draw(kit.Box{Title: k.B(kit.Accent, b.Title), Right: k.S(kit.Muted, b.Right), Role: kit.Rule, Width: w}, body)
+	out := k.Draw(kit.Box{Title: k.S(kit.Muted, b.Title), Right: k.S(kit.Muted, b.Right), Role: kit.Rule, Width: w}, body)
 
 	// Charts sit side by side when the throughput chart still gets 40
 	// columns; otherwise they stack at full width.
@@ -209,11 +210,13 @@ func (b Bench) histogram(k kit.Kit, w int) []string {
 		if n > 0 {
 			bar = max(bar, 1)
 		}
+		// Fast buckets start the chart ramp and slow ones end it, as the
+		// histogram piece shades its bars by distance along the axis.
 		body = append(body, " "+k.S(kit.Muted, lpad(label, labelW))+" "+
-			k.S(kit.Accent, strings.Repeat("■", bar))+strings.Repeat(" ", barW-bar)+
+			k.Hex(theme.Ramp(k.Theme.Chart, i-lo, hi-lo+1), strings.Repeat("■", bar))+strings.Repeat(" ", barW-bar)+
 			k.S(kit.FG, lpad(fmt.Sprintf("%.1f%%", 100*float64(n)/float64(total)), 6)))
 	}
-	return k.Draw(kit.Box{Title: k.S(kit.Accent2, b.HistTitle), Role: kit.Rule, Width: w}, body)
+	return k.Draw(kit.Box{Title: k.S(kit.FG, b.HistTitle), Role: kit.Rule, Width: w}, body)
 }
 
 // rateChart draws throughput as an 8-level block column chart, newest on
@@ -252,24 +255,53 @@ func (b Bench) rateChart(k kit.Kit, w int) []string {
 		case 0:
 			axis = lpad(Num(floor), axisW-1) + " "
 		}
-		var sb strings.Builder
+		// Solid cells in the chart's deep blue, the partial top of each
+		// column in the accent, as network-traffic draws its fill.
+		line := k.S(kit.Muted, axis) + k.S(kit.Faint, "┤")
+		var run strings.Builder
+		top := false
+		flush := func() {
+			if run.Len() == 0 {
+				return
+			}
+			if top {
+				line += k.S(kit.Accent, run.String())
+			} else {
+				line += k.Hex(theme.Ramp(k.Theme.Chart, 0, 2), run.String())
+			}
+			run.Reset()
+		}
 		for _, v := range data {
 			eighths := int((v - floor) / (peak - floor) * rows * 8)
 			cell := eighths - row*8
+			r, isTop := ' ', true
 			switch {
 			case cell >= 8:
-				sb.WriteRune('█')
-			case cell <= 0:
-				sb.WriteRune(' ')
-			default:
-				sb.WriteRune(levels[cell])
+				r, isTop = '█', eighths-(row+1)*8 <= 0
+			case cell > 0:
+				r = levels[cell]
 			}
+			if isTop != top {
+				flush()
+				top = isTop
+			}
+			run.WriteRune(r)
 		}
-		body = append(body, k.S(kit.Muted, axis)+k.S(kit.Rule, "┤")+k.S(kit.Accent, sb.String()))
+		flush()
+		body = append(body, line)
 	}
 	now := data[len(data)-1]
 	body = append(body, k.S(kit.Muted, fmt.Sprintf(" now %s/s · peak %s/s · %d windows", Num(now), Num(peak), len(b.Rate))))
-	return k.Draw(kit.Box{Title: k.S(kit.Accent2, b.RateTitle), Role: kit.Rule, Width: w}, body)
+	return k.Draw(kit.Box{Title: k.S(kit.FG, b.RateTitle), Role: kit.Rule, Width: w}, body)
+}
+
+// barRole paints the fastest case green, as benchmark-table marks the case
+// that beat its baseline; the rest are blue.
+func barRole(r BenchRow, best float64) kit.Role {
+	if r.RecsPerSec >= best {
+		return kit.OK
+	}
+	return kit.Accent
 }
 
 // Dur prints a latency compactly: 840µs, 5.2ms, 1.3s.
@@ -318,11 +350,11 @@ func (b Bench) cards(k kit.Kit, inner int, best float64) []string {
 		case BenchDone, BenchFailed:
 			bar := ""
 			if best > 0 && r.Errors == 0 && r.State == BenchDone {
-				bar = k.S(kit.Accent, strings.Repeat("■", max(1, int(10*r.RecsPerSec/best))))
+				bar = k.S(barRole(r, best), strings.Repeat("■", max(1, int(10*r.RecsPerSec/best))))
 			}
 			body = append(body, spread(" "+k.B(kit.FG, r.Name), bar+" ", inner))
 			body = append(body, joinWrap(k, []string{
-				k.S(kit.Accent2, Num(r.RecsPerSec)+" rec/s"), k.S(kit.FG, fmt.Sprintf("%.2f MB/s", r.MBPerSec)),
+				k.B(kit.FG, Num(r.RecsPerSec)+" rec/s"), k.S(kit.FG, fmt.Sprintf("%.2f MB/s", r.MBPerSec)),
 				k.S(kit.Muted, "p50 ") + k.S(kit.FG, Dur(r.P50)), k.S(kit.Muted, "p99 ") + k.S(kit.FG, Dur(r.P99)),
 				k.S(kit.Muted, "max ") + k.S(kit.FG, Dur(r.Max)),
 			}, inner-3, "   ")...)
@@ -340,13 +372,13 @@ func (b Bench) cards(k kit.Kit, inner int, best float64) []string {
 			if r.Total > 0 {
 				pct = float64(r.Acked) / float64(r.Total)
 			}
-			body = append(body, k.S(kit.Accent, spinner[b.Spin%len(spinner)])+k.B(kit.Accent2, r.Name))
+			body = append(body, k.S(kit.Accent, spinner[b.Spin%len(spinner)])+k.B(kit.FG, r.Name))
 			count := fmt.Sprintf(" %3.0f%% · %s/%s", pct*100, Num(float64(r.Acked)), Num(float64(r.Total)))
 			pw := max(4, inner-4-kit.Width(count))
 			fill := int(pct * float64(pw))
-			body = append(body, "   "+k.S(kit.Accent, strings.Repeat("█", fill))+k.S(kit.Rule, strings.Repeat("░", pw-fill))+k.S(kit.Muted, count))
+			body = append(body, "   "+k.S(kit.Accent, strings.Repeat("█", fill))+k.S(kit.Accent, strings.Repeat("░", pw-fill))+k.S(kit.Muted, count))
 		default:
-			body = append(body, " "+k.S(kit.Muted, r.Name), "   "+k.S(kit.Rule, "···········"))
+			body = append(body, " "+k.S(kit.Rule, r.Name), "   "+k.S(kit.Faint, "···········"))
 		}
 	}
 	return body

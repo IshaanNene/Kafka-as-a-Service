@@ -147,6 +147,7 @@ That puts 75 of the 79 UI pieces to use.
 ## How a screen is built
 
 1. Print the piece's still frames (`tools/asciipack`) and port its layout to `ui/screens` using `ui/kit` parts.
+   Port its colours too: the default `magic` theme is the pieces' own palette, so use the role the piece uses for each part (grey frames and titles, white values, blue bars, green for better, orange warnings, red errors) and the theme's `Chart`, `Hot` and `Cool` ramps for its gradients.
 2. Feed it from the engine, the probe or the command's own measurements. No canned data.
 3. Add golden tests (monochrome) and a fit test (colour, 40 to 200 columns).
 4. Write the plain and JSON output for non-TTY, with exit codes from ADR-0007.

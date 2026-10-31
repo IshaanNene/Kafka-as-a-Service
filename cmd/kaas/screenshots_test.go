@@ -39,7 +39,7 @@ func TestScreenshots(t *testing.T) {
 	if *shots == "" {
 		t.Skip("pass -shots <dir> to regenerate the docs' screenshots")
 	}
-	th, _ := theme.Get("amber")
+	th, _ := theme.Get(theme.Default)
 	k := kit.New(th, true)
 	save := func(name, title string, b []string) {
 		t.Helper()

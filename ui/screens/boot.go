@@ -15,15 +15,15 @@ import (
 
 // BootStart is the line printed before probing begins.
 func BootStart(k kit.Kit, seeds []string) []string {
-	return []string{k.S(kit.Muted, "         Connecting to ") + k.S(kit.Accent2, join(seeds)) + k.S(kit.Muted, "...")}
+	return []string{k.S(kit.Muted, "         Connecting to ") + k.S(kit.FG, join(seeds)) + k.S(kit.Muted, "...")}
 }
 
 // BootStep renders one finished probe step.
 func BootStep(k kit.Kit, s probe.Step) []string {
-	ts := k.S(kit.Muted, fmt.Sprintf("[%12.6f]", s.At.Seconds()))
+	ts := k.S(kit.Rule, fmt.Sprintf("[%12.6f]", s.At.Seconds()))
 	var out []string
 	if s.Detail != "" {
-		out = append(out, ts+" "+k.S(kit.FG, s.Stage.String()+": "+s.Detail))
+		out = append(out, ts+" "+k.S(kit.Muted, s.Stage.String()+": "+s.Detail))
 	}
 	took := k.S(kit.Muted, " ("+dur(s.Took)+")")
 	if s.OK() {
@@ -41,12 +41,12 @@ func BootDone(k kit.Kit, r probe.Result) []string {
 		return []string{verdict(k, kit.Warn, " WARN ") + " " + k.S(kit.FG, "Cluster unreachable after "+dur(r.Took))}
 	}
 	return []string{verdict(k, kit.OK, "  OK  ") + " " + k.S(kit.FG, "Reached target ") +
-		k.B(kit.Accent, "cluster "+short(r.Cluster, 12)) +
+		k.B(kit.FG, "cluster "+short(r.Cluster, 12)) +
 		k.S(kit.Muted, fmt.Sprintf(" · %d brokers · %d topics · %s", r.Brokers, r.Topics, dur(r.Took)))}
 }
 
 func verdict(k kit.Kit, r kit.Role, s string) string {
-	return k.S(kit.Muted, "[") + k.B(r, s) + k.S(kit.Muted, "]")
+	return k.S(kit.FG, "[") + k.S(r, s) + k.S(kit.FG, "]")
 }
 
 func okText(s probe.Step) string {

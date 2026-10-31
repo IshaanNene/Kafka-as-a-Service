@@ -172,7 +172,7 @@ Errors are screens too, and each one says what to do next.
 | Setting | Flag | Environment | Default |
 |---|---|---|---|
 | Seed brokers | `-b`, `--brokers` | `KAAS_BROKERS` | `localhost:9092` |
-| Theme | `--theme amber\|ice` | `KAAS_THEME` | `amber` |
+| Theme | `--theme magic\|amber\|ice` | `KAAS_THEME` | `magic`: the colours of the original ascii-magic pieces |
 | No colour | | `NO_COLOR=1` | |
 | No animation | | `KAAS_REDUCED_MOTION=1` | |
 

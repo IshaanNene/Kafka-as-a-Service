@@ -23,7 +23,7 @@ kaas help watch                          # usage and examples
 
 On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007). [Design 0002](docs/design/0002-command-screens.md) maps every ascii-magic UI piece to the command that uses it.
 
-Themes: `--theme amber` (Amber Phosphor, default) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
+Themes: `--theme magic` (default: each screen in the colours of the ascii-magic piece it was ported from), `--theme amber` (Amber Phosphor) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
 
 ## Develop
 

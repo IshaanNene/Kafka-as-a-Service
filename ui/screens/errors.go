@@ -46,7 +46,7 @@ func (f Failure) Render(k kit.Kit, width int) []string {
 		textW = min(width-rw-8, 56)
 	}
 	right := []string{}
-	right = append(right, k.Big(f.Code, kit.Accent)...)
+	right = append(right, k.BigRamp(f.Code, k.Theme.Hot, false)...)
 	right = append(right, "", k.B(kit.FG, f.Title))
 	for _, l := range kit.Wrap(f.Subtitle, textW) {
 		right = append(right, k.S(kit.Muted, l))
@@ -58,13 +58,18 @@ func (f Failure) Render(k kit.Kit, width int) []string {
 			kw = max(kw, kit.Width(r[0]))
 		}
 		// Long values (error strings) wrap under themselves, not under the key.
-		for _, r := range f.Facts {
+		// The first fact is the failure itself, red as page-500's upstream line.
+		for j, r := range f.Facts {
+			role := kit.FG
+			if j == 0 {
+				role = kit.Err
+			}
 			for i, l := range kit.Wrap(r[1], max(textW-kw-2, 16)) {
 				key := ""
 				if i == 0 {
 					key = r[0]
 				}
-				right = append(right, k.S(kit.Muted, kit.Fit(key, kw))+"  "+k.S(kit.FG, l))
+				right = append(right, k.S(kit.Muted, kit.Fit(key, kw))+"  "+k.S(role, l))
 			}
 		}
 	}
@@ -105,10 +110,10 @@ func (f Failure) rack(k kit.Kit) []string {
 	}
 	var body []string
 	for _, n := range f.Nodes {
-		top := k.S(kit.Rule, "┌─") + k.S(kit.Rule, strings.Repeat("▒", nw)) + k.S(kit.Rule, "──") + legend + k.S(kit.Rule, "┐")
+		top := k.S(kit.Rule, "┌─") + k.S(kit.Faint, strings.Repeat("▒", nw)) + k.S(kit.Rule, "──") + legend + k.S(kit.Rule, "┐")
 		name := kit.Fit(n.Name, nw)
 		name = strings.TrimRight(name, " ")
-		row := k.S(kit.Rule, "└─") + k.S(kit.Accent2, name) + k.S(kit.Rule, strings.Repeat("─", nw-kit.Width(name)+2))
+		row := k.S(kit.Rule, "└─") + k.S(kit.Muted, name) + k.S(kit.Rule, strings.Repeat("─", nw-kit.Width(name)+2))
 		for _, d := range n.Dots {
 			row += k.Dot(d) + k.S(kit.Rule, "─")
 		}
@@ -119,7 +124,7 @@ func (f Failure) rack(k kit.Kit) []string {
 		body = append(body, top, row)
 	}
 	body = append(body, "", " "+k.S(kit.Muted, f.RackFoot))
-	return k.Draw(kit.Box{Border: kit.Heavy, Role: kit.Muted, Width: inner + 2}, body)
+	return k.Draw(kit.Box{Border: kit.Heavy, Role: kit.Rule, Width: inner + 2}, body)
 }
 
 func pills(k kit.Kit, ps []Pill, perRow int) []string {
@@ -138,19 +143,18 @@ func pills(k kit.Kit, ps []Pill, perRow int) []string {
 	return out
 }
 
-// buttons lays commands out as rounded buttons, wrapping onto a new row when
-// they would pass w.
+// buttons lays commands out as buttons, wrapping onto a new row when they
+// would pass w. The first is primary: heavy and blue, as on page-500 and
+// page-404; the rest are quiet rounded ones.
 func buttons(k kit.Kit, actions []string, w int) []string {
 	var rows [][]string
 	var cur [][]string
 	used := 0
 	for i, a := range actions {
-		role := kit.Muted
-		label := k.S(kit.Accent2, a)
+		b := k.Button(k.S(kit.Muted, a), 0, kit.Rule)
 		if i == 0 {
-			role, label = kit.Accent, k.B(kit.Accent, a)
+			b = k.Draw(kit.Box{Role: kit.Accent, Border: kit.Heavy, Width: kit.Width(a) + 4}, []string{" " + k.S(kit.FG, a)})
 		}
-		b := k.Button(label, 0, role)
 		bw := kit.BlockWidth(b)
 		if used > 0 && used+2+bw > w {
 			rows = append(rows, kit.Beside(2, cur...))
@@ -184,9 +188,9 @@ func (n NotFound) Render(k kit.Kit, width int) []string {
 		for _, r := range pattern {
 			switch r {
 			case '*':
-				sb.WriteString(k.S(kit.Accent2, "✦"))
+				sb.WriteString(k.S(kit.Muted, "✦"))
 			case '.':
-				sb.WriteString(k.S(kit.Rule, "·"))
+				sb.WriteString(k.S(kit.Faint, "·"))
 			default:
 				sb.WriteRune(r)
 			}
@@ -194,7 +198,7 @@ func (n NotFound) Render(k kit.Kit, width int) []string {
 		return sb.String()
 	}
 	out := []string{"", stars("   .         *              .        .")}
-	out = append(out, kit.Indent(2, k.Big("404", kit.Accent))...)
+	out = append(out, kit.Indent(2, k.BigRamp("404", k.Theme.Cool, true))...)
 	out = append(out, stars("      .              .          *"), "")
 	out = append(out, "  "+k.S(kit.FG, "unknown "+n.Kind+" ")+k.B(kit.Err, `"`+n.Name+`"`))
 	out = append(out, "  "+k.S(kit.Muted, n.Where+" has no "+n.Kind+" by that name."))
@@ -209,7 +213,7 @@ func (n NotFound) Render(k kit.Kit, width int) []string {
 			if i == 0 {
 				mark = k.S(kit.Accent, "▸ ")
 			}
-			out = append(out, "  "+mark+k.S(kit.Accent2, kit.Fit(s.Name, nw))+"  "+k.S(kit.Muted, s.Desc))
+			out = append(out, "  "+mark+k.S(kit.FG, kit.Fit(s.Name, nw))+"  "+k.S(kit.Muted, s.Desc))
 		}
 	}
 	if len(n.Actions) > 0 {
@@ -244,18 +248,26 @@ func (v Invalid) Render(k kit.Kit, width int) []string {
 	bad := 0
 	var body []string
 	for _, f := range v.Fields {
-		label := k.S(kit.FG, f.Label)
+		// As in form-validation-errors: grey labels with a red *, green
+		// borders on good fields, red on bad ones, grey on unset ones.
+		label := k.S(kit.Muted, f.Label)
 		if f.Required {
-			label += k.S(kit.Accent, " *")
+			label += k.S(kit.Err, " *")
 		}
 		body = append(body, "", " "+label)
-		role, border := kit.Muted, kit.Rounded
-		if f.Focus {
-			role, border = kit.Accent, kit.Heavy
+		role, border := kit.Rule, kit.Rounded
+		switch f.State {
+		case kit.Good:
+			role = kit.OK
+		case kit.Degraded:
+			role = kit.Err
 		}
-		val := k.S(kit.Accent2, f.Value)
+		if f.Focus {
+			border = kit.Heavy
+		}
+		val := k.S(kit.FG, f.Value)
 		if f.Value == "" {
-			val = k.S(kit.Muted, "unset")
+			val = k.S(kit.Rule, "unset")
 		}
 		in := spread(val, k.Mark(f.State), fw-4)
 		if f.State == kit.Degraded {
@@ -270,7 +282,7 @@ func (v Invalid) Render(k kit.Kit, width int) []string {
 		}
 	}
 	body = append(body, "")
-	btn := k.Button(k.B(kit.Accent, v.Action), 0, kit.Accent)
+	btn := k.Button(k.S(kit.FG, v.Action), 0, kit.Accent)
 	need := k.S(kit.Warn, "▲ "+plural(bad, "field")+" need"+map[bool]string{true: "s", false: ""}[bad == 1]+" attention")
 	body = append(body, kit.Indent(1, kit.Beside(3, btn, []string{"", need}))...)
 	for _, f := range v.Fields {
@@ -279,5 +291,5 @@ func (v Invalid) Render(k kit.Kit, width int) []string {
 			break
 		}
 	}
-	return kit.Clip(width, k.Draw(kit.Box{Title: k.B(kit.Accent, v.Title), Right: k.S(kit.Err, "invalid input"), Role: kit.Rule, Width: w, Pad: 1}, body))
+	return kit.Clip(width, k.Draw(kit.Box{Title: k.S(kit.FG, v.Title), Right: k.S(kit.Err, "invalid input"), Role: kit.Rule, Width: w, Pad: 1}, body))
 }

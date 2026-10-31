@@ -40,6 +40,8 @@ type Watch struct {
 	Quiet  string  // shown when there are no toasts
 }
 
+var seriesRoles = []kit.Role{kit.Accent, kit.Accent2, kit.OK, kit.Warn, kit.Info}
+
 // Render draws the panel and as many toasts as fit in height.
 func (v Watch) Render(k kit.Kit, width, height int) []string {
 	w := min(width, 100)
@@ -47,8 +49,16 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 	body := []string{""}
 	const nameW, tailW = 14, 30
 	spark := max(8, inner-nameW-tailW-2)
-	for _, s := range v.Series {
-		line := " " + k.S(kit.Accent2, kit.Fit(s.Name, nameW)) + " "
+	for i, s := range v.Series {
+		// Each series gets its own colour and its newest cell is white, as
+		// in sparkline-row.
+		role := seriesRoles[i%len(seriesRoles)]
+		spk := func(w int) string {
+			line := sparkline(s.Rates, w)
+			r := []rune(line)
+			return k.S(role, string(r[:len(r)-1])) + k.S(kit.FG, string(r[len(r)-1:]))
+		}
+		line := " " + k.S(kit.Muted, kit.Fit(s.Name, nameW)) + " "
 		if !s.Known {
 			body = append(body, line+k.S(kit.Muted, "waiting for offsets"), "")
 			continue
@@ -69,13 +79,13 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 		if inner < nameW+tailW+18 {
 			// Narrow: numbers beside the name, the sparkline on its own line.
 			nums := k.S(kit.FG, Num(now)+"/s") + " " + trend + k.S(kit.Muted, " · "+Num(float64(s.Retained))+" kept")
-			body = append(body, spread(" "+k.S(kit.Accent2, s.Name), nums+" ", inner),
-				" "+k.S(kit.Accent, sparkline(s.Rates, inner-2)), "")
+			body = append(body, spread(" "+k.S(kit.Muted, s.Name), nums+" ", inner),
+				" "+spk(inner-2), "")
 			continue
 		}
 		tail := k.S(kit.FG, lpad(Num(now)+"/s", 10)) + " " + trend + " " +
 			k.S(kit.Muted, lpad(Num(float64(s.Retained)), 11)+" kept")
-		body = append(body, line+k.S(kit.Accent, sparkline(s.Rates, spark))+" "+tail, "")
+		body = append(body, line+spk(spark)+" "+tail, "")
 	}
 	if len(v.Series) == 0 {
 		for _, l := range kit.Wrap(v.Empty, inner-2) {
@@ -83,11 +93,11 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 		}
 		body = append(body, "")
 	}
-	body = append(body, k.S(kit.Rule, strings.Repeat("─", inner)))
+	body = append(body, k.S(kit.Faint, strings.Repeat("─", inner)))
 	for _, l := range kit.Wrap(v.Foot, inner-2) {
 		body = append(body, " "+k.S(kit.Muted, l))
 	}
-	out := k.Draw(kit.Box{Title: k.B(kit.Accent, v.Title), Right: k.S(kit.Muted, v.Right), Role: kit.Rule, Width: w}, body)
+	out := k.Draw(kit.Box{Title: k.S(kit.FG, v.Title), Right: k.S(kit.Muted, v.Right), Role: kit.Faint, Width: w}, body)
 
 	room := height - len(out) - 1
 	if len(v.Toasts) == 0 {
@@ -121,7 +131,7 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 func toast(k kit.Kit, t Toast, w int) []string {
 	inner := w - 2
 	age := k.S(kit.Muted, ago(t.Age))
-	head := " " + k.S(t.Role, t.Glyph) + " " + k.B(kit.FG, t.Title) + "  " + k.S(kit.Accent2, t.Subject)
+	head := " " + k.S(t.Role, t.Glyph) + " " + k.B(kit.FG, t.Title) + "  " + k.S(kit.Muted, t.Subject)
 	head = spread(head, age+" ", inner)
 	sub := "   " + k.S(kit.Muted, t.Detail)
 	fuse := int(math.Round(t.Life * float64(inner)))

@@ -11,10 +11,11 @@ go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
 kaas -b localhost:9092                   # terminal UI (: command · / filter · ? help)
 kaas snapshot -b localhost:9092          # one-shot cluster summary
 kaas watch -b localhost:9092 -t orders   # stream events and record growth
+kaas bench produce -t orders --size 100,1024 --compression none,lz4   # throughput and latency matrix
 kaas help watch                          # usage and examples
 ```
 
-On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007).
+On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007). [Design 0002](docs/design/0002-command-screens.md) maps every ascii-magic UI piece to the command that uses it.
 
 Themes: `--theme amber` (Amber Phosphor, default) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
 

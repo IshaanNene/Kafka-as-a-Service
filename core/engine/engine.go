@@ -86,6 +86,9 @@ func New(cl *kgo.Client, cfg Config) *Engine {
 	}
 }
 
+// Config is the engine's configuration with defaults filled in.
+func (e *Engine) Config() Config { return e.cfg }
+
 // Run drives refreshes until ctx is done, then returns ctx.Err().
 func (e *Engine) Run(ctx context.Context) error {
 	t := time.NewTicker(e.cfg.FastInterval)

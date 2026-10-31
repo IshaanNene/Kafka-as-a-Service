@@ -88,6 +88,10 @@ func TestGoldens(t *testing.T) {
 		boot = append(boot, BootStep(k, s)...)
 	}
 	golden(t, "boot", append(boot, BootDone(k, r)...))
+	golden(t, "bench", benchFixture().Render(k, 100))
+	golden(t, "bench_narrow", benchFixture().Render(k, 64))
+	golden(t, "watch", watchFixture().Render(k, 100, 30))
+	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 }
 
 // TestFits renders every screen, coloured, at a range of widths and checks
@@ -97,6 +101,8 @@ func TestFits(t *testing.T) {
 	screens := map[string]func(w int) []string{
 		"help":        func(w int) []string { return help.Render(k, w) },
 		"unreachable": func(w int) []string { return Unreachable(refused()).Render(k, w) },
+		"bench":       func(w int) []string { return benchFixture().Render(k, w) },
+		"watch":       func(w int) []string { return watchFixture().Render(k, w, 30) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -124,5 +130,45 @@ func TestUnreachableSkipsStagesNeverReached(t *testing.T) {
 	}
 	if got["dns"] != "1/2" || got["tcp"] != "down" || got["api"] != "skipped" || got["metadata"] != "skipped" {
 		t.Errorf("pills = %v", got)
+	}
+}
+
+func benchFixture() Bench {
+	ms := time.Millisecond
+	rates := make([]float64, 40)
+	for i := range rates {
+		rates[i] = 480 + float64(i%5)*6
+	}
+	rates[0] = 150
+	return Bench{
+		Title: "bench produce · orders", Right: "localhost:19092 · kafka v4.2",
+		Rows: []BenchRow{
+			{Name: "100B acks=all none", State: BenchDone, RecsPerSec: 499.5, MBPerSec: 0.05, P50: 5 * ms, P99: 121 * ms, Max: 274 * ms},
+			{Name: "100B acks=all lz4", State: BenchDone, RecsPerSec: 312.4, MBPerSec: 0.03, P50: 4200 * time.Microsecond, P99: 38 * ms, Max: 61 * ms},
+			{Name: "1KB acks=all none", State: BenchRunning, Acked: 2312, Total: 5000},
+			{Name: "1KB acks=all lz4", State: BenchPending},
+		},
+		Spin:      6,
+		Hist:      []int64{0, 10, 2600, 1900, 300, 120, 40, 20, 10, 0},
+		Buckets:   []time.Duration{ms, 2 * ms, 5 * ms, 10 * ms, 20 * ms, 50 * ms, 100 * ms, 200 * ms, 500 * ms},
+		HistTitle: "latency · 1KB acks=all none", Rate: rates, RateTitle: "throughput · rec/s",
+		Foot: "running 3/4 · 5,000 records · 500 rec/s cap",
+	}
+}
+
+func watchFixture() Watch {
+	rates := []float64{0, 0, 152, 503, 498, 501, 498, 503, 498, 500, 501, 501, 345, 0}
+	return Watch{
+		Title: "watch · cluster 5L6g3nShT-eM…", Right: "gen 326 · 1 broker · 2 topics",
+		Series: []Series{
+			{Name: "orders", Rates: rates, Retained: 5000, Known: true},
+			{Name: "payments", Known: false},
+		},
+		Foot: "budget 38.2 · 1,204 granted · 0 denied · offsets every 1s",
+		Toasts: []Toast{
+			{Role: kit.Warn, Glyph: "▲", Title: "ISR shrunk", Subject: "orders/1", Detail: "replicas [3] fell out of sync", Age: 4 * time.Second, Life: 0.9},
+			{Role: kit.Info, Glyph: "•", Title: "Leader moved", Subject: "orders/1", Detail: "broker 1 → broker 2", Age: 4 * time.Second, Life: 0.9},
+			{Role: kit.OK, Glyph: "✓", Title: "Topic created", Subject: "payments", Detail: "2 partitions", Age: 50 * time.Second, Life: 0.2},
+		},
 	}
 }

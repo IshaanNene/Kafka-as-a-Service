@@ -20,7 +20,7 @@ func runTUI(cmd *cobra.Command, brokers, themeName string) error {
 	if err != nil {
 		return usageError(cmd, "theme", themeName, "must be one of "+strings.Join(theme.Names(), ", "))
 	}
-	if err := connect(cmd, brokers, themeName); err != nil {
+	if _, err := connect(cmd, brokers, themeName); err != nil {
 		return err
 	}
 	cl, err := kgo.NewClient(kgo.SeedBrokers(strings.Split(brokers, ",")...))

@@ -1,6 +1,8 @@
 package screens
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -145,6 +147,9 @@ func Unreachable(r probe.Result) Failure {
 		f.Subtitle = "The seed brokers resolve but refuse connections. Is Kafka running and listening on that port?"
 	case probe.API:
 		f.Subtitle = "Something accepted the connection but did not speak Kafka. Is this the right port, or does the listener need TLS or SASL?"
+		if errors.Is(deepest.Err, context.DeadlineExceeded) {
+			f.Subtitle = "The broker accepted the connection but did not answer in time. It may be starting up, overloaded or cut off from its controller."
+		}
 	default:
 		f.Subtitle = "Brokers answered but cluster metadata did not come back in time."
 	}

@@ -101,6 +101,9 @@ func TestErrorContract(t *testing.T) {
 		{[]string{"watch", "--budget", "abc"}, exitUsage, "not a valid float64"},
 		{[]string{"snapshot", "-b", "127.0.0.1:1"}, exitUnavailable, "cannot reach cluster at 127.0.0.1:1: tcp"},
 		{[]string{"watch", "-b", brokers, "-t", "oders"}, exitNotFound, "did you mean orders?"},
+		{[]string{"bench", "produce", "-b", brokers, "-t", "oders"}, exitNotFound, "did you mean orders?"},
+		{[]string{"bench", "produce", "-b", brokers}, exitUsage, "--topic: required"},
+		{[]string{"bench", "produce", "-t", "orders", "--compression", "brotli"}, exitUsage, `--compression "brotli": must be one of`},
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
@@ -133,5 +136,39 @@ func TestErrorContract(t *testing.T) {
 	}
 	if err := json.Unmarshal(errOut.Bytes(), &got); err != nil || got.Error.Code != "unavailable" || got.Error.Exit != exitUnavailable {
 		t.Errorf("json error = %s (%v)", errOut.String(), err)
+	}
+}
+
+// TestWatchViewRates checks the live view samples records/sec from end
+// offsets only when the topic's offsets were actually re-read.
+func TestWatchViewRates(t *testing.T) {
+	t0 := time.Date(2026, 10, 31, 9, 0, 0, 0, time.UTC)
+	snap := func(at time.Time, end int64) *snapshot.Snapshot {
+		return &snapshot.Snapshot{Topics: []snapshot.Topic{{Name: "orders", OffsetsAt: at,
+			Partitions: []snapshot.Partition{{ID: 0, StartOffset: 10, EndOffset: end}}}}}
+	}
+	v := newWatchView(surface{width: 100, height: 30}, []string{"orders"}, engine.Config{})
+	v.update(engine.Update{Snapshot: snap(t0, 100)}, engine.Stats{}, t0)
+	v.update(engine.Update{Snapshot: snap(t0.Add(2*time.Second), 1100)}, engine.Stats{}, t0)
+	v.update(engine.Update{Snapshot: snap(t0.Add(2*time.Second), 1100), Events: []engine.Event{{Kind: engine.TopicCreated, Topic: "x", Count: 3}}}, engine.Stats{}, t0)
+	s := v.series["orders"]
+	if len(s.Rates) != 1 || s.Rates[0] != 500 || s.Retained != 1090 {
+		t.Errorf("rates=%v retained=%d, want [500] 1090", s.Rates, s.Retained)
+	}
+	if len(v.events) != 1 || toastFor(v.events[0].Event).Title != "Topic created" {
+		t.Errorf("events = %v", v.events)
+	}
+}
+
+func TestBenchCommand(t *testing.T) {
+	c, _ := kafkatest.Fake(t, kfake.SeedTopics(2, "orders"))
+	brokers := strings.Join(c.ListenAddrs(), ",")
+	out := runKaas(t, "bench", "produce", "-b", brokers, "-t", "orders", "--records", "200", "--compression", "none,lz4")
+	if n := strings.Count(out, "200 records sent"); n != 2 {
+		t.Errorf("want 2 case lines, got:\n%s", out)
+	}
+	var res []struct{ Records int64 }
+	if err := json.Unmarshal([]byte(runKaas(t, "bench", "produce", "-b", brokers, "-t", "orders", "--records", "50", "-o", "json")), &res); err != nil || len(res) != 1 || res[0].Records != 50 {
+		t.Errorf("json = %v (%v)", res, err)
 	}
 }

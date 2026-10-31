@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/fuzzy"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/ui/asciipack"
 	"github.com/IshaanNene/Kafka-as-a-Service/ui/theme"
@@ -310,7 +311,7 @@ func (m Model) openTopic(name string) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) notFound(what, name string, candidates []string) (tea.Model, tea.Cmd) {
-	m.nf = notFound{what: what, name: name, suggestions: suggest(name, candidates, 3), since: m.now}
+	m.nf = notFound{what: what, name: name, suggestions: fuzzy.Suggest(name, candidates, 3), since: m.now}
 	if m.screen() != screenNotFound {
 		m.stack = append(m.stack, screenNotFound)
 	}

@@ -1,0 +1,30 @@
+
+  ████████  ████████  ████████
+  ██░░░░░░  ██░░░░██  ░░░░░░██
+  ████████  ██░░░░██  ░░██████
+  ░░░░░░██  ██░░░░██  ░░░░░░██
+  ████████  ████████  ████████
+
+  Cluster unreachable
+  The seed brokers resolve but refuse connections. Is
+  Kafka running and listening on that port?
+
+  brokers  localhost:9092, kafka-1:9092
+  error    tcp localhost:9092: connect: connection refused
+  after    3.0ms
+
+  ◐ dns       1/2       ✕ tcp       down
+  ○ api       skipped   ○ metadata  skipped
+
+  ╭───────────────────╮  ╭──────────╮
+  │ kaas -b host:9092 │  │ task dev │
+  ╰───────────────────╯  ╰──────────╯
+
+  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+  ┃┌─▒▒▒▒▒▒▒▒▒▒▒▒▒▒──d─t─a─m─┐┃
+  ┃└─localhost:9092──●─✕─○─○─┘┃
+  ┃┌─▒▒▒▒▒▒▒▒▒▒▒▒▒▒──d─t─a─m─┐┃
+  ┃└─kafka-1:9092────✕─○─○─○─┘┃
+  ┃                           ┃
+  ┃ 2 seeds probed            ┃
+  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

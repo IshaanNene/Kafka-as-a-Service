@@ -1,13 +1,14 @@
-package tui
+// Package fuzzy finds the names a typo most likely meant.
+package fuzzy
 
 import (
 	"sort"
 	"strings"
 )
 
-// suggest returns up to n candidates closest to q by edit distance, best
+// Suggest returns up to n candidates closest to q by edit distance, best
 // first, dropping any too far away to be a plausible typo.
-func suggest(q string, candidates []string, n int) []string {
+func Suggest(q string, candidates []string, n int) []string {
 	q = strings.ToLower(q)
 	type scored struct {
 		s string

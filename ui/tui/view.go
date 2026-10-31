@@ -47,6 +47,9 @@ func (m Model) View() tea.View {
 		body = m.viewNotFound(w, h-6)
 	case m.snap == nil:
 		body = m.st.muted.Render("  connecting · waiting for the first snapshot …")
+		if err := m.lastError(); err != nil {
+			body += "\n\n  " + m.st.err.Render("● "+err.Error()) + "\n  " + m.st.muted.Render("retrying on the metadata interval")
+		}
 	default:
 		rows := h - 6 - m.feedHeight()
 		switch m.screen() {
@@ -105,6 +108,9 @@ func (m Model) viewHeader(w int) string {
 		fresh := m.st.ok.Render("●")
 		if age > staleAfter {
 			fresh = m.st.warn.Render("● stale " + age.String())
+			if err := m.lastError(); err != nil {
+				fresh = m.st.err.Render("● stale " + age.String() + " · " + err.Error())
+			}
 		}
 		right = m.st.muted.Render(fmt.Sprintf("%s · %d brokers · ctrl %d · gen %d ",
 			short(s.ClusterID, 12), len(s.Brokers), s.Controller, s.Generation)) + fresh
@@ -115,6 +121,14 @@ func (m Model) viewHeader(w int) string {
 	}
 	gap := max(1, w-ansi.StringWidth(left)-ansi.StringWidth(right))
 	return ansi.Truncate(left+strings.Repeat(" ", gap)+right, w, "…")
+}
+
+// lastError is why the engine's latest refresh failed, if it did.
+func (m Model) lastError() error {
+	if m.eng == nil {
+		return nil
+	}
+	return m.eng.Stats().LastError
 }
 
 func (m Model) breadcrumb() string {

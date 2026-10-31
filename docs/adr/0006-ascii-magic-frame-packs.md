@@ -1,6 +1,6 @@
 # ADR-0006: Bake ascii-magic pieces into frame packs
 
-- Status: accepted
+- Status: superseded in part by [ADR-0007](0007-command-screens.md): command screens are Go ports fed live data; packs remain for decoration only
 - Date: 2026-10-31
 
 ## Context

@@ -16,7 +16,26 @@ import (
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 )
 
-func newWatchCmd(brokers *string) *cobra.Command {
+// missingTopic is a 404 for the first -t topic the cluster does not have.
+func missingTopic(s *snapshot.Snapshot, topics []string) error {
+	for _, t := range topics {
+		if _, ok := s.Topic(t); ok {
+			continue
+		}
+		var names []string
+		for _, tp := range s.Topics {
+			names = append(names, tp.Name)
+		}
+		describe := func(n string) string {
+			tp, _ := s.Topic(n)
+			return fmt.Sprintf("%d partitions", len(tp.Partitions))
+		}
+		return notFoundError("topic", t, "cluster "+s.ClusterID, names, describe, "kaas snapshot")
+	}
+	return nil
+}
+
+func newWatchCmd(brokers, themeName *string) *cobra.Command {
 	var (
 		topics  []string
 		output  string
@@ -31,9 +50,19 @@ func newWatchCmd(brokers *string) *cobra.Command {
 Topics named with -t are watched: their offsets refresh on the fast interval
 and record growth is printed. Every request is paid from a per-cluster
 budget; when it runs dry, refreshes are skipped rather than queued.`,
+		Example: `  # Every cluster event as it happens
+  kaas watch
+  # Follow two topics closely: offsets every second
+  kaas watch -t orders -t payments
+  # One JSON object per line, for scripts
+  kaas watch -o json | jq 'select(.event == "LeaderMoved")'`,
+		Args: unknownCommand,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if output != "text" && output != "json" {
-				return fmt.Errorf("unknown output format %q", output)
+			if err := oneOf(cmd, "output", output, "text", "json"); err != nil {
+				return err
+			}
+			if err := connect(cmd, *brokers, *themeName); err != nil {
+				return err
 			}
 			cl, err := kgo.NewClient(kgo.SeedBrokers(strings.Split(*brokers, ",")...))
 			if err != nil {
@@ -63,6 +92,12 @@ budget; when it runs dry, refreshes are skipped rather than queued.`,
 					return nil
 				case <-sub.Ready():
 					u, _ := sub.Next()
+					if !w.checked && u.Snapshot != nil {
+						w.checked = true
+						if err := missingTopic(u.Snapshot, topics); err != nil {
+							return err
+						}
+					}
 					if err := w.print(u); err != nil {
 						return err
 					}
@@ -90,6 +125,7 @@ type watchPrinter struct {
 	topics  []string
 	last    map[string]int64 // records per watched topic at last print
 	started bool
+	checked bool // -t topics verified against the first snapshot
 }
 
 type watchLine struct {

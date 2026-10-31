@@ -165,16 +165,6 @@ func TestFilterHidesInternalUnlessAsked(t *testing.T) {
 	}
 }
 
-func TestSuggest(t *testing.T) {
-	got := suggest("oders", []string{"orders", "orders-v2", "payments", "topics"}, 3)
-	if len(got) == 0 || got[0] != "orders" {
-		t.Errorf("suggest = %v, want orders first", got)
-	}
-	if got := suggest("zzzzzz", []string{"orders"}, 3); len(got) != 0 {
-		t.Errorf("suggest far = %v, want none", got)
-	}
-}
-
 // TestEndToEnd drives the real engine on kfake through the model's own
 // update command, the same path a terminal session takes.
 func TestEndToEnd(t *testing.T) {

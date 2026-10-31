@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kmsg"
 )
@@ -164,4 +165,34 @@ func (t *Taker) Take(ctx context.Context) (*Snapshot, error) {
 	t.gen++
 	s.Generation = t.gen
 	return s, nil
+}
+
+// WithOffsets returns a copy of s with fresh offsets for topics. Only the
+// touched topics' partition slices are copied; the rest are shared, which is
+// safe because published snapshots are never mutated.
+func WithOffsets(s *Snapshot, topics []string, starts, ends kadm.ListedOffsets, at time.Time) *Snapshot {
+	out := *s
+	out.Topics = append([]Topic(nil), s.Topics...)
+	set := make(map[string]bool, len(topics))
+	for _, t := range topics {
+		set[t] = true
+	}
+	for i := range out.Topics {
+		t := &out.Topics[i]
+		if !set[t.Name] {
+			continue
+		}
+		t.Partitions = append([]Partition(nil), t.Partitions...)
+		t.OffsetsAt = at
+		for k := range t.Partitions {
+			p := &t.Partitions[k]
+			if o, ok := starts.Lookup(t.Name, p.ID); ok && o.Err == nil {
+				p.StartOffset = o.Offset
+			}
+			if o, ok := ends.Lookup(t.Name, p.ID); ok && o.Err == nil {
+				p.EndOffset = o.Offset
+			}
+		}
+	}
+	return &out
 }

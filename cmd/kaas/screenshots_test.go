@@ -152,6 +152,23 @@ loop:
 	view.draw(time.Now())
 	save("watch", "kaas watch -t orders -t payments", view.lv.last)
 
+	// Snapshot: the same path as the command, metadata then offsets.
+	snap, err := snapshot.Fetch(ctx, cl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, tp := range snap.Topics {
+		names = append(names, tp.Name)
+	}
+	if starts, err := adm.ListStartOffsets(ctx, names...); err == nil {
+		if ends, err := adm.ListEndOffsets(ctx, names...); err == nil {
+			snap = snapshot.WithOffsets(snap, names, starts, ends, time.Now())
+		}
+	}
+	rows, internal := topicRows(snap, "status")
+	save("snapshot", "kaas snapshot", snapshotScreen(snap, rows, internal, "status").Render(k, 100))
+
 	// The TUI over the same cluster, with the events the engine just saw.
 	s := e.Latest()
 	var feed []engine.Event

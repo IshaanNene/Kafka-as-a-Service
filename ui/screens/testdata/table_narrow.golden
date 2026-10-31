@@ -1,0 +1,20 @@
+╭─ Topics ───────────────────────────── ● ─╮
+│ Topic     Parts  URP  Status ▼           │
+│──────────────────────────────────────────│
+│ payments      6    2  ● offline          │
+│ orders       12    1  ● under-replicated │
+│ audit         4    0  ● healthy          │
+│                                          │
+│──────────────────────────────────────────│
+│ sorted by status, worst first            │
+│ 1 internal topic hidden                  │
+│                                          │
+│ Brokers       Partitions                 │
+│ 3 · ctrl 2    22                         │
+│                                          │
+│ Under-replicated    Offline              │
+│ 3                   1                    │
+│                                          │
+│ Records      leaders · 3 brokers         │
+│ 2,422,308    ▇█▅                         │
+╰──────────────────────────────────────────╯

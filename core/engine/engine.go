@@ -194,7 +194,7 @@ func (e *Engine) step(ctx context.Context, forced bool) {
 		if err != nil {
 			e.setErr(err)
 		} else {
-			next = withOffsets(next, topics, starts, ends, now)
+			next = snapshot.WithOffsets(next, topics, starts, ends, now)
 			offsetsFresh = true
 		}
 	}
@@ -280,36 +280,6 @@ func carryOffsets(prev, next *snapshot.Snapshot) {
 			nt.Partitions[k].EndOffset = pt.Partitions[k].EndOffset
 		}
 	}
-}
-
-// withOffsets returns a copy of s with fresh offsets for topics. Only the
-// touched topics' partition slices are copied; the rest are shared, which is
-// safe because published snapshots are never mutated.
-func withOffsets(s *snapshot.Snapshot, topics []string, starts, ends kadm.ListedOffsets, at time.Time) *snapshot.Snapshot {
-	out := *s
-	out.Topics = append([]snapshot.Topic(nil), s.Topics...)
-	set := make(map[string]bool, len(topics))
-	for _, t := range topics {
-		set[t] = true
-	}
-	for i := range out.Topics {
-		t := &out.Topics[i]
-		if !set[t.Name] {
-			continue
-		}
-		t.Partitions = append([]snapshot.Partition(nil), t.Partitions...)
-		t.OffsetsAt = at
-		for k := range t.Partitions {
-			p := &t.Partitions[k]
-			if o, ok := starts.Lookup(t.Name, p.ID); ok && o.Err == nil {
-				p.StartOffset = o.Offset
-			}
-			if o, ok := ends.Lookup(t.Name, p.ID); ok && o.Err == nil {
-				p.EndOffset = o.Offset
-			}
-		}
-	}
-	return &out
 }
 
 // leaderCount estimates the ListOffsets requests for topics: kadm sends one

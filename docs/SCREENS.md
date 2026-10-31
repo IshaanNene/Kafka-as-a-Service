@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 9 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 10 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -26,7 +26,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Keyboard Keypress](#keyboard-keypress) | TUI `?` overlay: the keys light up as you press them | P1 |
 | [Split Pane Multiplexer](#split-pane-multiplexer) | `kaas` / `kaas tui` | built |
 | [Window Tiling Manager](#window-tiling-manager) | `kaas` / `kaas tui` | P1 |
-| [Data Table](#data-table) | `kaas snapshot`, `kaas topics` | P1 |
+| [Data Table](#data-table) | `kaas snapshot`, `kaas topics` | built |
 | [Toast Stack](#toast-stack) | `kaas watch` | built |
 | [Benchmark Results](#benchmark-results) | `kaas bench produce`, `kaas bench consume` | built |
 | [File Tree](#file-tree) | `kaas topics` | P1 |
@@ -211,12 +211,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Data Table
 
-[`data-table`](https://www.ascii-magic.com/ascii/data-table) · **P1** · A service status table that re-sorts by a new column every few seconds while a selection bar walks the rows.
+[`data-table`](https://www.ascii-magic.com/ascii/data-table) · **built** · A service status table that re-sorts by a new column every few seconds while a selection bar walks the rows.
 
 - `kaas snapshot`: Topics, partitions and URPs, sortable
 - `kaas topics`: Topic list; prefix hierarchy as a tree
 
-<img src="img/ui/data-table.svg" alt="ascii-magic Data Table" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/data-table.svg" alt="ascii-magic Data Table" width="100%"></td><td width="50%"><img src="img/snapshot.svg" alt="kaas screen built from Data Table" width="100%"></td></tr></table>
 
 ### Toast Stack
 

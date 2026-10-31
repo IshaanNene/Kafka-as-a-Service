@@ -27,6 +27,7 @@ const SHOTS = {
   "toast-stack": "watch",
   "benchmark-table": "bench",
   "split-pane-session": "tui-topics",
+  "data-table": "snapshot",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

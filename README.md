@@ -4,6 +4,10 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 
 > Status: **Phase 1 — Developer tool.** See the [design docs](docs/design/) and [ADRs](docs/adr/).
 
+**[Read the guide: what KaaS is, every screen, and how to use it →](docs/GUIDE.md)**
+
+![The kaas terminal UI](docs/img/tui-topics.svg)
+
 ## Quick start
 
 ```bash
@@ -27,6 +31,7 @@ Requires Go 1.26, [Task](https://taskfile.dev), golangci-lint v2, and Docker for
 task test               # unit + kfake tests
 task test:integration   # Testcontainers; KAAS_KAFKA_IMAGE=apache/kafka:4.4.0 to pick a version
 task lint               # includes the core/ import boundary (ADR-0003)
+task screenshots        # regenerate docs/img from real runs against kfake
 task dev                # kind + Strimzi + 3-broker KRaft cluster
 ```
 

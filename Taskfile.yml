@@ -28,6 +28,11 @@ tasks:
     cmds:
       - golangci-lint run ./...
 
+  screenshots:
+    desc: Regenerate docs/img by driving every screen against an in-memory cluster
+    cmds:
+      - go test ./cmd/kaas -run TestScreenshots -count=1 -shots "$PWD/docs/img"
+
   asciipack:
     desc: Re-bake ascii-magic frame packs into ui/asciipack/packs (needs Node; the Go build does not)
     dir: tools/asciipack

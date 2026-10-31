@@ -64,6 +64,7 @@ func (s surface) print(b []string) {
 type live struct {
 	s     surface
 	lines int
+	last  []string // the frame on screen now
 }
 
 func (l *live) draw(b []string) {
@@ -71,6 +72,7 @@ func (l *live) draw(b []string) {
 	if h := l.s.height - 1; h > 0 && len(b) > h {
 		b = b[:h] // a block taller than the terminal can't be redrawn in place
 	}
+	l.last = b
 	var sb strings.Builder
 	if l.lines > 0 {
 		sb.WriteString("\x1b[" + strconv.Itoa(l.lines) + "A\r")

@@ -120,6 +120,7 @@ type benchRun struct {
 	out          surface
 	json         bool
 	title, right string
+	lv           *live // optional; run makes one on a rich surface
 }
 
 func (b benchRun) run() error {
@@ -129,8 +130,8 @@ func (b benchRun) run() error {
 		view.Rows = append(view.Rows, screens.BenchRow{Name: c.Name(), Total: int64(c.Records)})
 	}
 	rich := b.out.rich && !b.json
-	var lv *live
-	if rich {
+	lv := b.lv
+	if rich && lv == nil {
 		lv = &live{s: b.out}
 		defer lv.done()
 	}

@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"slices"
@@ -191,32 +190,9 @@ func (gv *groupView) sort() {
 // live redraws the screen every interval until Ctrl-C. A refresh that fails
 // keeps the last rows on screen and says why in the hint.
 func (gv *groupView) live(ctx context.Context, surf surface) error {
-	first, cancel := context.WithTimeout(ctx, 15*time.Second)
-	err := gv.refresh(first)
-	cancel()
-	if err != nil {
-		return err
-	}
-	lv := &live{s: surf}
-	defer lv.done()
-	lv.draw(gv.screen(true).Render(surf.kit, surf.width))
-	t := time.NewTicker(gv.interval)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			// Ctrl-C is how a live view ends, not a failure.
-			return nil
-		case <-t.C:
-			rctx, cancel := context.WithTimeout(ctx, max(gv.interval, 5*time.Second))
-			gv.err = gv.refresh(rctx)
-			cancel()
-			if errors.Is(gv.err, context.Canceled) {
-				return nil
-			}
-			lv.draw(gv.screen(true).Render(surf.kit, surf.width))
-		}
-	}
+	return refreshLoop(ctx, surf, gv.interval,
+		func(ctx context.Context) error { gv.err = gv.refresh(ctx); return gv.err },
+		func() []string { return gv.screen(true).Render(surf.kit, surf.width) })
 }
 
 func (gv *groupView) screen(live bool) screens.Groups {

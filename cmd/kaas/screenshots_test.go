@@ -200,6 +200,7 @@ loop:
 	}
 	defer live.Close()
 	gv := groupView{adm: adm, sortBy: "lag", interval: 2 * time.Second}
+	lagv := &lagView{adm: adm, top: 8, interval: 2 * time.Second, past: map[string][]int64{}}
 	// Each committed group reads its topics at its own records per refresh;
 	// fraud-check has stalled. search-index is the live consumer above.
 	reads := map[string][]string{"billing": {"orders", "payments"}, "fraud-check": {"payments"},
@@ -242,8 +243,15 @@ loop:
 		}
 		gv.cur.At = base.Add(time.Duration(i) * 2 * time.Second)
 		gv.sort()
+		if err := lagv.refresh(ctx); err != nil {
+			t.Fatal(err)
+		}
+		lagv.cur.At = gv.cur.At
 	}
 	save("groups", "kaas groups", gv.screen(true).Render(k, 100))
+	save("lag", "kaas lag", lagv.screen(true).Render(k, 100, 40))
+	save("lag-caught-up", "kaas lag", screens.CaughtUp{Title: "You're all caught up",
+		Detail: "5 groups at the head of 4 topics. Watching every 2s.", Action: "kaas groups for members and rates →"}.Render(k, 64))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

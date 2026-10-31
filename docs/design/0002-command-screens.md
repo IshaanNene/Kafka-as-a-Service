@@ -45,7 +45,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas topics delete` | modal-dialog, empty-trash-lid | Type to confirm; a closing card | P1 |
 | `kaas brokers` | process-tree, gauge-cluster (Live Data) | Broker → leaders → partitions tree; disk, network and request gauges | **built** (tree; gauges next) |
 | `kaas groups` | process-task-manager | Groups and members with lag and rate, re-sorting live | **built** |
-| `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | P1 |
+| `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | **built** |
 | `kaas top` | process-sorter | Partitions by bytes in/out, with meter bars | P1 |
 | `kaas clients` | process-task-manager | Connected clients by request rate | P1 |
 | `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | P1 |

@@ -58,7 +58,7 @@ func TestFetch(t *testing.T) {
 	if audit.Lag != 0 || audit.Committed != 40 || audit.Partitions != 2 {
 		t.Errorf("audit = %+v, want caught up with 40 committed over 2 partitions", audit)
 	}
-	if billing.Lag != 30 || len(billing.Topics) != 1 || billing.Topics[0] != "orders" {
+	if billing.Lag != 30 || len(billing.Topics) != 1 || billing.Topics[0] != "orders" || billing.TopicLag["orders"] != 30 {
 		t.Errorf("billing = %+v, want 30 behind on orders", billing)
 	}
 

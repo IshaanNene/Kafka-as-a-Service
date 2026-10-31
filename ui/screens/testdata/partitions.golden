@@ -1,0 +1,28 @@
+                                      Topic: orders
+                 4 partitions · RF 3 · 251,038 records · 609 MiB on disk
+                     cleanup delete · retention 7d · cluster 5L6g3nSh
+
+    Partition  Leader  Replicas  ISR    Start     End  Records      Size
+    0               1  1,2,3     1,2,3      0  82,113   82,113  70.0 MiB
+    1               2  2,3,1     2,3    1,200  91,004   89,804  80.0 MiB
+ >> 2            none  3,1,2                -       -        -         -
+    3               1  1,3,2     1,3,2      0  79,121   79,121  53.0 MiB
+
+    Layout · replicas per broker, sized by bytes
+   ┌────────────────────────────────────────────────────────────────────────────────────┐
+   │ 1 ████████████████████████████░░░░░░░░░░░░████████████████████░░░░░░░░░░░░░░░░░░░░ │
+   │ 2 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒███████████████████████████████░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ │
+   │ 3 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ │
+   └────────────────────────────────────────────────────────────────────────────────────┘
+       ■ p0  ■ p1  ■ p2  ■ p3  █ leader  ▒ follower  ░ out of sync
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  Leaders:       broker 1: 2 · broker 2: 1 · broker 3: 0
+  In sync:       2 of 4 partitions
+  Set on topic:  broker defaults
+
+    ▐[kaas watch -t orders]▌    [kaas topics]    [kaas bench produce -t orders]
+
+    Partition 2 has no leader: its producers and consumers are stuck.
+
+  -o json for scripts · kaas topics for every topic

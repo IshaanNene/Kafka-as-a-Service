@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 11 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 12 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -30,7 +30,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Toast Stack](#toast-stack) | `kaas watch` | built |
 | [Benchmark Results](#benchmark-results) | `kaas bench produce`, `kaas bench consume` | built |
 | [File Tree](#file-tree) | `kaas topics` | built |
-| [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | P1 |
+| [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | built |
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | P1 |
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | P1 |
@@ -249,12 +249,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Partition Editor
 
-[`disk-partitioner`](https://www.ascii-magic.com/ascii/disk-partitioner) · **P1** · A curses-style partition editor that carves a new partition out of free space, writes the table and formats it.
+[`disk-partitioner`](https://www.ascii-magic.com/ascii/disk-partitioner) · **built** · A curses-style partition editor that carves a new partition out of free space, writes the table and formats it.
 
 - `kaas topics describe`: Partitions laid out per broker, leaders and replicas
 - `kaas topics alter --partitions`: New partitions carved from the free space, then written
 
-<img src="img/ui/disk-partitioner.svg" alt="ascii-magic Partition Editor" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/disk-partitioner.svg" alt="ascii-magic Partition Editor" width="100%"></td><td width="50%"><img src="img/topics-describe.svg" alt="kaas screen built from Partition Editor" width="100%"></td></tr></table>
 
 ### Onboarding Stepper
 

@@ -26,6 +26,7 @@ type Theme struct {
 	Warn      string // degraded
 	Err       string // failure only
 	Info      string // data, links
+	Notice    string // the selection marker: >> and the chosen button
 	Selection string // selected row background
 	Rule      string // frames
 	Faint     string // dividers, empty cells, pending dots
@@ -50,6 +51,7 @@ var builtins = map[string]Theme{
 		Warn:      "#ffa657",
 		Err:       "#ff7b72",
 		Info:      "#56d4dd",
+		Notice:    "#f2cc60",
 		Selection: "#21262d",
 		Rule:      "#484f58",
 		Faint:     "#30363d",
@@ -70,6 +72,7 @@ var builtins = map[string]Theme{
 		Warn:      "#f2cc60",
 		Err:       "#ff6b5b",
 		Info:      "#79c0ff",
+		Notice:    "#ffe7c2",
 		Selection: "#3a2a12",
 		Rule:      "#4d3a1f",
 		Faint:     "#33261a",
@@ -89,6 +92,7 @@ var builtins = map[string]Theme{
 		Warn:      "#f2cc60",
 		Err:       "#ff7b72",
 		Info:      "#79c0ff",
+		Notice:    "#f2cc60",
 		Selection: "#1f2937",
 		Rule:      "#30363d",
 		Faint:     "#21262d",

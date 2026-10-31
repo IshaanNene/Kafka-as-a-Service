@@ -29,6 +29,7 @@ const SHOTS = {
   "split-pane-session": "tui-topics",
   "data-table": "snapshot",
   "file-tree": "topics-tree",
+  "disk-partitioner": "topics-describe",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

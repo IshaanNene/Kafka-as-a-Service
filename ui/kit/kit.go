@@ -32,6 +32,7 @@ const (
 	Rule
 	Sel
 	Faint
+	Notice
 )
 
 // Kit styles text for one theme.
@@ -47,7 +48,7 @@ func (k Kit) style(r Role) lipgloss.Style {
 	t := k.Theme
 	hex := map[Role]string{
 		FG: t.FG, Muted: t.Muted, Accent: t.Accent, Accent2: t.Accent2, OK: t.OK,
-		Warn: t.Warn, Err: t.Err, Info: t.Info, Rule: t.Rule, Sel: t.Accent2, Faint: t.Faint,
+		Warn: t.Warn, Err: t.Err, Info: t.Info, Rule: t.Rule, Sel: t.Accent2, Faint: t.Faint, Notice: t.Notice,
 	}[r]
 	if hex == "" {
 		hex = t.Rule // themes without a faint tone fall back to the frame colour

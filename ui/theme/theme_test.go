@@ -10,7 +10,7 @@ func TestBuiltinsComplete(t *testing.T) {
 		}
 		for role, hex := range map[string]string{
 			"BG": th.BG, "FG": th.FG, "Muted": th.Muted, "Accent": th.Accent, "Accent2": th.Accent2,
-			"OK": th.OK, "Warn": th.Warn, "Err": th.Err, "Info": th.Info, "Selection": th.Selection, "Rule": th.Rule, "Faint": th.Faint,
+			"OK": th.OK, "Warn": th.Warn, "Err": th.Err, "Info": th.Info, "Notice": th.Notice, "Selection": th.Selection, "Rule": th.Rule, "Faint": th.Faint,
 		} {
 			if _, _, _, ok := parseHex(hex); !ok {
 				t.Errorf("%s.%s = %q, not #rrggbb", name, role, hex)

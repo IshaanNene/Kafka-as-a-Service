@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 12 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 13 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -33,7 +33,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | built |
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | P1 |
-| [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | P1 |
+| [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | P1 |
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | P1 |
 | [Code Editor](#code-editor) | `kaas produce` | P1 |
@@ -276,12 +276,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Process Task Manager
 
-[`process-task-manager`](https://www.ascii-magic.com/ascii/process-task-manager) · **P1** · A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended.
+[`process-task-manager`](https://www.ascii-magic.com/ascii/process-task-manager) · **built** · A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended.
 
 - `kaas groups`: Groups and members with lag and rate, re-sorting live
 - `kaas clients`: Connected clients by request rate
 
-<img src="img/ui/process-task-manager.svg" alt="ascii-magic Process Task Manager" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/process-task-manager.svg" alt="ascii-magic Process Task Manager" width="100%"></td><td width="50%"><img src="img/groups.svg" alt="kaas screen built from Process Task Manager" width="100%"></td></tr></table>
 
 ### Process Viewer Sort
 

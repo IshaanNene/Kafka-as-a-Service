@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -178,6 +179,60 @@ loop:
 		t.Fatal(err)
 	}
 	save("topics-describe", "kaas topics describe users.profiles", td.screen().Render(k, 90))
+
+	// Groups: a live consumer, and committed groups that consume at their
+	// own pace over twelve 2s refreshes while orders keep arriving.
+	live, err := kgo.NewClient(kgo.SeedBrokers(c.ListenAddrs()...), kgo.ConsumerGroup("search-index"),
+		kgo.ConsumeTopics("orders"), kgo.DisableAutoCommit())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer live.Close()
+	gv := groupView{adm: adm, sortBy: "lag", interval: 2 * time.Second}
+	// Each committed group reads its topics at its own records per refresh;
+	// fraud-check has stalled. search-index is the live consumer above.
+	reads := map[string][]string{"billing": {"orders", "payments"}, "fraud-check": {"payments"},
+		"audit-sink": {"orders"}, "inventory-sync": {"inventory"}}
+	pace := map[string]int64{"billing": 900, "fraud-check": 0, "audit-sink": 1 << 40, "inventory-sync": 0}
+	at := map[string]int64{}
+	base := time.Now()
+	for i := range 12 {
+		for range 600 {
+			cl.Produce(ctx, &kgo.Record{Topic: "orders", Value: []byte("an order")}, nil)
+			cl.Produce(ctx, &kgo.Record{Topic: "payments", Value: []byte("a payment")}, nil)
+		}
+		if err := cl.Flush(ctx); err != nil {
+			t.Fatal(err)
+		}
+		pctx, pcancel := context.WithTimeout(ctx, time.Second)
+		live.PollFetches(pctx)
+		_ = live.CommitUncommittedOffsets(pctx)
+		pcancel()
+		for group, topics := range reads {
+			ends, err := adm.ListEndOffsets(ctx, topics...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var os kadm.Offsets
+			ends.Each(func(o kadm.ListedOffset) {
+				key := group + "/" + o.Topic + "/" + strconv.Itoa(int(o.Partition))
+				if i == 0 {
+					at[key] = o.Offset / 3
+				}
+				at[key] = min(o.Offset, at[key]+pace[group]/int64(len(ends[o.Topic])))
+				os.Add(kadm.Offset{Topic: o.Topic, Partition: o.Partition, At: at[key], LeaderEpoch: -1})
+			})
+			if err := adm.CommitAllOffsets(ctx, group, os); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := gv.refresh(ctx); err != nil {
+			t.Fatal(err)
+		}
+		gv.cur.At = base.Add(time.Duration(i) * 2 * time.Second)
+		gv.sort()
+	}
+	save("groups", "kaas groups", gv.screen(true).Render(k, 100))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

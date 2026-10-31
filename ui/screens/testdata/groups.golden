@@ -1,0 +1,15 @@
+╭─ Groups  Lag ─ Rate ─ Members ─ Name ──────────────────────────────────────── ● live · every 2s ─╮
+│ Group         State        Members  Topics      Lag ▼             Rate   Catch up                │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ billing       Stable             3  orders +1  48,210  ■■■■■■  1,250/s        39s                │
+│ fraud-check   Rebalancing        2  payments    9,120  ■■····      0/s    stalled                │
+│ search-index  Stable             6  orders        340  ■·····  2,211/s        <1s                │
+│ audit-sink    Empty              0  audit           0  ······      0/s  caught up                │
+│ legacy        error              0  -               -  ······        -          -                │
+│                                                                                                  │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ Lag     57,670                                  ▁▁▁▁▁▁▁▁▁▁▁▁▃▃▃▃▄▄▄▄▃▃▃▃▅▅▅▅████   Members    11 │
+│ Rate    3,461/s                                 ████████████████████████████████   Topics      3 │
+│ Groups  5 · 1 rebalancing · 1 failed            ████████████████████████████████                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+ sorted by lag · refreshing every 2s · ctrl-c to stop · --once for a single read

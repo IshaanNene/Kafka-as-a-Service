@@ -97,6 +97,8 @@ func TestGoldens(t *testing.T) {
 	golden(t, "tree", treeFixture().Render(k, 80))
 	golden(t, "partitions", partitionsFixture().Render(k, 90))
 	golden(t, "partitions_narrow", partitionsFixture().Render(k, 50))
+	golden(t, "groups", groupsFixture().Render(k, 100))
+	golden(t, "groups_narrow", groupsFixture().Render(k, 50))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
 	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
@@ -219,6 +221,7 @@ func TestFits(t *testing.T) {
 		"table":       func(w int) []string { return tableFixture().Render(k, w) },
 		"tree":        func(w int) []string { return treeFixture().Render(k, w) },
 		"partitions":  func(w int) []string { return partitionsFixture().Render(k, w) },
+		"groups":      func(w int) []string { return groupsFixture().Render(k, w) },
 		"not_found": func(w int) []string {
 			return NotFound{Kind: "topic", Name: strings.Repeat("x", 90), Where: "cluster", Actions: []string{"kaas snapshot"}}.Render(k, w)
 		},
@@ -304,10 +307,68 @@ func TestLiveScreensNeverTruncate(t *testing.T) {
 		lines = append(lines, tableFixture().Render(k, w)...)
 		lines = append(lines, treeFixture().Render(k, w)...)
 		lines = append(lines, partitionsFixture().Render(k, w)...)
+		lines = append(lines, groupsFixture().Render(k, w)...)
 		for i, l := range lines {
 			if strings.Contains(l, "…") {
 				t.Fatalf("width %d line %d truncated: %q", w, i, l)
 			}
+		}
+	}
+}
+
+func groupsFixture() Groups {
+	return Groups{
+		Tabs: []string{"Lag", "Rate", "Members", "Name"}, Sorted: 0,
+		Badge: "live · every 2s",
+		Rows: []GroupRow{
+			{Name: "billing", State: "Stable", Members: 3, Topics: []string{"orders", "payments"}, Lag: 48210, Rate: 1250},
+			{Name: "fraud-check", State: "PreparingRebalance", Members: 2, Topics: []string{"payments"}, Lag: 9120, Rate: 0},
+			{Name: "search-index", State: "Stable", Members: 6, Topics: []string{"orders"}, Lag: 340, Rate: 2210.5},
+			{Name: "audit-sink", State: "Empty", Topics: []string{"audit"}, Lag: 0, Rate: 0},
+			{Name: "legacy", State: "Dead", Lag: -1, Rate: -1, Err: true},
+		},
+		History: []int64{40000, 42000, 41000, 45000, 47000, 46500, 50100, 57670},
+		Empty:   "No consumer groups yet.",
+		Hint:    "sorted by lag · refreshing every 2s · ctrl-c to stop · --once for a single read",
+	}
+}
+
+func TestGroupsEmptyAndSort(t *testing.T) {
+	k, _ := kits(t)
+	g := groupsFixture()
+	g.Rows, g.History = nil, nil
+	if out := kit.Join(g.Render(k, 80)); !strings.Contains(out, "No consumer groups yet.") {
+		t.Errorf("empty groups lost their message\n%s", out)
+	}
+	g = groupsFixture()
+	g.Sorted = 3
+	out := kit.Join(g.Render(k, 100))
+	if !strings.Contains(out, "Group ▲") || strings.Contains(out, "Lag ▼") {
+		t.Errorf("sorted by name should mark Group ▲ only\n%s", out)
+	}
+}
+
+func TestCatchUp(t *testing.T) {
+	for _, c := range []struct {
+		row  GroupRow
+		want string
+	}{
+		{GroupRow{Lag: 600, Rate: 10, Members: 1}, "1m"},
+		{GroupRow{Lag: 0, Rate: 0}, "caught up"},
+		{GroupRow{Lag: 5, Rate: 0, Members: 2}, "stalled"},
+		{GroupRow{Lag: 5, Rate: 0}, "no members"},
+		{GroupRow{Lag: 5, Rate: -1}, "-"},
+	} {
+		if got, _ := catchUp(c.row); got != c.want {
+			t.Errorf("catchUp(%+v) = %q, want %q", c.row, got, c.want)
+		}
+	}
+}
+
+func TestSpan(t *testing.T) {
+	for sec, want := range map[float64]string{0.2: "<1s", 40: "40s", 600: "10m", 7200: "2h", 200000: "2d"} {
+		if got := Span(sec); got != want {
+			t.Errorf("Span(%v) = %q, want %q", sec, got, want)
 		}
 	}
 }

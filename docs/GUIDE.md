@@ -153,6 +153,22 @@ Every partition's leader, replicas, in-sync replicas, offsets, records and size,
 
 On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
 
+### `kaas groups`: who is behind, and for how long
+
+Every consumer group, worst lag first, refreshing in place like a task manager:
+
+```bash
+kaas groups                      # live, every 2s; Ctrl-C to stop
+kaas groups 'billing-*' --sort rate
+kaas groups --once               # one read and exit
+```
+
+Each row is a group's state, members, the topics it reads and how many records it is behind, with a bar for its share of the worst lag. The rate comes from committed offsets between refreshes, and **Catch up** is lag divided by rate: `stalled` when its members are not committing, `no members` when nobody is consuming, `caught up` at zero. Rebalancing groups show in purple. Below the rows are the totals and a chart of total lag over time, red wherever it grew.
+
+![kaas groups: groups by lag with bars, consume rates, catch-up times and a chart of total lag](img/groups.svg)
+
+On a pipe it prints one line per group with raw lag numbers. With `-o json` you get every group's lag, committed offsets and topics. A single read has no rate, since the rate needs two reads.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

@@ -26,7 +26,7 @@ func newStyles(t theme.Theme) styles {
 	return styles{
 		fg: c(t.FG), muted: c(t.Muted), accent: c(t.Accent), accent2: c(t.Accent2),
 		ok: c(t.OK), warn: c(t.Warn), err: c(t.Err), info: c(t.Info), rule: c(t.Rule),
-		sel: lipgloss.NewStyle().Foreground(theme.C(t.Accent2)).Background(theme.C(t.Selection)),
+		sel: lipgloss.NewStyle().Foreground(theme.C(t.FG)).Background(theme.C(t.Selection)),
 	}
 }
 

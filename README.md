@@ -4,6 +4,12 @@ One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a 
 
 > Status: **Phase 1 — Developer tool.** See the [design docs](docs/design/) and [ADRs](docs/adr/).
 
+**[Read the guide: what KaaS is, every screen, and how to use it →](docs/GUIDE.md)**
+
+**[See the screen gallery: all 79 UI pieces and the command each one belongs to →](docs/SCREENS.md)**
+
+![The kaas terminal UI](docs/img/tui-topics.svg)
+
 ## Quick start
 
 ```bash
@@ -11,12 +17,13 @@ go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
 kaas -b localhost:9092                   # terminal UI (: command · / filter · ? help)
 kaas snapshot -b localhost:9092          # one-shot cluster summary
 kaas watch -b localhost:9092 -t orders   # stream events and record growth
+kaas bench produce -t orders --size 100,1024 --compression none,lz4   # throughput and latency matrix
 kaas help watch                          # usage and examples
 ```
 
-On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007).
+On a terminal every command draws its own screens: help as a command palette with an examples session, a boot log while it connects, and error pages that say what broke (an unreachable cluster shows each seed's DNS → TCP → protocol → metadata probe; a typo gets the names you probably meant). Pipes get plain text and `-o json` gets JSON errors. Exit codes are stable: 0 ok, 1 failure, 2 usage, 3 not found, 4 unavailable (ADR-0007). [Design 0002](docs/design/0002-command-screens.md) maps every ascii-magic UI piece to the command that uses it.
 
-Themes: `--theme amber` (Amber Phosphor, default) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
+Themes: `--theme magic` (default: each screen in the colours of the ascii-magic piece it was ported from), `--theme amber` (Amber Phosphor) or `--theme ice`. `NO_COLOR` keeps the layout without colour; `KAAS_REDUCED_MOTION=1` freezes animation.
 
 ## Develop
 
@@ -26,6 +33,7 @@ Requires Go 1.26, [Task](https://taskfile.dev), golangci-lint v2, and Docker for
 task test               # unit + kfake tests
 task test:integration   # Testcontainers; KAAS_KAFKA_IMAGE=apache/kafka:4.4.0 to pick a version
 task lint               # includes the core/ import boundary (ADR-0003)
+task screenshots        # regenerate docs/img from real runs against kfake
 task dev                # kind + Strimzi + 3-broker KRaft cluster
 ```
 

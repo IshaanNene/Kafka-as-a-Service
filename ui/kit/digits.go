@@ -1,6 +1,10 @@
 package kit
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/IshaanNene/Kafka-as-a-Service/ui/theme"
+)
 
 // font is a 4×5 pixel face for the big status codes on error pages. Each
 // pixel is two cells wide so the glyphs come out roughly square.
@@ -21,47 +25,57 @@ var font = map[rune][5]string{
 const BigHeight = 5
 
 // Big renders digits in the block face, lit pixels in role r and unlit ones
-// as a faint ░ grid in Rule, like the template's dot-matrix codes. Runes the
-// face lacks are skipped.
+// as a faint ░ grid, like the template's dot-matrix codes. Runes the face
+// lacks are skipped.
 func (k Kit) Big(s string, r Role) []string {
+	return k.big(s, func(int, int) string { return k.S(r, "██") })
+}
+
+// BigRamp is Big painted along a gradient: down the rows, as page-500 burns
+// from dark red to yellow, or across the columns, as page-404 fades from
+// purple to cyan.
+func (k Kit) BigRamp(s string, ramp []string, across bool) []string {
+	cols := 0
+	for _, ch := range s {
+		if _, ok := font[ch]; ok {
+			cols += 5 // four pixels and the gap
+		}
+	}
+	return k.big(s, func(x, y int) string {
+		if across {
+			return k.Hex(theme.Ramp(ramp, x, cols), "██")
+		}
+		return k.Hex(theme.Ramp(ramp, y, BigHeight), "██")
+	})
+}
+
+func (k Kit) big(s string, lit func(x, y int) string) []string {
 	out := make([]string, BigHeight)
-	first := true
+	col := 0
 	for _, ch := range s {
 		g, ok := font[ch]
 		if !ok {
 			continue
 		}
 		for y := range BigHeight {
-			if !first {
+			if col > 0 {
 				out[y] += "  "
 			}
-			var lit, dim strings.Builder
-			flush := func() {
-				if lit.Len() > 0 {
-					out[y] += k.S(r, lit.String())
-					lit.Reset()
+			var dim strings.Builder
+			for x, px := range g[y] {
+				if px != '#' {
+					dim.WriteString("░░")
+					continue
 				}
 				if dim.Len() > 0 {
-					out[y] += k.S(Rule, dim.String())
+					out[y] += k.S(Faint, dim.String())
 					dim.Reset()
 				}
+				out[y] += lit(col+x, y)
 			}
-			for _, px := range g[y] {
-				if px == '#' {
-					if dim.Len() > 0 {
-						flush()
-					}
-					lit.WriteString("██")
-				} else {
-					if lit.Len() > 0 {
-						flush()
-					}
-					dim.WriteString("░░")
-				}
-			}
-			flush()
+			out[y] += k.S(Faint, dim.String())
 		}
-		first = false
+		col += 5
 	}
 	return out
 }

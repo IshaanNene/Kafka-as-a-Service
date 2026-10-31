@@ -14,7 +14,7 @@ import (
 // the probe draws as a boot log on stderr, erased once the cluster answers;
 // elsewhere it is silent. A failed probe becomes an unavailable error that
 // says which layer broke.
-func connect(cmd *cobra.Command, brokers, themeName string) error {
+func connect(cmd *cobra.Command, brokers, themeName string) (probe.Result, error) {
 	seeds := splitSeeds(brokers)
 	s := detect(cmd.ErrOrStderr(), themeName)
 	drawn := 0
@@ -30,18 +30,18 @@ func connect(cmd *cobra.Command, brokers, themeName string) error {
 	}
 	r := probe.Run(cmd.Context(), seeds, o)
 	if err := cmd.Context().Err(); err != nil {
-		return err
+		return r, err
 	}
 	if r.OK() {
 		if s.rich {
 			s.erase(drawn)
 		}
-		return nil
+		return r, nil
 	}
 	if s.rich {
 		draw(screens.BootDone(s.kit, r))
 	}
-	return unavailableError(r)
+	return r, unavailableError(r)
 }
 
 func splitSeeds(brokers string) []string {

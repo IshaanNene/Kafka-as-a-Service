@@ -76,7 +76,7 @@ func newRoot() *cobra.Command {
 			if err := oneOf(cmd, "output", output, "table", "json"); err != nil {
 				return err
 			}
-			if err := connect(cmd, brokers, themeName); err != nil {
+			if _, err := connect(cmd, brokers, themeName); err != nil {
 				return err
 			}
 			cl, err := kgo.NewClient(kgo.SeedBrokers(strings.Split(brokers, ",")...))
@@ -96,6 +96,7 @@ func newRoot() *cobra.Command {
 	snap.Flags().StringVarP(&output, "output", "o", "table", "output format: table|json")
 	root.AddCommand(snap)
 	root.AddCommand(newWatchCmd(&brokers, &themeName))
+	root.AddCommand(newBenchCmd(&brokers, &themeName))
 	root.AddCommand(newTUICmd(&brokers, &themeName))
 	return root
 }

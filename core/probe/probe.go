@@ -200,6 +200,11 @@ func Run(ctx context.Context, seeds []string, o Options) Result {
 			av := resp.(*kmsg.ApiVersionsResponse)
 			if err = kerr.ErrorForCode(av.ErrorCode); err == nil {
 				v := kversion.FromApiVersionsResponse(av).VersionGuess()
+				if !strings.HasPrefix(v, "v") {
+					// Kafka-compatible brokers (Redpanda, kfake) don't match an
+					// Apache release; franz-go then says "between v1.0 and …".
+					v = "compatible"
+				}
 				if r.Version == "" {
 					r.Version = v
 				}

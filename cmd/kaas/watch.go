@@ -61,7 +61,7 @@ budget; when it runs dry, refreshes are skipped rather than queued.`,
 			if err := oneOf(cmd, "output", output, "text", "json"); err != nil {
 				return err
 			}
-			if err := connect(cmd, *brokers, *themeName); err != nil {
+			if _, err := connect(cmd, *brokers, *themeName); err != nil {
 				return err
 			}
 			cl, err := kgo.NewClient(kgo.SeedBrokers(strings.Split(*brokers, ",")...))
@@ -82,6 +82,17 @@ budget; when it runs dry, refreshes are skipped rather than queued.`,
 			go func() { done <- e.Run(ctx) }()
 
 			w := &watchPrinter{out: cmd.OutOrStdout(), json: output == "json", topics: topics, last: map[string]int64{}}
+			// On a terminal, text output becomes the live screen; a ticker
+			// ages the toasts between updates.
+			var view *watchView
+			var tick <-chan time.Time
+			if s := detect(cmd.OutOrStdout(), *themeName); s.rich && output == "text" {
+				view = newWatchView(s, topics, e.Config())
+				defer view.lv.done()
+				t := time.NewTicker(time.Second)
+				defer t.Stop()
+				tick = t.C
+			}
 			for {
 				select {
 				case <-ctx.Done():
@@ -90,6 +101,11 @@ budget; when it runs dry, refreshes are skipped rather than queued.`,
 						return err
 					}
 					return nil
+				case now := <-tick:
+					if view.snap != nil {
+						view.stats = e.Stats()
+						view.draw(now)
+					}
 				case <-sub.Ready():
 					u, _ := sub.Next()
 					if !w.checked && u.Snapshot != nil {
@@ -97,6 +113,12 @@ budget; when it runs dry, refreshes are skipped rather than queued.`,
 						if err := missingTopic(u.Snapshot, topics); err != nil {
 							return err
 						}
+					}
+					if view != nil {
+						now := time.Now()
+						view.update(u, e.Stats(), now)
+						view.draw(now)
+						continue
 					}
 					if err := w.print(u); err != nil {
 						return err

@@ -60,7 +60,7 @@ func (h Help) Render(k kit.Kit, width int) []string {
 	}
 	query := k.S(kit.Accent, "> ") + k.B(kit.FG, h.Path) + k.S(kit.Accent, "█")
 	right := k.S(kit.Muted, strings.Join(counts, " · "))
-	body := []string{" " + spread(query, right, inner-2) + " ", k.S(kit.Rule, strings.Repeat("─", inner))}
+	body := []string{" " + spread(query, right, inner-2) + " ", k.S(kit.Faint, strings.Repeat("─", inner))}
 
 	text := h.Long
 	if text == "" {
@@ -75,7 +75,7 @@ func (h Help) Render(k kit.Kit, width int) []string {
 		if len(items) == 0 {
 			return
 		}
-		body = append(body, "", " "+k.S(kit.Accent, spaced(title)))
+		body = append(body, "", " "+k.S(kit.Muted, spaced(title)))
 		nw := 0
 		for _, it := range items {
 			nw = max(nw, kit.Width(it.Name))
@@ -89,16 +89,16 @@ func (h Help) Render(k kit.Kit, width int) []string {
 	section("commands", h.Commands)
 	section("flags", h.Flags)
 	section("global flags", h.Global)
-	body = append(body, "", k.S(kit.Rule, strings.Repeat("─", inner)))
+	body = append(body, "", k.S(kit.Faint, strings.Repeat("─", inner)))
 
-	foot := k.S(kit.Accent, "◆ ") + k.S(kit.FG, "kaas "+h.Version) + k.S(kit.Muted, "   "+h.Usage)
-	hint := k.S(kit.Accent2, "kaas help <command>") + k.S(kit.Muted, "  more")
+	foot := k.S(kit.OK, "◆ ") + k.S(kit.FG, "kaas "+h.Version) + k.S(kit.Muted, "   "+h.Usage)
+	hint := k.S(kit.Muted, "kaas help <command>  more")
 	if n == 0 {
-		hint = k.S(kit.Accent2, "-h") + k.S(kit.Muted, "  this screen")
+		hint = k.S(kit.Muted, "-h  this screen")
 	}
 	body = append(body, " "+spread(foot, hint, inner-2)+" ")
 
-	out := k.Draw(kit.Box{Title: k.B(kit.Accent, h.Path), Right: k.S(kit.Muted, "usage"), Role: kit.Rule, Width: w}, body)
+	out := k.Draw(kit.Box{Title: k.S(kit.FG, h.Path), Right: k.S(kit.Muted, "usage"), Role: kit.Muted, Width: w}, body)
 	if len(h.Examples) > 0 {
 		out = append(out, "")
 		out = append(out, Session(k, h.Prompt, h.Examples, w)...)
@@ -113,19 +113,29 @@ func (h Help) row(k kit.Kit, it Item, nw, inner int, selected bool) string {
 	dw := max(0, inner-nw-hw-8)
 	desc := kit.Fit(it.Desc, dw)
 	if selected {
-		fill := func(s string) string { return strings.ReplaceAll(s, " ", "░") }
-		line := "░" + kit.Fit(strings.TrimLeft(it.Name, " "), nw) + "░░" + desc + "░░" + it.Hint + "░"
-		line = kit.Fit(fill(line), inner-2)
-		return " " + k.S(kit.Accent, "▌") + k.S(kit.Sel, line)
+		// White text over a dark ░ fill, the shortcut in grey, as the
+		// palette draws its top result.
+		pad := func(n int) string { return k.Hex(k.Theme.Selection, strings.Repeat("░", n)) }
+		name := strings.TrimRight(kit.Fit(strings.TrimLeft(it.Name, " "), nw), " ")
+		desc = strings.TrimRight(desc, " ")
+		gap := inner - 2 - kit.Width(name) - kit.Width(desc) - hw - 4
+		line := pad(1) + k.S(kit.FG, name) + pad(nw-kit.Width(name)+2) + k.S(kit.FG, desc) +
+			pad(max(2, gap-(nw-kit.Width(name)))) + k.S(kit.Rule, it.Hint) + pad(1)
+		return " " + k.S(kit.Accent, "▌") + kit.Fit(line, inner-2)
 	}
-	left := "   " + k.S(kit.Accent2, kit.Fit(it.Name, nw)) + "  " + k.S(kit.FG, desc)
-	return spread(left, k.S(kit.Muted, it.Hint)+"  ", inner)
+	left := "   " + k.S(kit.FG, kit.Fit(it.Name, nw)) + "  " + k.S(kit.Muted, desc)
+	return spread(left, k.S(kit.Rule, it.Hint)+"  ", inner)
 }
 
 // Session draws examples as a terminal session: a titled window with
 // "$ command" prompts and # comments.
 func Session(k kit.Kit, prompt string, ex []Example, w int) []string {
 	title := k.S(kit.Err, "●") + k.S(kit.Rule, "─") + k.S(kit.Warn, "●") + k.S(kit.Rule, "─") + k.S(kit.OK, "●")
+	// The prompt is coloured as terminal-session's: user green, path blue.
+	ps1 := k.S(kit.FG, "$ ")
+	if user, path, ok := strings.Cut(prompt, ": "); ok {
+		ps1 = k.S(kit.OK, user) + " " + k.S(kit.Accent, path) + " " + ps1
+	}
 	var body []string
 	for i, e := range ex {
 		if i > 0 && e.Comment != "" {
@@ -134,7 +144,7 @@ func Session(k kit.Kit, prompt string, ex []Example, w int) []string {
 		if e.Comment != "" {
 			body = append(body, k.S(kit.Muted, "# "+e.Comment))
 		}
-		body = append(body, k.S(kit.Accent, "$ ")+k.S(kit.FG, e.Cmd))
+		body = append(body, ps1+k.S(kit.FG, e.Cmd))
 	}
 	return k.Draw(kit.Box{Lead: title, Role: kit.Rule, Width: w, Pad: 1, Right: k.S(kit.Muted, prompt)}, body)
 }

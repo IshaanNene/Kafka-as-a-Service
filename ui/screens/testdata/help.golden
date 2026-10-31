@@ -5,7 +5,7 @@
 │  deleted                                                                     │
 │                                                                              │
 │ F L A G S                                                                    │
-│ ▌░-t,░--topic░strings░░topics░to░watch░closely░(repeatable)░░░░░░░░░░░░░░░░░░│
+│ ▌░-t, --topic strings░░topics to watch closely (repeatable)░░░░░░░░░░░░░░░░░░│
 │   -o, --output string  output format: text|json                        text  │
 │       --budget float   requests per second                               20  │
 │                                                                              │
@@ -18,6 +18,6 @@
 
 ╭─●─●─●─────────────────────────────────────────────────────── dev@box: ~/src ─╮
 │ # Follow two topics                                                          │
-│ $ kaas watch -t orders -t payments                                           │
-│ $ kaas watch -o json | jq .event                                             │
+│ dev@box ~/src $ kaas watch -t orders -t payments                             │
+│ dev@box ~/src $ kaas watch -o json | jq .event                               │
 ╰──────────────────────────────────────────────────────────────────────────────╯

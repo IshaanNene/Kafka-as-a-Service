@@ -31,6 +31,7 @@ const (
 	Info
 	Rule
 	Sel
+	Faint
 )
 
 // Kit styles text for one theme.
@@ -46,8 +47,11 @@ func (k Kit) style(r Role) lipgloss.Style {
 	t := k.Theme
 	hex := map[Role]string{
 		FG: t.FG, Muted: t.Muted, Accent: t.Accent, Accent2: t.Accent2, OK: t.OK,
-		Warn: t.Warn, Err: t.Err, Info: t.Info, Rule: t.Rule, Sel: t.Accent2,
+		Warn: t.Warn, Err: t.Err, Info: t.Info, Rule: t.Rule, Sel: t.Accent2, Faint: t.Faint,
 	}[r]
+	if hex == "" {
+		hex = t.Rule // themes without a faint tone fall back to the frame colour
+	}
 	s := lipgloss.NewStyle().Foreground(theme.C(hex))
 	if r == Sel {
 		s = s.Background(theme.C(t.Selection))
@@ -61,6 +65,15 @@ func (k Kit) S(r Role, s string) string {
 		return s
 	}
 	return k.style(r).Render(s)
+}
+
+// Hex paints s in an explicit colour, for gradients taken from the theme's
+// ramps (theme.Ramp). Screens still never name a colour themselves.
+func (k Kit) Hex(hex, s string) string {
+	if !k.Color || s == "" || hex == "" {
+		return s
+	}
+	return lipgloss.NewStyle().Foreground(theme.C(hex)).Render(s)
 }
 
 // B paints s in role r, bold.

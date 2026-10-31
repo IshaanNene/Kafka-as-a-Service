@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="603" height="240" viewBox="0 0 603 240" role="img" aria-label="kaas snapshot">
+<rect width="100%" height="100%" rx="10" fill="#0d1117" stroke="#484f58"/>
+<circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+<circle cx="42" cy="18" r="6" fill="#febc2e"/>
+<circle cx="62" cy="18" r="6" fill="#28c840"/>
+<text x="302" y="22" fill="#484f58" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" text-anchor="middle">kaas snapshot</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
+<text x="91.6" y="57.0" fill="#8b949e" textLength="84.0" lengthAdjust="spacingAndGlyphs">Connecting</text>
+<text x="184.0" y="57.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">to</text>
+<text x="209.2" y="57.0" fill="#e6edf3" textLength="126.0" lengthAdjust="spacingAndGlyphs">127.0.0.1:53471</text>
+<text x="335.2" y="57.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">...</text>
+<text x="16.0" y="75.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="58.0" y="75.0" fill="#484f58" textLength="75.6" lengthAdjust="spacingAndGlyphs">0.000005]</text>
+<text x="142.0" y="75.0" fill="#8b949e" textLength="33.6" lengthAdjust="spacingAndGlyphs">dns:</text>
+<text x="184.0" y="75.0" fill="#8b949e" textLength="75.6" lengthAdjust="spacingAndGlyphs">127.0.0.1</text>
+<text x="268.0" y="75.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">→</text>
+<text x="284.8" y="75.0" fill="#8b949e" textLength="75.6" lengthAdjust="spacingAndGlyphs">127.0.0.1</text>
+<text x="16.0" y="93.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="41.2" y="93.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">OK</text>
+<text x="74.8" y="93.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">]</text>
+<text x="91.6" y="93.0" fill="#e6edf3" textLength="67.2" lengthAdjust="spacingAndGlyphs">Resolved</text>
+<text x="167.2" y="93.0" fill="#e6edf3" textLength="134.4" lengthAdjust="spacingAndGlyphs">127.0.0.1:53471.</text>
+<text x="310.0" y="93.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">(4µs)</text>
+<text x="16.0" y="111.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="58.0" y="111.0" fill="#484f58" textLength="75.6" lengthAdjust="spacingAndGlyphs">0.000252]</text>
+<text x="142.0" y="111.0" fill="#8b949e" textLength="33.6" lengthAdjust="spacingAndGlyphs">tcp:</text>
+<text x="184.0" y="111.0" fill="#8b949e" textLength="75.6" lengthAdjust="spacingAndGlyphs">connected</text>
+<text x="268.0" y="111.0" fill="#8b949e" textLength="126.0" lengthAdjust="spacingAndGlyphs">127.0.0.1:53471</text>
+<text x="16.0" y="129.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="41.2" y="129.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">OK</text>
+<text x="74.8" y="129.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">]</text>
+<text x="91.6" y="129.0" fill="#e6edf3" textLength="50.4" lengthAdjust="spacingAndGlyphs">Opened</text>
+<text x="150.4" y="129.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">a</text>
+<text x="167.2" y="129.0" fill="#e6edf3" textLength="84.0" lengthAdjust="spacingAndGlyphs">connection</text>
+<text x="259.6" y="129.0" fill="#e6edf3" textLength="16.8" lengthAdjust="spacingAndGlyphs">to</text>
+<text x="284.8" y="129.0" fill="#e6edf3" textLength="134.4" lengthAdjust="spacingAndGlyphs">127.0.0.1:53471.</text>
+<text x="427.6" y="129.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">(196µs)</text>
+<text x="16.0" y="147.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="58.0" y="147.0" fill="#484f58" textLength="75.6" lengthAdjust="spacingAndGlyphs">0.001127]</text>
+<text x="142.0" y="147.0" fill="#8b949e" textLength="33.6" lengthAdjust="spacingAndGlyphs">api:</text>
+<text x="184.0" y="147.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">kafka</text>
+<text x="234.4" y="147.0" fill="#8b949e" textLength="84.0" lengthAdjust="spacingAndGlyphs">compatible</text>
+<text x="326.8" y="147.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="343.6" y="147.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">62</text>
+<text x="368.8" y="147.0" fill="#8b949e" textLength="33.6" lengthAdjust="spacingAndGlyphs">APIs</text>
+<text x="16.0" y="165.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="41.2" y="165.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">OK</text>
+<text x="74.8" y="165.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">]</text>
+<text x="91.6" y="165.0" fill="#e6edf3" textLength="84.0" lengthAdjust="spacingAndGlyphs">Negotiated</text>
+<text x="184.0" y="165.0" fill="#e6edf3" textLength="25.2" lengthAdjust="spacingAndGlyphs">the</text>
+<text x="217.6" y="165.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">Kafka</text>
+<text x="268.0" y="165.0" fill="#e6edf3" textLength="67.2" lengthAdjust="spacingAndGlyphs">protocol</text>
+<text x="343.6" y="165.0" fill="#e6edf3" textLength="33.6" lengthAdjust="spacingAndGlyphs">with</text>
+<text x="385.6" y="165.0" fill="#e6edf3" textLength="134.4" lengthAdjust="spacingAndGlyphs">127.0.0.1:53471.</text>
+<text x="528.4" y="165.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">(543µs)</text>
+<text x="16.0" y="183.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="58.0" y="183.0" fill="#484f58" textLength="75.6" lengthAdjust="spacingAndGlyphs">0.001444]</text>
+<text x="142.0" y="183.0" fill="#8b949e" textLength="75.6" lengthAdjust="spacingAndGlyphs">metadata:</text>
+<text x="226.0" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">3</text>
+<text x="242.8" y="183.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">brokers</text>
+<text x="310.0" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="326.8" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">4</text>
+<text x="343.6" y="183.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">topics</text>
+<text x="402.4" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="419.2" y="183.0" fill="#8b949e" textLength="84.0" lengthAdjust="spacingAndGlyphs">controller</text>
+<text x="511.6" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">2</text>
+<text x="16.0" y="201.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="41.2" y="201.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">OK</text>
+<text x="74.8" y="201.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">]</text>
+<text x="91.6" y="201.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">Fetched</text>
+<text x="158.8" y="201.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">cluster</text>
+<text x="226.0" y="201.0" fill="#e6edf3" textLength="75.6" lengthAdjust="spacingAndGlyphs">metadata.</text>
+<text x="310.0" y="201.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">(304µs)</text>
+<text x="16.0" y="219.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="41.2" y="219.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">OK</text>
+<text x="74.8" y="219.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">]</text>
+<text x="91.6" y="219.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">Reached</text>
+<text x="158.8" y="219.0" fill="#e6edf3" textLength="50.4" lengthAdjust="spacingAndGlyphs">target</text>
+<text x="217.6" y="219.0" fill="#e6edf3" font-weight="bold" textLength="58.8" lengthAdjust="spacingAndGlyphs">cluster</text>
+<text x="284.8" y="219.0" fill="#e6edf3" font-weight="bold" textLength="42.0" lengthAdjust="spacingAndGlyphs">kfake</text>
+<text x="335.2" y="219.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="352.0" y="219.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">3</text>
+<text x="368.8" y="219.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">brokers</text>
+<text x="436.0" y="219.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="452.8" y="219.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">4</text>
+<text x="469.6" y="219.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">topics</text>
+<text x="528.4" y="219.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="545.2" y="219.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">1.6ms</text>
+</g>
+</svg>

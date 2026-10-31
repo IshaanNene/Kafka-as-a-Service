@@ -2,13 +2,14 @@
 
 One Go codebase that ships three surfaces in order: a Kafka CLI/TUI (`kaas`), a multi-cluster management plane, then managed Kafka on Kubernetes. All three sit on one shared cluster-state engine in `core/`.
 
-> Status: **Phase 0 — Foundations.** See the [design doc](docs/design/) and [ADRs](docs/adr/).
+> Status: **Phase 1 — Developer tool.** See the [design docs](docs/design/) and [ADRs](docs/adr/).
 
 ## Quick start
 
 ```bash
 go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest
-kaas snapshot -b localhost:9092
+kaas snapshot -b localhost:9092          # one-shot cluster summary
+kaas watch -b localhost:9092 -t orders   # stream events and record growth
 ```
 
 ## Develop

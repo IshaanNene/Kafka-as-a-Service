@@ -11,9 +11,9 @@ import (
 )
 
 func TestTake(t *testing.T) {
-	_, adm := kafkatest.Fake(t, kfake.NumBrokers(3), kfake.SeedTopics(6, "orders", "payments"))
+	_, cl := kafkatest.Fake(t, kfake.NumBrokers(3), kfake.SeedTopics(6, "orders", "payments"))
 
-	tk := snapshot.NewTaker(adm)
+	tk := snapshot.NewTaker(cl)
 	s, err := tk.Take(context.Background())
 	if err != nil {
 		t.Fatal(err)

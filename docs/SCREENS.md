@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 10 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 13 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -29,11 +29,11 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Data Table](#data-table) | `kaas snapshot`, `kaas topics` | built |
 | [Toast Stack](#toast-stack) | `kaas watch` | built |
 | [Benchmark Results](#benchmark-results) | `kaas bench produce`, `kaas bench consume` | built |
-| [File Tree](#file-tree) | `kaas topics` | P1 |
-| [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | P1 |
+| [File Tree](#file-tree) | `kaas topics` | built |
+| [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | built |
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | P1 |
-| [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | P1 |
+| [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | P1 |
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | P1 |
 | [Code Editor](#code-editor) | `kaas produce` | P1 |
@@ -214,7 +214,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`data-table`](https://www.ascii-magic.com/ascii/data-table) · **built** · A service status table that re-sorts by a new column every few seconds while a selection bar walks the rows.
 
 - `kaas snapshot`: Topics, partitions and URPs, sortable
-- `kaas topics`: Topic list; prefix hierarchy as a tree
+- `kaas topics`: Topic list with retention, cleanup and disk; prefix hierarchy as a tree
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/data-table.svg" alt="ascii-magic Data Table" width="100%"></td><td width="50%"><img src="img/snapshot.svg" alt="kaas screen built from Data Table" width="100%"></td></tr></table>
@@ -240,20 +240,22 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### File Tree
 
-[`file-tree`](https://www.ascii-magic.com/ascii/file-tree) · **P1** · A project explorer where a cursor walks the tree, opening and closing folders as it goes.
+[`file-tree`](https://www.ascii-magic.com/ascii/file-tree) · **built** · A project explorer where a cursor walks the tree, opening and closing folders as it goes.
 
-- `kaas topics`: Topic list; prefix hierarchy as a tree
+- `kaas topics`: Topic list with retention, cleanup and disk; prefix hierarchy as a tree
 
-<img src="img/ui/file-tree.svg" alt="ascii-magic File Tree" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/file-tree.svg" alt="ascii-magic File Tree" width="100%"></td><td width="50%"><img src="img/topics-tree.svg" alt="kaas screen built from File Tree" width="100%"></td></tr></table>
 
 ### Partition Editor
 
-[`disk-partitioner`](https://www.ascii-magic.com/ascii/disk-partitioner) · **P1** · A curses-style partition editor that carves a new partition out of free space, writes the table and formats it.
+[`disk-partitioner`](https://www.ascii-magic.com/ascii/disk-partitioner) · **built** · A curses-style partition editor that carves a new partition out of free space, writes the table and formats it.
 
 - `kaas topics describe`: Partitions laid out per broker, leaders and replicas
 - `kaas topics alter --partitions`: New partitions carved from the free space, then written
 
-<img src="img/ui/disk-partitioner.svg" alt="ascii-magic Partition Editor" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/disk-partitioner.svg" alt="ascii-magic Partition Editor" width="100%"></td><td width="50%"><img src="img/topics-describe.svg" alt="kaas screen built from Partition Editor" width="100%"></td></tr></table>
 
 ### Onboarding Stepper
 
@@ -274,12 +276,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Process Task Manager
 
-[`process-task-manager`](https://www.ascii-magic.com/ascii/process-task-manager) · **P1** · A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended.
+[`process-task-manager`](https://www.ascii-magic.com/ascii/process-task-manager) · **built** · A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended.
 
 - `kaas groups`: Groups and members with lag and rate, re-sorting live
 - `kaas clients`: Connected clients by request rate
 
-<img src="img/ui/process-task-manager.svg" alt="ascii-magic Process Task Manager" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/process-task-manager.svg" alt="ascii-magic Process Task Manager" width="100%"></td><td width="50%"><img src="img/groups.svg" alt="kaas screen built from Process Task Manager" width="100%"></td></tr></table>
 
 ### Process Viewer Sort
 

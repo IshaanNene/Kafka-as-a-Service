@@ -112,6 +112,8 @@ func newRoot() *cobra.Command {
 	snap.Flags().StringVarP(&output, "output", "o", "table", "output format: table|json")
 	snap.Flags().StringVar(&sortBy, "sort", "status", "sort topics by: "+strings.Join(snapshotSorts, "|"))
 	root.AddCommand(snap)
+	root.AddCommand(newTopicsCmd(&brokers, &themeName))
+	root.AddCommand(newGroupsCmd(&brokers, &themeName))
 	root.AddCommand(newWatchCmd(&brokers, &themeName))
 	root.AddCommand(newBenchCmd(&brokers, &themeName))
 	root.AddCommand(newTUICmd(&brokers, &themeName))

@@ -28,6 +28,9 @@ const SHOTS = {
   "benchmark-table": "bench",
   "split-pane-session": "tui-topics",
   "data-table": "snapshot",
+  "file-tree": "topics-tree",
+  "disk-partitioner": "topics-describe",
+  "process-task-manager": "groups",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

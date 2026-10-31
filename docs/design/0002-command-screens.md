@@ -38,13 +38,13 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas watch` | toast-stack, sparkline-row (Live Data) | Events slide in as toasts; one records/sec sparkline per `-t` topic | **built** |
 | `kaas bench produce` | benchmark-table, histogram (Live Data), network-traffic (Live Data) | One row per case (size × acks × compression), a live counter, a latency histogram and a throughput graph | **built** |
 | `kaas bench consume` | benchmark-table, network-traffic | Same, for fetch | P1 |
-| `kaas topics` | data-table, file-tree (`--tree`) | Topic list; prefix hierarchy as a tree | P1 |
-| `kaas topics describe` | disk-partitioner | Partitions laid out per broker, leaders and replicas | P1 |
+| `kaas topics` | data-table, file-tree (`--tree`) | Topic list with retention, cleanup and disk; prefix hierarchy as a tree | **built** |
+| `kaas topics describe` | disk-partitioner | Partitions laid out per broker, leaders and replicas | **built** |
 | `kaas topics alter --partitions` | disk-partitioner | New partitions carved from the free space, then written | P1 |
 | `kaas topics create` | onboarding-stepper | Name → partitions → replication → configs → create | P1 |
 | `kaas topics delete` | modal-dialog, empty-trash-lid | Type to confirm; a closing card | P1 |
 | `kaas brokers` | process-tree, gauge-cluster (Live Data) | Broker → leaders → partitions tree; disk, network and request gauges | P1 |
-| `kaas groups` | process-task-manager | Groups and members with lag and rate, re-sorting live | P1 |
+| `kaas groups` | process-task-manager | Groups and members with lag and rate, re-sorting live | **built** |
 | `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | P1 |
 | `kaas top` | process-sorter | Partitions by bytes in/out, with meter bars | P1 |
 | `kaas clients` | process-task-manager | Connected clients by request rate | P1 |

@@ -121,6 +121,54 @@ One row per topic: partitions, replication factor, under-replicated and offline 
 
 ![kaas snapshot: topics with status dots, and cluster totals underneath](img/snapshot.svg)
 
+### `kaas topics`: what each topic keeps, and what it costs
+
+```bash
+kaas topics                         # every topic, problems first
+kaas topics 'payments.*' --sort disk
+kaas topics --tree                  # names grouped by prefix
+kaas topics --internal              # include __consumer_offsets and friends
+```
+
+Each topic shows its partitions and replication factor. It also shows records retained, disk used across every replica, retention and cleanup policy. Retention or cleanup that a topic sets for itself is purple. Grey values are inherited from the broker, so you can spot a topic that quietly keeps data forever.
+
+![kaas topics: retention and cleanup per topic, topic-level settings in purple](img/topics.svg)
+
+With `--tree`, names split on `.` (or `--sep`) into folders, and single-child chains merge. Each topic is a leaf with its status, size, and a flag: `!` offline, `U` under-replicated, `C` compacted.
+
+![kaas topics --tree: topic prefixes as folders](img/topics-tree.svg)
+
+The pattern is a glob. A plain name that isn't a topic gets the 404 page with the closest real names. On a pipe the table prints raw numbers (records, `DISK_BYTES`), so `sort -n` and `awk` work. `-o json` gives `retentionMs`, `cleanupPolicy`, `diskBytes` and the rest per topic.
+
+#### `kaas topics describe`: one topic, partition by partition
+
+```bash
+kaas topics describe orders
+kaas topics describe orders -o json | jq '.partitions[] | select(.isr | length < 3) | .id'
+```
+
+Every partition's leader, replicas, in-sync replicas, offsets, records and size, with `>>` on the one that needs attention (offline, then under-replicated, else the largest). The layout shows one bar per broker: each replica is a segment in its partition's colour, sized by its bytes on that broker. `█` is a leader, `▒` a follower and `░` an out-of-sync replica, so skew and lagging replicas show at a glance. Below are the leader spread, how many partitions are in sync, and the configs the topic sets itself.
+
+![kaas topics describe: partitions, replicas per broker sized by bytes, and the topic's own settings](img/topics-describe.svg)
+
+On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
+
+### `kaas groups`: who is behind, and for how long
+
+Every consumer group, worst lag first, refreshing in place like a task manager:
+
+```bash
+kaas groups                      # live, every 2s; Ctrl-C to stop
+kaas groups 'billing-*' --sort rate
+kaas groups --once               # one read and exit
+```
+
+Each row is a group's state, members, the topics it reads and how many records it is behind, with a bar for its share of the worst lag. The rate comes from committed offsets between refreshes, and **Catch up** is lag divided by rate: `stalled` when its members are not committing, `no members` when nobody is consuming, `caught up` at zero. Rebalancing groups show in purple. Below the rows are the totals and a chart of total lag over time, red wherever it grew.
+
+![kaas groups: groups by lag with bars, consume rates, catch-up times and a chart of total lag](img/groups.svg)
+
+On a pipe it prints one line per group with raw lag numbers. With `-o json` you get every group's lag, committed offsets and topics. A single read has no rate, since the rate needs two reads.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

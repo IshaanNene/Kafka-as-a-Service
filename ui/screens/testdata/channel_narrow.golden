@@ -1,0 +1,24 @@
+ #orders [3 partitions]  from 5 before the end
+──────────────────────────────────────────────────
+14:02:00 --> p0 reading from offset 1,203
+14:02:00 --> p1 reading from offset 998
+14:02:01 <user-42> {"order":9001,"amount":12.5,
+      "currency":"EUR"}
+14:02:01 <user-7> {"order":9002,"amount":3.2,
+      "currency":"USD","items":[{"sku":"A-100",
+      "qty":2},{"sku":"B-220","qty":1}],
+      "note":"leave at the door"}
+14:02:01  * headers: trace-id=4bf92f3577b34da6 ·
+      source=checkout
+14:02:02 <-- user-13 tombstone
+14:02:03 <·> <128 bytes, binary>
+
+
+
+
+
+
+
+──────────────────────────────────────────────────
+[14:02:03] [orders] [read 4 · 2/s] [3 partitions]
+[#orders] ctrl-c to stop · -o json for scripts

@@ -48,7 +48,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | **built** |
 | `kaas top` | process-sorter | Partitions by bytes in/out, with meter bars | P1 |
 | `kaas clients` | process-task-manager | Connected clients by request rate | P1 |
-| `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | P1 |
+| `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | **built** |
 | `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting | P1 |
 | `kaas produce --file` | upload-dropzone, empty-upload-tray | File records upload with per-file progress | P1 |
 | `kaas offsets reset` | onboarding-stepper, infra-plan-diff | Group → topic → strategy → preview of offset changes → apply | P1 |

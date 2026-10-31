@@ -50,7 +50,7 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 	for _, s := range v.Series {
 		line := " " + k.S(kit.Accent2, kit.Fit(s.Name, nameW)) + " "
 		if !s.Known {
-			body = append(body, line+k.S(kit.Muted, "waiting for offsets …"), "")
+			body = append(body, line+k.S(kit.Muted, "waiting for offsets"), "")
 			continue
 		}
 		now := 0.0
@@ -66,20 +66,36 @@ func (v Watch) Render(k kit.Kit, width, height int) []string {
 				trend = k.S(kit.Warn, "↓")
 			}
 		}
+		if inner < nameW+tailW+18 {
+			// Narrow: numbers beside the name, the sparkline on its own line.
+			nums := k.S(kit.FG, Num(now)+"/s") + " " + trend + k.S(kit.Muted, " · "+Num(float64(s.Retained))+" kept")
+			body = append(body, spread(" "+k.S(kit.Accent2, s.Name), nums+" ", inner),
+				" "+k.S(kit.Accent, sparkline(s.Rates, inner-2)), "")
+			continue
+		}
 		tail := k.S(kit.FG, lpad(Num(now)+"/s", 10)) + " " + trend + " " +
 			k.S(kit.Muted, lpad(Num(float64(s.Retained)), 11)+" kept")
 		body = append(body, line+k.S(kit.Accent, sparkline(s.Rates, spark))+" "+tail, "")
 	}
 	if len(v.Series) == 0 {
-		body = append(body, " "+k.S(kit.Muted, v.Empty), "")
+		for _, l := range kit.Wrap(v.Empty, inner-2) {
+			body = append(body, " "+k.S(kit.Muted, l))
+		}
+		body = append(body, "")
 	}
-	body = append(body, k.S(kit.Rule, strings.Repeat("─", inner)), " "+k.S(kit.Muted, v.Foot))
+	body = append(body, k.S(kit.Rule, strings.Repeat("─", inner)))
+	for _, l := range kit.Wrap(v.Foot, inner-2) {
+		body = append(body, " "+k.S(kit.Muted, l))
+	}
 	out := k.Draw(kit.Box{Title: k.B(kit.Accent, v.Title), Right: k.S(kit.Muted, v.Right), Role: kit.Rule, Width: w}, body)
 
 	room := height - len(out) - 1
 	if len(v.Toasts) == 0 {
 		if room > 0 {
-			out = append(out, "", "  "+k.S(kit.Muted, v.Quiet))
+			out = append(out, "")
+			for _, l := range kit.Wrap(v.Quiet, w-4) {
+				out = append(out, "  "+k.S(kit.Muted, l))
+			}
 		}
 		return kit.Clip(width, out)
 	}

@@ -187,7 +187,7 @@ func (b benchRun) run() error {
 			return fmt.Errorf("case %s: %w", c.Name(), err)
 		}
 	}
-	view.Foot = fmt.Sprintf("done · %d cases · %s", len(b.cases), b.right)
+	view.Foot = fmt.Sprintf("done · %s · %s", plural(len(b.cases), "case"), b.right)
 	if rich {
 		lv.draw(view.Render(b.out.kit, b.out.width))
 	}

@@ -90,8 +90,10 @@ func TestGoldens(t *testing.T) {
 	golden(t, "boot", append(boot, BootDone(k, r)...))
 	golden(t, "bench", benchFixture().Render(k, 100))
 	golden(t, "bench_narrow", benchFixture().Render(k, 64))
+	golden(t, "bench_phone", benchFixture().Render(k, 45))
 	golden(t, "watch", watchFixture().Render(k, 100, 30))
 	golden(t, "watch_short", watchFixture().Render(k, 80, 16))
+	golden(t, "watch_phone", watchFixture().Render(k, 45, 30))
 }
 
 // TestFits renders every screen, coloured, at a range of widths and checks
@@ -159,7 +161,7 @@ func benchFixture() Bench {
 func watchFixture() Watch {
 	rates := []float64{0, 0, 152, 503, 498, 501, 498, 503, 498, 500, 501, 501, 345, 0}
 	return Watch{
-		Title: "watch · cluster 5L6g3nShT-eM…", Right: "gen 326 · 1 broker · 2 topics",
+		Title: "watch · cluster 5L6g3nShT", Right: "gen 326 · 1 broker · 2 topics",
 		Series: []Series{
 			{Name: "orders", Rates: rates, Retained: 5000, Known: true},
 			{Name: "payments", Known: false},
@@ -170,5 +172,25 @@ func watchFixture() Watch {
 			{Role: kit.Info, Glyph: "•", Title: "Leader moved", Subject: "orders/1", Detail: "broker 1 → broker 2", Age: 4 * time.Second, Life: 0.9},
 			{Role: kit.OK, Glyph: "✓", Title: "Topic created", Subject: "payments", Detail: "2 partitions", Age: 50 * time.Second, Life: 0.2},
 		},
+	}
+}
+
+// TestLiveScreensNeverTruncate: cutting numbers off is how the bench table
+// first failed in a 45-column pane, so live screens must lay out, not clip.
+func TestLiveScreensNeverTruncate(t *testing.T) {
+	k, _ := kits(t)
+	quiet := watchFixture()
+	quiet.Toasts, quiet.Series = nil, nil
+	quiet.Empty, quiet.Quiet = "no topics followed · add -t <topic> to chart it", "no cluster events yet"
+	for w := 40; w <= 120; w++ {
+		var lines []string
+		lines = append(lines, benchFixture().Render(k, w)...)
+		lines = append(lines, watchFixture().Render(k, w, 40)...)
+		lines = append(lines, quiet.Render(k, w, 40)...)
+		for i, l := range lines {
+			if strings.Contains(l, "…") {
+				t.Fatalf("width %d line %d truncated: %q", w, i, l)
+			}
+		}
 	}
 }

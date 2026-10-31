@@ -94,7 +94,7 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 		head += " " + lpad("max", durW)
 	}
 	head += "   "
-	if barW >= 6 {
+	if barW >= 8 {
 		head += "relative"
 	}
 	body := []string{k.S(kit.Muted, head), k.S(kit.Rule, strings.Repeat("─", inner))}
@@ -103,7 +103,15 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 	for _, r := range b.Rows {
 		best = math.Max(best, r.RecsPerSec)
 	}
+	// Too narrow for a table even without max and MB/s: one card per case.
+	cards := fixed() > inner || inner < 60
+	if cards {
+		body = b.cards(k, inner, best)
+	}
 	for _, r := range b.Rows {
+		if cards {
+			break
+		}
 		lead := " "
 		name := kit.Fit(r.Name, nw)
 		switch r.State {
@@ -124,7 +132,7 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 					msg += ": " + r.Err
 				}
 				line += k.S(kit.Err, msg)
-			case barW >= 6 && best > 0:
+			case barW >= 8 && best > 0:
 				line += k.S(kit.Accent, strings.Repeat("■", max(1, int(float64(barW)*r.RecsPerSec/best))))
 			}
 			body = append(body, line)
@@ -144,7 +152,10 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 			body = append(body, lead+k.S(kit.Muted, name)+"  "+k.S(kit.Rule, "···········"))
 		}
 	}
-	body = append(body, "", k.S(kit.Rule, strings.Repeat("─", inner)), " "+k.S(kit.Muted, b.Foot))
+	body = append(body, "", k.S(kit.Rule, strings.Repeat("─", inner)))
+	for _, l := range kit.Wrap(b.Foot, inner-2) {
+		body = append(body, " "+k.S(kit.Muted, l))
+	}
 	out := k.Draw(kit.Box{Title: k.B(kit.Accent, b.Title), Right: k.S(kit.Muted, b.Right), Role: kit.Rule, Width: w}, body)
 
 	// Charts sit side by side when the throughput chart still gets 40
@@ -293,4 +304,69 @@ func lpad(s string, w int) string {
 		return strings.Repeat(" ", w-n) + s
 	}
 	return s
+}
+
+// cards draws each case as two lines for narrow terminals: the name with
+// its relative bar, then the numbers, wrapping on " · ".
+func (b Bench) cards(k kit.Kit, inner int, best float64) []string {
+	var body []string
+	for i, r := range b.Rows {
+		if i > 0 {
+			body = append(body, "")
+		}
+		switch r.State {
+		case BenchDone, BenchFailed:
+			bar := ""
+			if best > 0 && r.Errors == 0 && r.State == BenchDone {
+				bar = k.S(kit.Accent, strings.Repeat("■", max(1, int(10*r.RecsPerSec/best))))
+			}
+			body = append(body, spread(" "+k.B(kit.FG, r.Name), bar+" ", inner))
+			body = append(body, joinWrap(k, []string{
+				k.S(kit.Accent2, Num(r.RecsPerSec)+" rec/s"), k.S(kit.FG, fmt.Sprintf("%.2f MB/s", r.MBPerSec)),
+				k.S(kit.Muted, "p50 ") + k.S(kit.FG, Dur(r.P50)), k.S(kit.Muted, "p99 ") + k.S(kit.FG, Dur(r.P99)),
+				k.S(kit.Muted, "max ") + k.S(kit.FG, Dur(r.Max)),
+			}, inner-3, "   ")...)
+			if r.State == BenchFailed || r.Errors > 0 {
+				msg := fmt.Sprintf("✗ %d errors", r.Errors)
+				if r.Err != "" {
+					msg += ": " + r.Err
+				}
+				for _, l := range kit.Wrap(msg, inner-4) {
+					body = append(body, "   "+k.S(kit.Err, l))
+				}
+			}
+		case BenchRunning:
+			pct := 0.0
+			if r.Total > 0 {
+				pct = float64(r.Acked) / float64(r.Total)
+			}
+			body = append(body, k.S(kit.Accent, spinner[b.Spin%len(spinner)])+k.B(kit.Accent2, r.Name))
+			count := fmt.Sprintf(" %3.0f%% · %s/%s", pct*100, Num(float64(r.Acked)), Num(float64(r.Total)))
+			pw := max(4, inner-4-kit.Width(count))
+			fill := int(pct * float64(pw))
+			body = append(body, "   "+k.S(kit.Accent, strings.Repeat("█", fill))+k.S(kit.Rule, strings.Repeat("░", pw-fill))+k.S(kit.Muted, count))
+		default:
+			body = append(body, " "+k.S(kit.Muted, r.Name), "   "+k.S(kit.Rule, "···········"))
+		}
+	}
+	return body
+}
+
+// joinWrap joins styled parts with " · ", starting a new indented line
+// whenever the next part would pass w.
+func joinWrap(k kit.Kit, parts []string, w int, indent string) []string {
+	var out []string
+	line := ""
+	for _, p := range parts {
+		switch {
+		case line == "":
+			line = p
+		case kit.Width(line)+3+kit.Width(p) <= w:
+			line += k.S(kit.Muted, " · ") + p
+		default:
+			out = append(out, indent+line)
+			line = p
+		}
+	}
+	return append(out, indent+line)
 }

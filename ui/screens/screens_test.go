@@ -402,3 +402,49 @@ func procFixture() ProcTree {
 		FootRight: "4 topics · 18 partitions",
 	}
 }
+
+func lagFixture() Lag {
+	return Lag{
+		Title: "consumer lag · ranked", Live: true, Chart: "total lag",
+		Rows: []LagRow{
+			{Group: "billing", Topic: "orders", Lag: 167641, Trend: 1240, TrendKnown: true},
+			{Group: "search-index", Topic: "orders", Lag: 57098, Trend: -3100, TrendKnown: true},
+			{Group: "billing", Topic: "payments", Lag: 9120, TrendKnown: true},
+			{Group: "fraud-check", Topic: "payments", Lag: 7032, Trend: 600, TrendKnown: true},
+			{Group: "audit-sink", Topic: "audit", Lag: 0, TrendKnown: true},
+		},
+		Hidden:  2,
+		History: []float64{190000, 205000, 214000, 209000, 221000, 226000, 224000, 231000, 240000, 236000, 228000, 240891},
+		Foot: []Detail{{Label: "min", Value: "190,000"}, {Label: "avg", Value: "222,074"}, {Label: "max", Value: "240,891"},
+			{Label: "consumed", Value: "3,461/s", Role: kit.Accent}},
+		Hint: "every 2s · ctrl-c to stop · kaas groups for members and rates",
+	}
+}
+
+func TestLagScreens(t *testing.T) {
+	k, c := kits(t)
+	golden(t, "lag", lagFixture().Render(k, 100, 40))
+	golden(t, "lag_narrow", lagFixture().Render(k, 44, 40))
+	up := CaughtUp{Title: "You're all caught up", Detail: "5 groups are at the head of 6 topics.", Action: "kaas groups for members and rates →"}
+	golden(t, "caught_up", up.Render(k, 80))
+	for w := 40; w <= 120; w++ {
+		for _, lines := range [][]string{lagFixture().Render(c, w, 30), up.Render(c, w), lagFixture().Render(k, w, 20)} {
+			for i, l := range lines {
+				if n := kit.Width(l); n > w {
+					t.Fatalf("width %d line %d is %d wide", w, i, n)
+				}
+				if strings.Contains(l, "…") {
+					t.Fatalf("width %d line %d truncated: %q", w, i, l)
+				}
+			}
+		}
+	}
+}
+
+func TestShort(t *testing.T) {
+	for v, want := range map[float64]string{950: "950", 1000: "1k", 1240: "1.2k", 57098: "57k", 2_500_000: "2.5M", 40_000_000: "40M"} {
+		if got := Short(v); got != want {
+			t.Errorf("Short(%v) = %q, want %q", v, got, want)
+		}
+	}
+}

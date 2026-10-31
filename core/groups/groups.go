@@ -19,11 +19,12 @@ type Group struct {
 	State        string // Stable, Empty, PreparingRebalance, CompletingRebalance, Dead
 	ProtocolType string // consumer, connect, ...
 	Members      int
-	Topics       []string // topics it has committed offsets for, sorted
-	Partitions   int      // partitions with a commit
-	Lag          int64    // records behind across those partitions; -1 unknown
-	Committed    int64    // sum of committed offsets, for the consume rate
-	Err          error    // describing the group or fetching its offsets failed
+	Topics       []string         // topics it has committed offsets for, sorted
+	Partitions   int              // partitions with a commit
+	Lag          int64            // records behind across those partitions; -1 unknown
+	TopicLag     map[string]int64 // records behind per topic; -1 unknown
+	Committed    int64            // sum of committed offsets, for the consume rate
+	Err          error            // describing the group or fetching its offsets failed
 }
 
 // Sample is every group at one moment.
@@ -61,6 +62,7 @@ func Fetch(ctx context.Context, adm *kadm.Client) (Sample, error) {
 		g.Err = l.Error()
 		for topic, parts := range l.Lag {
 			g.Topics = append(g.Topics, topic)
+			tl := int64(-1)
 			for _, p := range parts {
 				if p.Commit.At < 0 {
 					continue
@@ -69,8 +71,13 @@ func Fetch(ctx context.Context, adm *kadm.Client) (Sample, error) {
 				g.Committed += p.Commit.At
 				if p.Lag >= 0 {
 					g.Lag = max(g.Lag, 0) + p.Lag
+					tl = max(tl, 0) + p.Lag
 				}
 			}
+			if g.TopicLag == nil {
+				g.TopicLag = map[string]int64{}
+			}
+			g.TopicLag[topic] = tl
 		}
 		slices.Sort(g.Topics)
 		s.Groups = append(s.Groups, g)

@@ -32,6 +32,9 @@ const SHOTS = {
   "disk-partitioner": "topics-describe",
   "process-task-manager": "groups",
   "process-tree": "brokers",
+  "leaderboard": "lag",
+  "line-chart-live": "lag",
+  "empty-all-caught-up": "lag-caught-up",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

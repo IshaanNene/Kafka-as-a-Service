@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/term"
@@ -95,3 +98,36 @@ func (l *live) draw(b []string) {
 
 // done leaves the last frame on screen and restores the cursor.
 func (l *live) done() { _, _ = io.WriteString(l.s.raw, "\x1b[?25h") }
+
+// refreshLoop runs a live view: a first refresh that must succeed, then a
+// redraw every interval until ctx ends, which is how Ctrl-C ends a live view
+// rather than a failure. A later refresh may fail; the frame says so and the
+// loop goes on.
+func refreshLoop(ctx context.Context, surf surface, interval time.Duration,
+	refresh func(context.Context) error, frame func() []string) error {
+	first, cancel := context.WithTimeout(ctx, 15*time.Second)
+	err := refresh(first)
+	cancel()
+	if err != nil {
+		return err
+	}
+	lv := &live{s: surf}
+	defer lv.done()
+	lv.draw(frame())
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-t.C:
+			rctx, cancel := context.WithTimeout(ctx, max(interval, 5*time.Second))
+			err := refresh(rctx)
+			cancel()
+			if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+				return nil
+			}
+			lv.draw(frame())
+		}
+	}
+}

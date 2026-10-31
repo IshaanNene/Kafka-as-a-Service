@@ -184,6 +184,29 @@ Each row is a group's state, members, the topics it reads and how many records i
 
 On a pipe it prints one line per group with raw lag numbers. With `-o json` you get every group's lag, committed offsets and topics. A single read has no rate, since the rate needs two reads.
 
+### `kaas lag`: the backlog, ranked
+
+Where `kaas groups` shows each group, `kaas lag` ranks every group·topic pair by how far behind it is:
+
+```bash
+kaas lag                    # live board, every 2s
+kaas lag 'billing*' --top 5
+```
+
+The top three pairs get medals. Each row has a bar for its share of the worst lag, and a trend against three refreshes ago: `▲` in red means the backlog grew, `▼` in green means it shrank. Below the rows, a live chart draws total lag over time with the minimum, average and maximum, and how fast the shown groups consume.
+
+![kaas lag: group·topic pairs ranked by lag, with a live chart of total lag](img/lag.svg)
+
+When every group is at the head of its topics, the board turns into this:
+
+![kaas lag when nothing is behind: all caught up](img/lag-caught-up.svg)
+
+With `-o json` you get `[{group, topic, lag}]`, worst first. That makes a deploy gate a one-liner:
+
+```bash
+test "$(kaas lag -o json | jq '[.[].lag] | add // 0')" -eq 0
+```
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:
@@ -262,7 +285,6 @@ Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI
 
 | Command | Screen |
 |---|---|
-| `kaas lag` | A live leaderboard of consumer groups by lag, with an "all caught up" card at zero |
 | `kaas consume` | Records streaming in like a chat channel: time, partition, key, value |
 | `kaas offsets reset` | A step-by-step wizard with a preview of every offset change before anything moves |
 | `kaas offsets find --time` | A bisect hunt for the offset at a timestamp, or the first bad record |

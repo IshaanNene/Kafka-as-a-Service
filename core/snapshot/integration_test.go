@@ -6,17 +6,20 @@ import (
 	"context"
 	"testing"
 
+	"github.com/twmb/franz-go/pkg/kadm"
+
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
 )
 
 func TestTakeRealBroker(t *testing.T) {
-	adm := kafkatest.Admin(t, kafkatest.Real(t)...)
+	cl := kafkatest.Client(t, kafkatest.Real(t)...)
+	adm := kadm.NewClient(cl)
 	ctx := context.Background()
 	if _, err := adm.CreateTopic(ctx, 3, 1, nil, "kaas-it"); err != nil {
 		t.Fatal(err)
 	}
-	s, err := snapshot.NewTaker(adm).Take(ctx)
+	s, err := snapshot.NewTaker(cl).Take(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

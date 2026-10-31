@@ -11,25 +11,31 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// Fake starts an in-memory cluster and returns a connected admin client.
-// Both are closed when the test ends.
-func Fake(t testing.TB, opts ...kfake.Opt) (*kfake.Cluster, *kadm.Client) {
+// Fake starts an in-memory cluster and returns a connected client. Both are
+// closed when the test ends.
+func Fake(t testing.TB, opts ...kfake.Opt) (*kfake.Cluster, *kgo.Client) {
 	t.Helper()
 	c, err := kfake.NewCluster(opts...)
 	if err != nil {
 		t.Fatalf("kfake: %v", err)
 	}
 	t.Cleanup(c.Close)
-	return c, Admin(t, c.ListenAddrs()...)
+	return c, Client(t, c.ListenAddrs()...)
 }
 
-// Admin returns an admin client for the given seed brokers, closed at test end.
-func Admin(t testing.TB, seeds ...string) *kadm.Client {
+// Client returns a client for the given seed brokers, closed at test end.
+func Client(t testing.TB, seeds ...string) *kgo.Client {
 	t.Helper()
 	cl, err := kgo.NewClient(kgo.SeedBrokers(seeds...))
 	if err != nil {
 		t.Fatalf("kgo: %v", err)
 	}
 	t.Cleanup(cl.Close)
-	return kadm.NewClient(cl)
+	return cl
+}
+
+// Admin returns an admin client for the given seed brokers, closed at test end.
+func Admin(t testing.TB, seeds ...string) *kadm.Client {
+	t.Helper()
+	return kadm.NewClient(Client(t, seeds...))
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
@@ -58,7 +57,7 @@ func newRoot() *cobra.Command {
 			defer cl.Close()
 			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer cancel()
-			s, err := snapshot.NewTaker(kadm.NewClient(cl)).Take(ctx)
+			s, err := snapshot.NewTaker(cl).Take(ctx)
 			if err != nil {
 				return err
 			}
@@ -67,6 +66,7 @@ func newRoot() *cobra.Command {
 	}
 	snap.Flags().StringVarP(&output, "output", "o", "table", "output format: table|json")
 	root.AddCommand(snap)
+	root.AddCommand(newWatchCmd(&brokers))
 	return root
 }
 

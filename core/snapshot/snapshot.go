@@ -7,15 +7,19 @@
 package snapshot
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kerr"
+	"github.com/twmb/franz-go/pkg/kmsg"
 )
 
-// Snapshot is a point-in-time, read-only view of one cluster.
+// Snapshot is a point-in-time, read-only view of one cluster. Nothing may
+// mutate a Snapshot once it has been published; producers build a new one.
 type Snapshot struct {
 	Generation uint64
 	TakenAt    time.Time
@@ -36,7 +40,13 @@ type Topic struct {
 	Name       string
 	Internal   bool
 	Partitions []Partition
+	// OffsetsAt is when StartOffset and EndOffset were last read for this
+	// topic. Zero means never; screens show the age rather than hide it.
+	OffsetsAt time.Time
 }
+
+// UnknownOffset marks an offset that has not been read yet.
+const UnknownOffset int64 = -1
 
 type Partition struct {
 	ID       int32
@@ -44,6 +54,9 @@ type Partition struct {
 	Replicas []int32
 	ISR      []int32
 	Offline  []int32
+
+	StartOffset int64 // log-start offset, or UnknownOffset
+	EndOffset   int64 // log-end offset (high watermark), or UnknownOffset
 }
 
 // UnderReplicated reports whether the partition's ISR is smaller than its
@@ -61,69 +74,94 @@ func (s *Snapshot) PartitionCount() int {
 
 // Topic returns the named topic, if present.
 func (s *Snapshot) Topic(name string) (Topic, bool) {
-	i, ok := slices.BinarySearchFunc(s.Topics, name, func(t Topic, n string) int {
-		switch {
-		case t.Name < n:
-			return -1
-		case t.Name > n:
-			return 1
-		}
-		return 0
-	})
+	i, ok := s.topicIndex(name)
 	if !ok {
 		return Topic{}, false
 	}
 	return s.Topics[i], true
 }
 
-// Taker produces successive snapshots of one cluster. It is not yet
-// interest-scheduled or budgeted; that arrives with the Phase 1 engine.
-type Taker struct {
-	adm *kadm.Client
-	gen uint64
-	now func() time.Time
+func (s *Snapshot) topicIndex(name string) (int, bool) {
+	return slices.BinarySearchFunc(s.Topics, name, func(t Topic, n string) int {
+		return strings.Compare(t.Name, n)
+	})
 }
 
-func NewTaker(adm *kadm.Client) *Taker {
-	return &Taker{adm: adm, now: time.Now}
-}
-
-// Take fetches cluster metadata in one request and returns a new Snapshot
-// with the next generation number. Topics are sorted by name.
-func (t *Taker) Take(ctx context.Context) (*Snapshot, error) {
-	md, err := t.adm.Metadata(ctx)
+// Fetch reads cluster metadata in one request and returns an unnumbered
+// Snapshot (Generation 0) with brokers, topics and partitions sorted and
+// offsets unknown.
+//
+// It sends a MetadataRequest directly rather than calling kadm.Metadata,
+// which is served from kgo's metadata cache (MetadataMinAge, 5 s by
+// default): polling through that cache would double worst-case staleness.
+// Topics that come back with an error are skipped, not fatal, so one bad
+// topic cannot blank the view of the other hundred thousand partitions.
+func Fetch(ctx context.Context, cl kmsg.Requestor) (*Snapshot, error) {
+	req := kmsg.NewPtrMetadataRequest() // nil Topics: all topics
+	resp, err := req.RequestWith(ctx, cl)
 	if err != nil {
 		return nil, fmt.Errorf("snapshot: metadata: %w", err)
 	}
-	t.gen++
-	s := &Snapshot{
-		Generation: t.gen,
-		TakenAt:    t.now(),
-		ClusterID:  md.Cluster,
-		Controller: md.Controller,
+	if err := kerr.ErrorForCode(resp.ErrorCode); err != nil {
+		return nil, fmt.Errorf("snapshot: metadata: %w", err)
 	}
-	for _, b := range md.Brokers {
+	s := &Snapshot{
+		TakenAt:    time.Now(),
+		Controller: resp.ControllerID,
+	}
+	if resp.ClusterID != nil {
+		s.ClusterID = *resp.ClusterID
+	}
+	for _, b := range resp.Brokers {
 		rack := ""
 		if b.Rack != nil {
 			rack = *b.Rack
 		}
 		s.Brokers = append(s.Brokers, Broker{ID: b.NodeID, Host: b.Host, Port: b.Port, Rack: rack})
 	}
-	for _, td := range md.Topics.Sorted() {
-		if td.Err != nil {
-			return nil, fmt.Errorf("snapshot: topic %q: %w", td.Topic, td.Err)
+	slices.SortFunc(s.Brokers, func(a, b Broker) int { return cmp.Compare(a.ID, b.ID) })
+	for _, rt := range resp.Topics {
+		if rt.Topic == nil || rt.ErrorCode != 0 {
+			continue
 		}
-		topic := Topic{Name: td.Topic, Internal: td.IsInternal}
-		for _, pd := range td.Partitions.Sorted() {
+		topic := Topic{Name: *rt.Topic, Internal: rt.IsInternal}
+		for _, rp := range rt.Partitions {
 			topic.Partitions = append(topic.Partitions, Partition{
-				ID:       pd.Partition,
-				Leader:   pd.Leader,
-				Replicas: slices.Clone(pd.Replicas),
-				ISR:      slices.Clone(pd.ISR),
-				Offline:  slices.Clone(pd.OfflineReplicas),
+				ID:          rp.Partition,
+				Leader:      rp.Leader,
+				Replicas:    rp.Replicas,
+				ISR:         rp.ISR,
+				Offline:     rp.OfflineReplicas,
+				StartOffset: UnknownOffset,
+				EndOffset:   UnknownOffset,
 			})
 		}
+		slices.SortFunc(topic.Partitions, func(a, b Partition) int { return cmp.Compare(a.ID, b.ID) })
 		s.Topics = append(s.Topics, topic)
 	}
+	slices.SortFunc(s.Topics, func(a, b Topic) int { return strings.Compare(a.Name, b.Name) })
+	return s, nil
+}
+
+// Taker produces successive numbered snapshots of one cluster. It is the
+// simple one-shot path used by `kaas snapshot`; long-running surfaces use
+// the engine, which adds offsets, budgets and events.
+type Taker struct {
+	cl  kmsg.Requestor
+	gen uint64
+}
+
+func NewTaker(cl kmsg.Requestor) *Taker {
+	return &Taker{cl: cl}
+}
+
+// Take fetches metadata and returns a Snapshot with the next generation.
+func (t *Taker) Take(ctx context.Context) (*Snapshot, error) {
+	s, err := Fetch(ctx, t.cl)
+	if err != nil {
+		return nil, err
+	}
+	t.gen++
+	s.Generation = t.gen
 	return s, nil
 }

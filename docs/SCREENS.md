@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 20 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 21 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -31,7 +31,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Benchmark Results](#benchmark-results) | `kaas bench produce`, `kaas bench consume` | built |
 | [File Tree](#file-tree) | `kaas topics` | built |
 | [Partition Editor](#partition-editor) | `kaas topics describe`, `kaas topics alter --partitions` | built |
-| [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
+| [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | built |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | built |
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | built |
@@ -259,12 +259,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Onboarding Stepper
 
-[`onboarding-stepper`](https://www.ascii-magic.com/ascii/onboarding-stepper) · **P1** · A setup wizard walks through four steps, filling fields, picking options and ticking the stepper rail as it goes.
+[`onboarding-stepper`](https://www.ascii-magic.com/ascii/onboarding-stepper) · **built** · A setup wizard walks through four steps, filling fields, picking options and ticking the stepper rail as it goes.
 
-- `kaas topics create`: Name → partitions → replication → configs → create
+- `kaas topics create`: Name → partitions and replication from the cluster's defaults → configs → the controller's check → create
 - `kaas offsets reset`: Group → topic → strategy → preview of offset changes → apply
 
-<img src="img/ui/onboarding-stepper.svg" alt="ascii-magic Onboarding Stepper" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/onboarding-stepper.svg" alt="ascii-magic Onboarding Stepper" width="100%"></td><td width="50%"><img src="img/topics-create.svg" alt="kaas screen built from Onboarding Stepper" width="100%"></td></tr></table>
 
 ### Process Tree Live
 

@@ -1,0 +1,22 @@
+╭─ Create topic ───────────────────────────────────────────── Step 4 of 4 ─╮
+│                     │                                                    │
+│                     │ Created                                            │
+│  (✓) Name           │ ────────────────────────────────────────────────── │
+│   │  Completed      │                                                    │
+│   │                 │                   .   *   .                        │
+│   │                 │                 *   \ | /   *                      │
+│  (✓) Layout         │                   -- ✓✓✓ --                        │
+│   │  Completed      │                 *   / | \   *                      │
+│   │                 │                   .   *   .                        │
+│   │                 │                                                    │
+│  (✓) Configs        │          payments.eu.refunds is ready              │
+│   │  Completed      │         12 partitions · RF 3 · 2 configs           │
+│   │                 │                                                    │
+│   │                 │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━       │
+│  (✓) Create         │                                                    │
+│      Completed      │                                                    │
+│                     │                                         ╭────────╮ │
+│                     │                                         │  Done  │ │
+│                     │                                         ╰────────╯ │
+╰──────────────────────────────────────────────────────────────────────────╯
+ enter continue · tab next field · esc back · ctrl-c quit

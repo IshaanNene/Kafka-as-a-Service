@@ -80,6 +80,7 @@ suggests the closest ones. --tree groups topics by name prefix.`,
 		},
 	}
 	cmd.AddCommand(newTopicsDescribeCmd(brokers, themeName))
+	cmd.AddCommand(newTopicsAlterCmd(brokers, themeName))
 	f := cmd.Flags()
 	f.StringVarP(&output, "output", "o", "table", "output format: table|json")
 	f.StringVar(&sortBy, "sort", "status", "sort by: "+strings.Join(topicSorts, "|"))

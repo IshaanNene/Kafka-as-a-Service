@@ -40,7 +40,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas bench consume` | benchmark-table, network-traffic | Same, for fetch: a case per fetch size × max wait, with poll waits | **built** |
 | `kaas topics` | data-table, file-tree (`--tree`) | Topic list with retention, cleanup and disk; prefix hierarchy as a tree | **built** |
 | `kaas topics describe` | disk-partitioner | Partitions laid out per broker, leaders and replicas | **built** |
-| `kaas topics alter --partitions` | disk-partitioner | New partitions carved from the free space, then written | P1 |
+| `kaas topics alter --partitions` | disk-partitioner | New partitions in green before writing; a typed yes; the topic as written | **built** |
 | `kaas topics create` | onboarding-stepper | Name → partitions → replication → configs → create | P1 |
 | `kaas topics delete` | modal-dialog, empty-trash-lid | Type to confirm; a closing card | P1 |
 | `kaas brokers` | process-tree, gauge-cluster (Live Data) | Broker → leaders → partitions tree; disk, network and request gauges | **built** (tree; gauges next) |

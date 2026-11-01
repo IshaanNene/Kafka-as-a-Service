@@ -97,6 +97,7 @@ func TestGoldens(t *testing.T) {
 	golden(t, "tree", treeFixture().Render(k, 80))
 	golden(t, "partitions", partitionsFixture().Render(k, 90))
 	golden(t, "partitions_narrow", partitionsFixture().Render(k, 50))
+	golden(t, "partitions_alter", alterFixture().Render(k, 90))
 	golden(t, "groups", groupsFixture().Render(k, 100))
 	golden(t, "groups_narrow", groupsFixture().Render(k, 50))
 	golden(t, "proctree", procFixture().Render(k, 100))
@@ -172,6 +173,21 @@ func partitionsFixture() Partitions {
 		StatusRole: kit.Err,
 		Hint:       "-o json for scripts · kaas topics for every topic",
 	}
+}
+
+// alterFixture is kaas topics alter's preview: two partitions to add,
+// not yet placed, the first marked.
+func alterFixture() Partitions {
+	p := partitionsFixture()
+	p.Parts[2] = Part{ID: 2, Leader: 3, Replicas: []int32{3, 1, 2}, ISR: []int32{3, 1, 2}, Start: 0, End: 88_800, Bytes: 75 << 20}
+	p.Parts = append(p.Parts, Part{ID: 4, Leader: -1, Start: 0, End: 0, Bytes: -1, New: true}, Part{ID: 5, Leader: -1, Start: 0, End: 0, Bytes: -1, New: true})
+	p.Focus = 4
+	p.Details = []Detail{
+		{Label: "Change", Value: "4 → 6 partitions · adds p4, p5 · RF 3, placed by the controller", Role: kit.OK},
+		{Label: "Keys", Value: "hash over 6 partitions from now on, so a key's new records can land on a different partition from its old ones", Role: kit.Warn},
+	}
+	p.Actions, p.Status, p.StatusRole = nil, "Partitions can't be removed once added.", kit.Warn
+	return p
 }
 
 func TestNest(t *testing.T) {

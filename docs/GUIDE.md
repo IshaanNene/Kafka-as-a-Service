@@ -153,6 +153,26 @@ Every partition's leader, replicas, in-sync replicas, offsets, records and size,
 
 On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
 
+#### `kaas topics alter`: add partitions
+
+```bash
+kaas topics alter orders --partitions 12            # preview, type yes, write
+kaas topics alter orders --partitions 12 --dry-run  # the controller checks it; nothing is written
+kaas topics alter orders --partitions 12 --yes -o json
+```
+
+Kafka can add partitions to a topic but never remove them, so `alter` shows the plan before it changes anything. The plan is the describe screen with the new partitions added in green. They have no leader yet because the controller places them when they're written.
+
+Below the table, the plan spells out what changes:
+- Keys hash over the new count from then on, so a key's new records can land on a different partition from its old ones.
+- The groups reading the topic rebalance to pick up the new partitions.
+
+You type `yes` to write it. The table is then redrawn in place with the new partitions' real leaders and replicas.
+
+![kaas topics alter: two new partitions in green before writing, with what changes for keys and readers](img/topics-alter.svg)
+
+Without a terminal to answer the prompt, `--yes` is required, so a piped `yes` can't confirm by accident. Asking for fewer partitions than the topic has is a usage error (exit 2). Asking for the count it already has does nothing and exits 0, so a script can rerun it safely. On a pipe, it prints one line, such as `orders: 6 → 12 partitions, added 6,7,8,9,10,11`.
+
 ### `kaas brokers`: who does the work
 
 The cluster as a process tree: every broker, what it leads, and the topics it leads most.

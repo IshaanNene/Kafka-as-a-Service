@@ -396,6 +396,27 @@ Each broker gets a listener of its own, on the ports after `--listen`'s. The pro
 
 On a pipe each request is a line, and `-o json` gives `n`, `time`, `client`, `client_id`, `broker`, `api`, `key`, `version`, `bytes`, `response_bytes`, `took_ms`, `answered` and `info`.
 
+`--client-id` keeps only the requests from clients with that client ID.
+
+#### Where a client's time goes: `--trace`
+
+```bash
+kaas sniff --trace --client-id billing-svc       # its first 10 seconds
+kaas sniff --trace --for 30s -o json > trace.jsonl
+```
+
+`--trace` starts with the first request through the proxy and records `--for` (10 seconds by default), then stops and keeps the waterfall on screen. Each request is a bar on one time axis, split into the stages the proxy sees:
+
+- **connect**: dialing the broker, on a connection's first request
+- **send**: the request's bytes, in from the client and on to the broker
+- **queue**: waiting behind earlier requests on the same connection, which a broker answers in order
+- **wait**: the broker working on it, a fetch's long poll included
+- **ack**: the answer's bytes, back to the client
+
+![kaas sniff --trace: a service starting up, stage by stage, with its group joined and its first produce acked](img/sniff-trace.svg)
+
+A request whose answer carries an error, such as the `MEMBER_ID_REQUIRED` a first JoinGroup gets, shows as `error` in red with the error's name. Lines mark when the client's group was joined and when its first produce was acknowledged. ↑↓ select a request to read its stages in the footer, ←→ switch between kinds (produce, fetch, metadata, groups, offsets, transactions, admin), and enter follows the newest. On a pipe each answered request is a line, and `-o json` gives each stage in milliseconds since the trace's first request.
+
 ### `kaas produce`: write records
 
 ```bash

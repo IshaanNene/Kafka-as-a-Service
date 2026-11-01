@@ -75,41 +75,38 @@ func APIRole(key int16) kit.Role {
 	return kit.FG
 }
 
+// APITabs are the kinds of request, as tabs; APITab says which a key is.
+var APITabs = []string{"All", "Produce", "Fetch", "Metadata", "Groups", "Offsets", "Txn", "Admin", "Other"}
+
+// APITab is the index in APITabs of key's kind, by the colour it is drawn in.
+func APITab(key int16) int {
+	switch APIRole(key) {
+	case kit.Warn:
+		return 1
+	case kit.Accent:
+		return 2
+	case kit.Notice:
+		return 3
+	case kit.Accent2:
+		return 4
+	case kit.Info:
+		return 5
+	case kit.OK:
+		return 6
+	case kit.Err:
+		return 7
+	}
+	return 8
+}
+
 // Render draws the capture at width × height.
 func (s Sniffer) Render(k kit.Kit, width, height int) []string {
 	w := max(width, 60)
 	h := max(height, 20)
-	type cell struct {
-		s string
-		r kit.Role
-	}
-	g := make([][]cell, h)
-	for y := range g {
-		g[y] = make([]cell, w)
-		for x := range g[y] {
-			g[y][x] = cell{" ", kit.FG}
-		}
-	}
-	put := func(x, y int, str string, r kit.Role) int {
-		for _, ch := range str {
-			if y >= 0 && y < h && x >= 0 && x < w {
-				g[y][x] = cell{string(ch), r}
-			}
-			x++
-		}
-		return x
-	}
-	hline := func(y int) { put(0, y, strings.Repeat("─", w), kit.Faint) }
-	fit := func(str string, n int) string {
-		if n <= 0 {
-			return ""
-		}
-		if kit.Width(str) > n {
-			rs := []rune(str)
-			return string(rs[:max(0, n-1)]) + "…"
-		}
-		return str
-	}
+	c := newCanvas(w, h)
+	put := c.put
+	hline := func(y int) { c.hline(0, w-1, y, kit.Faint) }
+	fit := clipTo
 
 	right := fmt.Sprintf("%s · %s dropped", plural(int(s.Total), "request"), Num(float64(s.Dropped)))
 	left := w - kit.Width(right) - 2
@@ -258,20 +255,6 @@ func (s Sniffer) Render(k kit.Kit, width, height int) []string {
 	put(13, h-1, s.Rate, kit.Muted)
 	put(w-kit.Width(s.Keys), h-1, s.Keys, kit.Rule)
 
-	out := make([]string, h)
-	for y, row := range g {
-		var sb strings.Builder
-		for i := 0; i < len(row); {
-			j := i
-			var run strings.Builder
-			for j < len(row) && row[j].r == row[i].r {
-				run.WriteString(row[j].s)
-				j++
-			}
-			sb.WriteString(k.S(row[i].r, run.String()))
-			i = j
-		}
-		out[y] = strings.TrimRight(sb.String(), " ")
-	}
+	out := c.lines(k)
 	return kit.Clip(width, out)
 }

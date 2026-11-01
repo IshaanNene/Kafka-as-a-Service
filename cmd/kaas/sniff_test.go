@@ -195,3 +195,139 @@ func TestSniffModel(t *testing.T) {
 		t.Error("-n 1 did not quit")
 	}
 }
+
+func TestSniffTrace(t *testing.T) {
+	c, _ := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	brokers := strings.Join(c.ListenAddrs(), ",")
+	listen := freePort(t)
+	var out syncBuffer
+	root := newRoot()
+	root.SetOut(&out)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sniff", "-b", brokers, "--listen", listen, "--trace", "--for", "3s", "--client-id", "tracer", "-o", "json"})
+	done := make(chan error, 1)
+	go func() { done <- root.Execute() }()
+	for deadline := time.Now().Add(15 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		if conn, err := net.Dial("tcp", listen); err == nil {
+			_ = conn.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the proxy never listened")
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	// Someone else's traffic doesn't join the trace.
+	other, err := kgo.NewClient(kgo.SeedBrokers(listen), kgo.ClientID("other"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	if err := other.Ping(ctx); err != nil {
+		t.Fatal(err)
+	}
+	cl, err := kgo.NewClient(kgo.SeedBrokers(listen), kgo.ClientID("tracer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	if err := cl.ProduceSync(ctx, &kgo.Record{Topic: "orders", Value: []byte("x")}).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("the trace never ended")
+	}
+	sc := bufio.NewScanner(strings.NewReader(out.String()))
+	apis := map[string]bool{}
+	for sc.Scan() {
+		var j stagesJSON
+		if err := json.Unmarshal(sc.Bytes(), &j); err != nil {
+			t.Fatalf("%v: %s", err, sc.Text())
+		}
+		apis[j.API] = true
+		sum := j.Connect + j.Send + j.Queue + j.Wait + j.Ack
+		if j.ClientID != "tracer" || j.StartMs < 0 || j.StartMs > 3000 || sum-j.Total > 0.01 || j.Total-sum > 0.01 || j.Total <= 0 {
+			t.Errorf("%+v", j)
+		}
+	}
+	if !apis["Produce"] || !apis["Metadata"] {
+		t.Errorf("traced %v", apis)
+	}
+	root = newRoot()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sniff", "-b", brokers, "--for", "3s"})
+	var ce *cliError
+	if _, err := root.ExecuteC(); !errors.As(err, &ce) || ce.Exit != exitUsage {
+		t.Errorf("--for without --trace: %v", err)
+	}
+}
+
+func TestTraceModel(t *testing.T) {
+	_, cl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	p, err := sniff.Start(context.Background(), cl, "127.0.0.1:0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	th, _ := theme.Get(theme.Default)
+	c := newCapture(nil)
+	m := newTraceModel(kit.New(th, false), p, c, "every client", time.Second, 0)
+	m.w, m.h = 104, 30
+	view := func(m traceModel) string { return ansi.Strip(m.View().Content) }
+	tickAt := func(m traceModel, at time.Time) traceModel {
+		next, _ := m.Update(sniffTick(at))
+		return next.(traceModel)
+	}
+	if v := view(m); !strings.Contains(v, "waiting for every client") {
+		t.Fatalf("before:\n%s", v)
+	}
+	t0 := time.Now()
+	ms := func(n int) time.Duration { return time.Duration(n) * time.Millisecond }
+	req := func(n int64, key int16, start time.Duration, info string, st sniff.Stages) sniff.Request {
+		return sniff.Request{N: n, Key: key, Start: t0.Add(start), Answered: true, Info: info, Stages: st, RespSize: 100}
+	}
+	sync := req(2, 14, ms(10), "billing · generation 1", sniff.Stages{Send: ms(1), Wait: ms(30), Ack: ms(1)})
+	c.addSent(req(1, 18, 0, "kgo", sniff.Stages{Connect: ms(2), Send: ms(1)}))
+	c.addSent(sync)
+	c.add(sync)
+	produce := req(3, 0, ms(50), "orders p0 · 1 record · acks all", sniff.Stages{Send: ms(1), Wait: ms(5), Ack: ms(1)})
+	produce.Err = "NOT_LEADER_FOR_PARTITION"
+	c.add(produce)
+	m = tickAt(m, t0.Add(ms(100)))
+	v := view(m)
+	for _, want := range []string{"● tracing", "pending", "joined billing", "error", "NOT_LEADER_FOR_PARTITION", "3 requests"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("no %q:\n%s", want, v)
+		}
+	}
+	if strings.Contains(v, "first produce acked") {
+		t.Error("a failed produce marked as acked")
+	}
+	// Groups only.
+	next, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(traceModel)
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(traceModel)
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(traceModel)
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(traceModel)
+	if rows := m.shown(); m.tab != 4 || len(rows) != 1 || m.reqs[rows[0]].Key != 14 {
+		t.Errorf("groups tab %d: %v", m.tab, rows)
+	}
+	// After the window nothing new joins, and an answer still lands.
+	m = tickAt(m, t0.Add(2*time.Second))
+	c.add(req(9, 3, ms(1500), "late", sniff.Stages{Wait: ms(1)}))
+	c.add(req(1, 18, 0, "kgo", sniff.Stages{Connect: ms(2), Send: ms(1), Wait: ms(1)}))
+	m = tickAt(m, t0.Add(2*time.Second+ms(100)))
+	if !m.over || len(m.reqs) != 3 || !m.answered[0] || !strings.Contains(view(m), "■ traced") {
+		t.Errorf("after: over %v, %d reqs\n%s", m.over, len(m.reqs), view(m))
+	}
+}

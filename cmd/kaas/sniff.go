@@ -23,9 +23,11 @@ import (
 
 func newSniffCmd(brokers, themeName *string) *cobra.Command {
 	var (
-		output, listen string
-		apis           []string
-		maxReqs        int
+		output, listen, clientID string
+		apis                     []string
+		maxReqs                  int
+		trace                    bool
+		window                   time.Duration
 	)
 	cmd := &cobra.Command{
 		Use:   "sniff",
@@ -43,7 +45,15 @@ proxy.
 
 On a terminal the capture list is live: ↑↓ selects a request to show
 its path and first bytes, enter follows the newest again. On a pipe each
-request is a line; -o json gives every field, one object per line.`,
+request is a line; -o json gives every field, one object per line.
+
+--trace times requests instead, on a waterfall: from the first request
+through the proxy, for --for, each request's stages as the proxy sees
+them: connect (dialing the broker, for a connection's first request),
+send (its bytes in and on to the broker), queue (behind earlier requests
+on the connection, which a broker answers in order), wait (the broker
+working on it) and ack (its answer's bytes back). Lines mark when a
+group was joined and the first produce was acknowledged.`,
 		Example: `  # Proxy on localhost:19092 and watch
   kaas sniff
   # ...then, in another terminal, send something through it
@@ -51,11 +61,19 @@ request is a line; -o json gives every field, one object per line.`,
   # Only produce and fetch requests
   kaas sniff --api produce --api fetch
   # The first 100 requests as JSON, for jq
-  kaas sniff -n 100 -o json | jq -r '.api'`,
+  kaas sniff -n 100 -o json | jq -r '.api'
+  # A waterfall of one service's first 10 seconds
+  kaas sniff --trace --client-id billing-svc`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := oneOf(cmd, "output", output, "text", "json"); err != nil {
 				return err
+			}
+			if window <= 0 {
+				return usageError(cmd, "for", window.String(), "must be more than 0")
+			}
+			if cmd.Flags().Changed("for") && !trace {
+				return usageError(cmd, "for", window.String(), "times a --trace: add --trace")
 			}
 			if maxReqs < 0 {
 				return usageError(cmd, "max", strconv.Itoa(maxReqs), "must be 0 or more")
@@ -74,8 +92,13 @@ request is a line; -o json gives every field, one object per line.`,
 			defer cl.Close()
 
 			c := newCapture(only)
+			c.clientID = clientID
+			o := sniff.Options{Listen: listen, Out: c.add}
+			if trace {
+				o.Sent, o.Deep = c.addSent, true
+			}
 			sctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
-			p, err := sniff.Start(sctx, cl, listen, c.add)
+			p, err := sniff.StartWith(sctx, cl, o)
 			cancel()
 			if err != nil {
 				if strings.Contains(err.Error(), "address already in use") || strings.Contains(err.Error(), "listen address") {
@@ -86,6 +109,9 @@ request is a line; -o json gives every field, one object per line.`,
 			defer p.Close()
 
 			surf := detect(cmd.OutOrStdout(), *themeName)
+			if trace {
+				return runTrace(cmd, surf, p, c, traceOf(apis, clientID), window, maxReqs, output == "json")
+			}
 			if surf.rich && output == "text" && answerable(cmd.InOrStdin()) {
 				m := newSniffModel(surf.kit, p, c, filterText(apis), maxReqs)
 				m.w, m.h = surf.width, surf.height
@@ -102,6 +128,9 @@ request is a line; -o json gives every field, one object per line.`,
 	f := cmd.Flags()
 	f.StringVar(&listen, "listen", "localhost:19092", "where clients connect; the other brokers get the ports after it")
 	f.StringSliceVar(&apis, "api", nil, "only these requests, by API name such as produce or fetch (repeatable)")
+	f.StringVar(&clientID, "client-id", "", "only requests from clients with this client ID")
+	f.BoolVar(&trace, "trace", false, "time requests on a waterfall: connect, send, queue, wait, ack")
+	f.DurationVar(&window, "for", 10*time.Second, "how long --trace records, from the first request")
 	f.IntVarP(&maxReqs, "max", "n", 0, "stop after this many requests; 0 for no limit")
 	f.StringVarP(&output, "output", "o", "text", "output format: text|json (one object per line, on a pipe)")
 	return cmd
@@ -149,24 +178,41 @@ func routesText(rs []sniff.Route) string {
 // them: when the screen falls behind, requests are counted as dropped
 // rather than slowing the clients down.
 type capture struct {
-	only    map[int16]bool
-	ch      chan sniff.Request
-	dropped atomic.Int64
-	start   time.Time // the capture's clock starts here
+	only     map[int16]bool
+	clientID string
+	ch       chan sniff.Request
+	sent     chan sniff.Request // with --trace: requests on their way, before their answers
+	dropped  atomic.Int64
+	start    time.Time // the capture's clock starts here
 }
 
 func newCapture(only map[int16]bool) *capture {
-	return &capture{only: only, ch: make(chan sniff.Request, 4096), start: time.Now()}
+	return &capture{only: only, ch: make(chan sniff.Request, 4096), sent: make(chan sniff.Request, 4096), start: time.Now()}
+}
+
+func (c *capture) wants(r sniff.Request) bool {
+	return (c.only == nil || c.only[r.Key]) && (c.clientID == "" || r.ClientID == c.clientID)
 }
 
 func (c *capture) add(r sniff.Request) {
-	if c.only != nil && !c.only[r.Key] {
+	if !c.wants(r) {
 		return
 	}
 	select {
 	case c.ch <- r:
 	default:
 		c.dropped.Add(1)
+	}
+}
+
+// addSent never counts a drop: the answer, when it comes, is what counts.
+func (c *capture) addSent(r sniff.Request) {
+	if !c.wants(r) || !r.Answered {
+		return
+	}
+	select {
+	case c.sent <- r:
+	default:
 	}
 }
 

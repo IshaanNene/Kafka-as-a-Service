@@ -14,8 +14,9 @@ type canvas struct {
 }
 
 type canvasCell struct {
-	s string
-	r kit.Role
+	s   string
+	r   kit.Role
+	hex string // a colour no role has, such as a flame's; overrides r
 }
 
 func newCanvas(w, h int) *canvas {
@@ -23,7 +24,7 @@ func newCanvas(w, h int) *canvas {
 	for y := range c.cells {
 		c.cells[y] = make([]canvasCell, w)
 		for x := range c.cells[y] {
-			c.cells[y][x] = canvasCell{" ", kit.FG}
+			c.cells[y][x] = canvasCell{s: " ", r: kit.FG}
 		}
 	}
 	return c
@@ -34,7 +35,18 @@ func newCanvas(w, h int) *canvas {
 func (c *canvas) put(x, y int, s string, r kit.Role) int {
 	for _, ch := range s {
 		if y >= 0 && y < c.h && x >= 0 && x < c.w {
-			c.cells[y][x] = canvasCell{string(ch), r}
+			c.cells[y][x] = canvasCell{s: string(ch), r: r}
+		}
+		x++
+	}
+	return x
+}
+
+// putHex is put in a colour given as hex.
+func (c *canvas) putHex(x, y int, s, hex string) int {
+	for _, ch := range s {
+		if y >= 0 && y < c.h && x >= 0 && x < c.w {
+			c.cells[y][x] = canvasCell{s: string(ch), hex: hex}
 		}
 		x++
 	}
@@ -68,11 +80,15 @@ func (c *canvas) lines(k kit.Kit) []string {
 		for i := 0; i < len(row); {
 			j := i
 			var run strings.Builder
-			for j < len(row) && row[j].r == row[i].r {
+			for j < len(row) && row[j].r == row[i].r && row[j].hex == row[i].hex {
 				run.WriteString(row[j].s)
 				j++
 			}
-			sb.WriteString(k.S(row[i].r, run.String()))
+			if row[i].hex != "" {
+				sb.WriteString(k.Hex(row[i].hex, run.String()))
+			} else {
+				sb.WriteString(k.S(row[i].r, run.String()))
+			}
 			i = j
 		}
 		out[y] = sb.String()

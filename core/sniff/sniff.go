@@ -48,6 +48,13 @@ type Request struct {
 	Start  time.Time
 	Stages Stages
 	Err    string // the first error its answer carries, such as NOT_COORDINATOR; with Options.Deep only
+
+	Topics  []string // the topics it names, in order, once each
+	Records int      // records a fetch's answer carries; -1 when not counted (not a fetch, or without Options.Deep)
+	// The earliest timestamp of the records a fetch's answer carries: when
+	// it is after the fetch reached the broker, the fetch was waiting for
+	// them to be written.
+	FirstRecord time.Time
 }
 
 // Stages are a request's time in the proxy's view, in the order they
@@ -321,12 +328,13 @@ func (p *Proxy) pipe(c net.Conn, id int32, upstream string) {
 	}()
 	client := c.RemoteAddr().String()
 	firstOnConn := true
+	sess := fetchSession{}
 	for {
 		frame, first, err := readFrameAt(c)
 		if err != nil {
 			break
 		}
-		r, corr, ok := p.request(frame, client, id)
+		r, corr, ok := p.request(frame, client, id, sess)
 		r.Start = first
 		if firstOnConn {
 			// The connection's first request waited for the dial; its
@@ -416,7 +424,7 @@ func skipTags(b []byte) ([]byte, bool) {
 
 // request reads a request's header and decodes what it asks for. ok is
 // false for a frame too short to be a request; it is forwarded all the same.
-func (p *Proxy) request(frame []byte, client string, broker int32) (Request, int32, bool) {
+func (p *Proxy) request(frame []byte, client string, broker int32, sess fetchSession) (Request, int32, bool) {
 	if len(frame) < 12 {
 		return Request{}, 0, false
 	}
@@ -424,7 +432,7 @@ func (p *Proxy) request(frame []byte, client string, broker int32) (Request, int
 	r := Request{
 		N: p.n.Add(1), At: time.Now(), Client: client, Broker: broker,
 		Key: int16(binary.BigEndian.Uint16(b)), Version: int16(binary.BigEndian.Uint16(b[2:])),
-		Size: len(frame), Answered: true,
+		Size: len(frame), Answered: true, Records: -1,
 	}
 	r.Head = append([]byte(nil), frame[:min(len(frame), headBytes)]...)
 	corr := int32(binary.BigEndian.Uint32(b[4:]))
@@ -454,6 +462,10 @@ func (p *Proxy) request(frame []byte, client string, broker int32) (Request, int
 		r.Answered = false
 	}
 	r.Info = p.describe(req)
+	r.Topics = p.topicsOf(req)
+	if f, ok := req.(*kmsg.FetchRequest); ok && sess != nil {
+		r.Topics = sess.follow(p, f)
+	}
 	return r, corr, true
 }
 
@@ -492,6 +504,17 @@ func (p *Proxy) answer(r *Request, frame []byte) []byte {
 	}
 	if p.deep {
 		r.Err = firstErr(reflect.ValueOf(resp))
+		if f, ok := resp.(*kmsg.FetchResponse); ok {
+			r.Records = 0
+			for _, t := range f.Topics {
+				for _, pt := range t.Partitions {
+					r.Records += batchRecords(pt.RecordBatches)
+					if at, ok := batchTime(pt.RecordBatches); ok && (r.FirstRecord.IsZero() || at.Before(r.FirstRecord)) {
+						r.FirstRecord = at
+					}
+				}
+			}
+		}
 	}
 	if !rewrite {
 		return frame
@@ -615,4 +638,41 @@ func firstErr(v reflect.Value) string {
 		}
 	}
 	return ""
+}
+
+// fetchSession is the partitions a connection's fetch session holds. An
+// incremental fetch names only what changed, so the topics it reads are
+// the session's.
+type fetchSession map[string]map[int32]bool
+
+// follow applies a fetch to the session and returns the topics the fetch
+// reads, sorted.
+func (s fetchSession) follow(p *Proxy, f *kmsg.FetchRequest) []string {
+	if f.SessionEpoch <= 0 { // a full fetch, opening a session or without one
+		clear(s)
+	}
+	for _, t := range f.Topics {
+		name := p.topic(t.Topic, t.TopicID)
+		if s[name] == nil {
+			s[name] = map[int32]bool{}
+		}
+		for _, pt := range t.Partitions {
+			s[name][pt.Partition] = true
+		}
+	}
+	for _, t := range f.ForgottenTopics {
+		name := p.topic(t.Topic, t.TopicID)
+		for _, part := range t.Partitions {
+			delete(s[name], part)
+		}
+		if len(s[name]) == 0 {
+			delete(s, name)
+		}
+	}
+	ts := make([]string, 0, len(s))
+	for t := range s {
+		ts = append(ts, t)
+	}
+	sort.Strings(ts)
+	return ts
 }

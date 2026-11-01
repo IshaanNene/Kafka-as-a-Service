@@ -26,7 +26,7 @@ func newSniffCmd(brokers, themeName *string) *cobra.Command {
 		output, listen, clientID string
 		apis                     []string
 		maxReqs                  int
-		trace                    bool
+		trace, profile           bool
 		window                   time.Duration
 	)
 	cmd := &cobra.Command{
@@ -53,7 +53,17 @@ them: connect (dialing the broker, for a connection's first request),
 send (its bytes in and on to the broker), queue (behind earlier requests
 on the connection, which a broker answers in order), wait (the broker
 working on it) and ack (its answer's bytes back). Lines mark when a
-group was joined and the first produce was acknowledged.`,
+group was joined and the first produce was acknowledged.
+
+--profile adds those stages up instead, as a flame graph: all, then each
+API, broker and topic, then the stages, each as wide as its share of the
+time. A fetch's wait can be polling rather than serving: all of it when
+it came back empty ("idle poll"), and the part before its first record
+was written when it waited for new ones ("long poll", by the records'
+timestamps). Polls are hidden until i shows them.
+It records until q, or for --for when given. On a pipe it prints folded
+stacks when it ends, as flamegraph.pl and speedscope read them, or a
+tree with -o json.`,
 		Example: `  # Proxy on localhost:19092 and watch
   kaas sniff
   # ...then, in another terminal, send something through it
@@ -63,17 +73,27 @@ group was joined and the first produce was acknowledged.`,
   # The first 100 requests as JSON, for jq
   kaas sniff -n 100 -o json | jq -r '.api'
   # A waterfall of one service's first 10 seconds
-  kaas sniff --trace --client-id billing-svc`,
+  kaas sniff --trace --client-id billing-svc
+  # Where produce and fetch time goes, until q
+  kaas sniff --profile --api produce --api fetch
+  # A minute's profile as folded stacks, for speedscope
+  kaas sniff --profile --for 1m > kafka.folded`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := oneOf(cmd, "output", output, "text", "json"); err != nil {
 				return err
 			}
-			if window <= 0 {
+			if window <= 0 && cmd.Flags().Changed("for") {
 				return usageError(cmd, "for", window.String(), "must be more than 0")
 			}
-			if cmd.Flags().Changed("for") && !trace {
-				return usageError(cmd, "for", window.String(), "times a --trace: add --trace")
+			if cmd.Flags().Changed("for") && !trace && !profile {
+				return usageError(cmd, "for", window.String(), "times a --trace or --profile: add one")
+			}
+			if trace && profile {
+				return usageError(cmd, "profile", "true", "--trace and --profile are two views: pick one")
+			}
+			if profile && !cmd.Flags().Changed("for") {
+				window = 0 // until q, or Ctrl-C
 			}
 			if maxReqs < 0 {
 				return usageError(cmd, "max", strconv.Itoa(maxReqs), "must be 0 or more")
@@ -97,6 +117,9 @@ group was joined and the first produce was acknowledged.`,
 			if trace {
 				o.Sent, o.Deep = c.addSent, true
 			}
+			if profile {
+				o.Deep = true // to tell an idle poll from a fetch that brought records
+			}
 			sctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
 			p, err := sniff.StartWith(sctx, cl, o)
 			cancel()
@@ -109,6 +132,9 @@ group was joined and the first produce was acknowledged.`,
 			defer p.Close()
 
 			surf := detect(cmd.OutOrStdout(), *themeName)
+			if profile {
+				return runProfile(cmd, surf, p, c, traceOf(apis, clientID), window, maxReqs, output == "json")
+			}
 			if trace {
 				return runTrace(cmd, surf, p, c, traceOf(apis, clientID), window, maxReqs, output == "json")
 			}
@@ -130,7 +156,8 @@ group was joined and the first produce was acknowledged.`,
 	f.StringSliceVar(&apis, "api", nil, "only these requests, by API name such as produce or fetch (repeatable)")
 	f.StringVar(&clientID, "client-id", "", "only requests from clients with this client ID")
 	f.BoolVar(&trace, "trace", false, "time requests on a waterfall: connect, send, queue, wait, ack")
-	f.DurationVar(&window, "for", 10*time.Second, "how long --trace records, from the first request")
+	f.BoolVar(&profile, "profile", false, "add up where request time goes, on a flame graph")
+	f.DurationVar(&window, "for", 10*time.Second, "how long --trace (or --profile, when given) records, from the first request")
 	f.IntVarP(&maxReqs, "max", "n", 0, "stop after this many requests; 0 for no limit")
 	f.StringVarP(&output, "output", "o", "text", "output format: text|json (one object per line, on a pipe)")
 	return cmd

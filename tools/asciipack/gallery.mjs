@@ -48,6 +48,7 @@ const SHOTS = {
   "date-range-picker": "consume-pick",
   "packet-sniffer": "sniff",
   "network-waterfall": "sniff-trace",
+  "flame-graph": "sniff-profile",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

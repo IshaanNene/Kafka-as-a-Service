@@ -56,7 +56,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas consume --from --to` | date-range-picker | `--to` stops a `--from` read at a time; `--pick` chooses the days on two months of calendar, with days the topic no longer keeps faint and the window's exact record count from the broker's time index | **built** |
 | `kaas sniff` | packet-sniffer | A proxy in front of the cluster that decodes every request through it, coloured by API, with the selected one's path and first bytes and the mix of recent APIs; it rewrites the broker addresses in Metadata, FindCoordinator, DescribeCluster and leader hints so clients stay on it | **built** |
 | `kaas sniff --trace` | network-waterfall | A client's requests from its first, timed by the proxy stage by stage (connect, send, queue behind earlier requests on the connection, the broker's wait, ack), with the errors answers carry and lines where its group was joined and its first write acked | **built** |
-| `kaas sniff --profile` | flame-graph | Where produce and fetch latency goes, by stage | P1 |
+| `kaas sniff --profile` | flame-graph | Every request's stages added up by API, broker and topic, each frame as wide as its share of the time, with a frame's count, average and p99; a fetch's polling (empty answers, and the wait before its first record was written) is told apart from serving and hidden until asked for; folded stacks on a pipe | **built** |
 | `kaas segments` | heap-map | A partition's log segments: size, compaction, holes | P1 |
 | `kaas config` | settings-toggles | Topic and broker configs, with non-defaults flagged | P1 |
 | `kaas config edit` | modal-editor | Edit configs in a vi-style buffer; diff before apply | P1 |

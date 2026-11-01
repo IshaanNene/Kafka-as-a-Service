@@ -200,8 +200,17 @@ func TestStagesAndErrors(t *testing.T) {
 	if _, err := hb.RequestWith(ctx, cl); err != nil {
 		t.Fatal(err)
 	}
-	took := time.Since(began)
 	cl.Close()
+	// A fetch that brings the record back says how many records it carried.
+	cc, err := kgo.NewClient(kgo.SeedBrokers(p.Addr()), kgo.ConsumeTopics("orders"), kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fs := cc.PollFetches(ctx); fs.NumRecords() != 1 {
+		t.Fatalf("fetched %d records", fs.NumRecords())
+	}
+	cc.Close()
+	took := time.Since(began)
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -221,10 +230,64 @@ func TestStagesAndErrors(t *testing.T) {
 			errs[r.Name()] = r.Err
 		}
 	}
+	fetched := false
+	for _, r := range seen {
+		switch r.Name() {
+		case "Fetch":
+			// A session's closing fetch reads nothing and names nothing.
+			if r.Records > 0 && (len(r.Topics) != 1 || r.Topics[0] != "orders") {
+				t.Errorf("fetch topics %v", r.Topics)
+			}
+			fetched = fetched || (r.Records == 1 && !r.FirstRecord.IsZero())
+		case "Produce":
+			if r.Records != -1 || len(r.Topics) != 1 || r.Topics[0] != "orders" {
+				t.Errorf("produce: records %d, topics %v", r.Records, r.Topics)
+			}
+		}
+	}
+	if !fetched {
+		t.Error("no fetch counted its one record")
+	}
 	if connects == 0 {
 		t.Error("no request carried its connection's dial")
 	}
 	if e := errs["Heartbeat"]; e == "" || errs["Produce"] != "" {
 		t.Errorf("errors %v", errs)
+	}
+}
+
+func TestFetchSession(t *testing.T) {
+	p := &Proxy{names: map[[16]byte]string{}}
+	s := fetchSession{}
+	full := kmsg.NewPtrFetchRequest()
+	full.SessionEpoch = 0
+	for _, name := range []string{"orders", "payments"} {
+		ft := kmsg.NewFetchRequestTopic()
+		ft.Topic = name
+		for _, part := range []int32{0, 1} {
+			fp := kmsg.NewFetchRequestTopicPartition()
+			fp.Partition = part
+			ft.Partitions = append(ft.Partitions, fp)
+		}
+		full.Topics = append(full.Topics, ft)
+	}
+	if got := s.follow(p, full); strings.Join(got, ",") != "orders,payments" {
+		t.Errorf("full: %v", got)
+	}
+	// Incremental: nothing named, one partition of payments forgotten, then the other.
+	inc := kmsg.NewPtrFetchRequest()
+	inc.SessionEpoch = 1
+	if got := s.follow(p, inc); len(got) != 2 {
+		t.Errorf("unchanged: %v", got)
+	}
+	fg := kmsg.NewFetchRequestForgottenTopic()
+	fg.Topic, fg.Partitions = "payments", []int32{0}
+	inc.ForgottenTopics = []kmsg.FetchRequestForgottenTopic{fg}
+	if got := s.follow(p, inc); len(got) != 2 {
+		t.Errorf("half forgotten: %v", got)
+	}
+	inc.ForgottenTopics[0].Partitions = []int32{1}
+	if got := s.follow(p, inc); strings.Join(got, ",") != "orders" {
+		t.Errorf("forgotten: %v", got)
 	}
 }

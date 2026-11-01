@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 27 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 28 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -40,7 +40,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | built |
 | [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | built |
 | [Bisect Hunt](#bisect-hunt) | `kaas offsets find` | built |
-| [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | P1 |
+| [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | built |
 | [Packet Capture](#packet-capture) | `kaas sniff` | P1 |
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | P1 |
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | P1 |
@@ -344,11 +344,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Date Range Picker
 
-[`date-range-picker`](https://www.ascii-magic.com/ascii/date-range-picker) · **P1** · A two month calendar where a start date is clicked, the range stretches with the cursor and the night count updates.
+[`date-range-picker`](https://www.ascii-magic.com/ascii/date-range-picker) · **built** · A two month calendar where a start date is clicked, the range stretches with the cursor and the night count updates.
 
-- `kaas consume --from --to`: Pick a time window to read
+- `kaas consume --from --to`: `--to` stops a `--from` read at a time; `--pick` chooses the days on two months of calendar, with days the topic no longer keeps faint and the window's exact record count from the broker's time index
 
-<img src="img/ui/date-range-picker.svg" alt="ascii-magic Date Range Picker" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/date-range-picker.svg" alt="ascii-magic Date Range Picker" width="100%"></td><td width="50%"><img src="img/consume-pick.svg" alt="kaas screen built from Date Range Picker" width="100%"></td></tr></table>
 
 ### Packet Capture
 

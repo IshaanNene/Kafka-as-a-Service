@@ -45,6 +45,7 @@ const SHOTS = {
   "empty-upload-tray": "produce-file-done",
   "infra-plan-diff": "offsets-reset",
   "bisect-hunt": "offsets-find",
+  "date-range-picker": "consume-pick",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

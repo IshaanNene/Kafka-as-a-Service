@@ -368,6 +368,45 @@ loop:
 	}
 	save("offsets-find", ff.cmdline, ff.screen(ff.hunts[0]).Render(k, 88, 26))
 
+	// Consume --pick: three weeks of orders, quieter at weekends and none
+	// on one day, with the last week but two picked.
+	pc, pcl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	var stamps []time.Time
+	for d := midnight(now).AddDate(0, 0, -23); d.Before(now); d = d.AddDate(0, 0, 1) {
+		n := 40 + d.Day()%7*9
+		if wd := d.Weekday(); wd == time.Saturday || wd == time.Sunday {
+			n /= 4
+		}
+		if d.Equal(midnight(now).AddDate(0, 0, -12)) {
+			n = 0 // an outage
+		}
+		for i := range n {
+			if at := d.Add(time.Duration(i) * 24 * time.Hour / time.Duration(n)); at.Before(now) {
+				stamps = append(stamps, at)
+			}
+		}
+	}
+	seedAt(t, pc, "orders", stamps)
+	padm := kadm.NewClient(pcl)
+	poldest, err := consume.Oldest(ctx, pcl, padm, "orders")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pm := newPickModel(k, padm, "orders", now, poldest, consume.From{})
+	run := func(cmd tea.Cmd) {
+		for cmd != nil {
+			next, more := pm.Update(cmd())
+			pm, cmd = next.(pickModel), more
+		}
+	}
+	run(pm.Init())
+	for _, msg := range keys("up", "right", "enter", "right", "right", "right", "right", "enter") {
+		next, cmd := pm.Update(msg)
+		pm = next.(pickModel)
+		run(cmd)
+	}
+	save("consume-pick", "kaas consume orders --pick", pm.screen(80).Render(k, 80))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

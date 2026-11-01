@@ -3,6 +3,8 @@ package consume
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -117,5 +119,64 @@ func TestText(t *testing.T) {
 	}
 	if _, ok := Text([]byte("bell\x07")); ok {
 		t.Error("control characters are binary")
+	}
+}
+
+func TestWindow(t *testing.T) {
+	c, cl := kafkatest.Fake(t, kfake.SeedTopics(2, "orders"))
+	ctx := context.Background()
+	base := time.Now().Add(-2 * time.Hour).Truncate(time.Minute)
+	pc, err := kgo.NewClient(kgo.SeedBrokers(c.ListenAddrs()...), kgo.RecordPartitioner(kgo.ManualPartitioner()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rs []*kgo.Record
+	for p := range int32(2) {
+		for i := range 60 { // a record a minute on each partition
+			rs = append(rs, &kgo.Record{Topic: "orders", Partition: p, Timestamp: base.Add(time.Duration(i) * time.Minute), Value: []byte(strconv.Itoa(i))})
+		}
+	}
+	if err := pc.ProduceSync(ctx, rs...).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	pc.Close()
+	adm := kadm.NewClient(cl)
+
+	// 10:00 to 10:20 past base: offsets 10 to 19 on each partition.
+	f := From{kind: fromTime, since: base.Add(10 * time.Minute), now: base}.Until(base.Add(20 * time.Minute))
+	plan, err := Plan(ctx, adm, "orders", nil, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan) != 2 || plan[0].Offset != 10 || plan[0].Stop != 20 || plan[1].Stop != 20 {
+		t.Fatalf("plan = %+v", plan)
+	}
+	var got []int64
+	err = Read(ctx, Options{Seeds: c.ListenAddrs(), Topic: "orders", Plan: plan}, nil, func(r Record) error {
+		got = append(got, r.Offset)
+		return nil
+	})
+	if err != nil || len(got) != 20 || slices.Max(got) != 19 || slices.Min(got) != 10 {
+		t.Errorf("read %v, %v; want offsets 10-19 on both partitions", got, err)
+	}
+	// A window with nothing in it ends at once.
+	empty, _ := Plan(ctx, adm, "orders", nil, From{kind: fromTime, since: base.Add(90 * time.Minute)}.Until(base.Add(95*time.Minute)))
+	if err := Read(ctx, Options{Seeds: c.ListenAddrs(), Topic: "orders", Plan: empty}, nil, func(Record) error { t.Error("read a record"); return nil }); err != nil {
+		t.Error(err)
+	}
+
+	counts, err := Counts(ctx, adm, "orders", []time.Time{base, base.Add(30 * time.Minute), base.Add(3 * time.Hour)})
+	if err != nil || counts[0] != 0 || counts[1] != 60 || counts[2] != 120 {
+		t.Errorf("counts = %v, %v", counts, err)
+	}
+	if old, err := Oldest(ctx, cl, adm, "orders"); err != nil || !old.Equal(base) {
+		t.Errorf("oldest = %v, %v; want %v", old, err, base)
+	}
+
+	if _, err := ParseUntil("1h", time.Now()); err != nil {
+		t.Error(err)
+	}
+	if _, err := ParseUntil(time.Now().Add(time.Hour).Format(time.RFC3339), time.Now()); err == nil {
+		t.Error("a future --to was taken")
 	}
 }

@@ -119,6 +119,7 @@ func newRoot() *cobra.Command {
 	root.AddCommand(newConsumeCmd(&brokers, &themeName))
 	root.AddCommand(newTopCmd(&brokers, &themeName))
 	root.AddCommand(newClientsCmd(&brokers, &themeName))
+	root.AddCommand(newProduceCmd(&brokers, &themeName))
 	root.AddCommand(newWatchCmd(&brokers, &themeName))
 	root.AddCommand(newBenchCmd(&brokers, &themeName))
 	root.AddCommand(newTUICmd(&brokers, &themeName))

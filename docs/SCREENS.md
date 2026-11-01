@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 19 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 20 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -36,7 +36,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | built |
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | built |
-| [Code Editor](#code-editor) | `kaas produce` | P1 |
+| [Code Editor](#code-editor) | `kaas produce` | built |
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | P1 |
 | [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | P1 |
 | [Bisect Hunt](#bisect-hunt) | `kaas offsets find --time` | P1 |
@@ -305,11 +305,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Code Editor
 
-[`code-editor`](https://www.ascii-magic.com/ascii/code-editor) · **P1** · An editor window with line numbers where a small rate limiter is typed out in syntax colours.
+[`code-editor`](https://www.ascii-magic.com/ascii/code-editor) · **built** · An editor window with line numbers where a small rate limiter is typed out in syntax colours.
 
-- `kaas produce`: Compose key, value and headers with JSON highlighting
+- `kaas produce`: Compose key, value and headers with JSON highlighting; pipes send a record per line
 
-<img src="img/ui/code-editor.svg" alt="ascii-magic Code Editor" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/code-editor.svg" alt="ascii-magic Code Editor" width="100%"></td><td width="50%"><img src="img/produce.svg" alt="kaas screen built from Code Editor" width="100%"></td></tr></table>
 
 ### Upload Dropzone
 

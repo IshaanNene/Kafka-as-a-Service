@@ -45,16 +45,16 @@ export function clusterPage(name, tab, topic) {
         card.gitops && card.drift ? link(clusterHref(name, "gitops"), { class: "btn primary" }, icon("changes"), "Review " + plural(card.drift, "change")) : null,
       ],
       below: [
-        h("div", { class: "facts" },
-          card.brokers ? h("span", null, h("b", null, int(card.brokers)), " brokers") : null,
-          card.controller >= 0 ? h("span", null, "controller ", h("b", null, "#" + card.controller)) : null,
-          card.clusterId ? h("span", { class: "mono" }, card.clusterId) : null,
-          card.availability >= 0 ? h("span", null, h("b", null, pct(card.availability)), " available in the last hour") : null,
-          card.cost ? h("span", null, h("b", null, money(card.cost, state.fleet?.pricing?.currency)), " a month, estimated") : null),
+        h("dl", { class: "facts" },
+          fact("Brokers", card.brokers ? int(card.brokers) : null),
+          fact("Controller", card.controller >= 0 ? "#" + card.controller : null),
+          fact("Cluster ID", card.clusterId || null, true),
+          fact("Available, 1h", card.availability >= 0 ? pct(card.availability) : null),
+          fact("Est. cost", card.cost ? money(card.cost, state.fleet?.pricing?.currency) + " / mo" : null)),
         h("nav", { class: "tabs", "aria-label": "Cluster sections" }, tabs.map(([id, label, ic]) =>
           link(clusterHref(name, id), { key: id, "aria-current": tab === id ? "page" : null },
             icon(ic, "nav-icon"), label,
-            counts[id] != null ? h("span", { class: "nav-count" + (id === "gitops" && counts[id] ? " hot" : "") }, int(counts[id])) : null))),
+            counts[id] != null ? h("span", { class: "nav-count" + (id === "gitops" && counts[id] ? " info" : "") }, int(counts[id])) : null))),
       ],
     }),
     card.status === "unreachable" ? unreachable(card) : null,
@@ -67,56 +67,60 @@ function unreachable(card) {
   return h("div", { class: "callout crit", style: { "margin-bottom": "16px" } }, icon("offline"),
     h("div", { class: "body" },
       h("b", null, "The brokers aren't answering. "),
-      "kaas keeps retrying; what you see below is the last snapshot, if there was one.",
+      "kaas keeps retrying; the last snapshot, if there was one, is folded away below.",
       card.error ? h("div", { class: "code" }, h("code", null, card.error)) : null));
 }
 
 // ─────────────────────────── overview ───────────────────────────
 
-const S1 = "var(--s1)", S2 = "var(--s2)";
+const S1 = "var(--series-produced)", S2 = "var(--series-consumed)";
+
+// fact is one label and value in a page header's facts row.
+function fact(label, value, mono) {
+  return value == null ? null : h("div", { class: "fact" }, h("dt", null, label), h("dd", { class: mono ? "mono" : "num" }, value));
+}
 
 function overviewTab(v) {
   const c = v.card;
-  const tone = c.availability < 0 ? "none" : c.availability >= 99.9 ? "ok" : c.availability >= 95 ? "warn" : "crit";
-  return [
-    h("section", { class: "card", "aria-label": "Cluster summary" },
-      h("div", { class: "band" },
-        h("div", { class: "gauge" },
-          h("div", { class: "ring-wrap" }, ring(c.availability, { tone, size: 116 }),
-            h("div", { class: "ring-label" }, h("div", null, h("b", null, pct(c.availability)), h("span", null, "available")))),
-          h("div", null,
-            h("h3", null, statusLine(c)),
-            h("p", null, c.urp + c.offline ? `${int(c.urp + c.offline)} of ${int(c.partitions)} partitions short of replicas.` : `All ${int(c.partitions)} partitions fully replicated.`))),
-        kpi({ label: "Produced", color: S1, value: h("span", { class: "num" }, rate(c.throughput)), unit: "rec/s", foot: [delta(c.history), h("span", null, "into " + plural(c.topics, "topic"))], spark: inRange(c.history), sparkId: "c-in-" + c.name }),
-        kpi({ label: "Consumed", color: S2, value: h("span", { class: "num" }, rate(c.consumeRate)), unit: "rec/s", foot: [delta(c.consumed), h("span", null, "by " + plural(c.groups, "group"))], spark: inRange(c.consumed), sparkId: "c-out-" + c.name }),
-        kpi({
-          label: "Data freshness", ic: "connecting", value: h("span", { class: "num" }, c.freshness < 0 ? "—" : age(c.freshness)), unit: c.freshness > 0 ? "behind" : "",
-          foot: c.freshness > 0 && c.freshGroup ? h("span", null, "worst: ", h("b", { class: "mono" }, c.freshGroup)) : "every consumer is caught up",
-          viz: c.freshness >= 0 ? meter(c.freshness, 60, { label: "stale after 1m", over: "past target" }) : null,
-        }),
-        kpi({ label: "Retained", ic: "file", value: h("span", { class: "num" }, compact(c.records)), unit: "records", foot: c.disk ? bytes(c.disk) + " on disk" : "between log start and end", viz: retainedSplit(v) }))),
-    h("section", { class: "card mt" },
-      h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("ok"), "Last hour"),
-        h("span", { class: "right muted" }, "a bar a minute · hover for the time and status")),
-      h("div", { class: "card-body" }, uptimeStrip(c.uptime), uptimeScale(c.uptime))),
-    h("div", { class: "grid-2 mt" },
-      h("section", { class: "card" },
-        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("activity"), "Traffic"),
-          h("div", { class: "right" },
-            h("div", { class: "series-legend" },
-              h("span", null, h("i", { class: "sw", style: { "--c": S1 } }), "Produced"),
-              h("span", null, h("i", { class: "sw dashed", style: { "--c": S2 } }), "Consumed")),
-            rangeSwitch())),
-        h("div", { class: "card-sub" }, "Records a second"),
-        h("div", { class: "card-body", style: { "padding-bottom": "36px" } },
-          lineChart("g-" + c.name, [
-            { label: "Produced", pts: inRange(c.history), color: S1 },
-            { label: "Consumed", pts: inRange(c.consumed), color: S2 },
-          ], { format: rate, unit: "/s", height: 220 }))),
-      h("section", { class: "card" },
-        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("bolt"), "Recommendations"),
-          v.insights.length ? h("span", { class: "right" }, h("span", { class: "nav-count" }, v.insights.length)) : null),
-        h("div", { class: "mt" }, insightList(v.insights, { showCluster: false, limit: 5 })))),
+  const tone = c.availability < 0 ? "none" : c.availability >= 99.9 ? "ok" : c.availability >= 50 ? "warn" : "crit";
+  const summary = h("section", { class: "card", "aria-label": "Cluster summary" },
+    h("div", { class: "band" },
+      h("div", { class: "gauge" },
+        h("div", { class: "ring-wrap" }, ring(c.availability, { tone, size: 112, stroke: 9 }),
+          h("div", { class: "ring-label" }, h("div", null, h("b", null, pct(c.availability)), h("span", null, "available")))),
+        h("div", null,
+          h("h3", null, statusLine(c)),
+          h("p", null, c.urp + c.offline ? `${int(c.urp + c.offline)} of ${int(c.partitions)} partitions short of replicas.` : `All ${int(c.partitions)} partitions fully replicated.`))),
+      kpi({ label: "Produced", color: S1, value: h("span", { class: "num" }, rate(c.throughput)), unit: "rec/s", foot: [delta(c.history), h("span", null, "into " + plural(c.topics, "topic"))], spark: inRange(c.history), sparkId: "c-in-" + c.name }),
+      kpi({ label: "Consumed", color: S2, value: h("span", { class: "num" }, rate(c.consumeRate)), unit: "rec/s", foot: [delta(c.consumed), h("span", null, "by " + plural(c.groups, "group"))], spark: inRange(c.consumed), sparkId: "c-out-" + c.name }),
+      kpi({
+        label: "Data freshness", ic: "connecting", value: h("span", { class: "num" }, c.freshness < 0 ? "—" : age(c.freshness)), unit: c.freshness > 0 ? "behind" : "",
+        foot: c.freshness > 0 && c.freshGroup ? h("span", null, "worst: ", h("b", { class: "mono" }, c.freshGroup)) : "every consumer is caught up",
+        viz: c.freshness >= 0 ? meter(c.freshness, 60, { label: "stale after 1m", over: "past target" }) : null,
+      }),
+      kpi({ label: "Retained", ic: "file", value: h("span", { class: "num" }, compact(c.records)), unit: "records", foot: c.disk ? bytes(c.disk) + " on disk" : "between log start and end", viz: retainedSplit(v) })));
+  const lastHour = h("section", { class: "card mt" },
+    h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("ok"), "Last hour"),
+      h("span", { class: "right muted" }, "a bar a minute · hover for the time and status")),
+    h("div", { class: "card-body" }, uptimeStrip(c.uptime), uptimeScale(c.uptime)));
+  const traffic = h("section", { class: "card" },
+    h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("activity"), "Traffic"),
+      h("div", { class: "right" },
+        h("div", { class: "series-legend" },
+          h("span", null, h("i", { class: "sw", style: { "--c": S1 } }), "Produced"),
+          h("span", null, h("i", { class: "sw dashed", style: { "--c": S2 } }), "Consumed")),
+        rangeSwitch())),
+    h("div", { class: "card-sub" }, "Records a second"),
+    h("div", { class: "card-body" },
+      lineChart("g-" + c.name, [
+        { label: "Produced", pts: inRange(c.history), color: S1 },
+        { label: "Consumed", pts: inRange(c.consumed), color: S2 },
+      ], { format: rate, unit: "/s", height: 220 })));
+  const recs = h("section", { class: "card fit" },
+    h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("bolt"), "Recommendations"),
+      v.insights.length ? h("span", { class: "right" }, h("span", { class: "nav-count" }, v.insights.length)) : null),
+    h("div", { class: "mt" }, insightList(v.insights, { showCluster: false, limit: 5, expanded: c.status === "unreachable" })));
+  const more = [
     h("div", { class: "grid-2 mt" },
       h("section", { class: "card" },
         h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("topics"), "Where the traffic goes"),
@@ -133,6 +137,24 @@ function overviewTab(v) {
       h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("activity"), "Recent events")),
       h("div", { style: { "margin-top": "8px" } }, feed(v.events, { showCluster: false, limit: 6 })),
       v.events.length > 6 ? h("div", { class: "card-foot" }, link("/activity", { class: "card-link" }, "All activity", icon("arrow"))) : null),
+  ];
+  // A cluster that isn't answering has nothing live to show: lead with
+  // what's wrong and what to do, and fold the last snapshot away.
+  if (c.status === "unreachable") {
+    return [
+      recs,
+      lastHour,
+      h("details", { class: "card mt stale" },
+        h("summary", { class: "card-head" }, h("h3", { class: "card-title" }, icon("file"), "Last known state"),
+          h("span", { class: "right muted" }, v.snapshotAt ? "snapshot " + ago(v.snapshotAt) : "no snapshot yet"), icon("chevron", "fold")),
+        h("div", { class: "stale-body" }, summary, more)),
+    ];
+  }
+  return [
+    summary,
+    lastHour,
+    h("div", { class: "grid-2 mt" }, traffic, recs),
+    ...more,
   ];
 }
 
@@ -245,7 +267,7 @@ function topicDrawer(cluster, name) {
         stat("Partitions", h("span", { class: "num" }, int(r.partitions)), { note: `replication ${r.replication}` })),
       h("div", null,
         h("h2", { class: "section", style: { margin: "0 0 12px" } }, "Partitions",
-          h("span", { class: "right legend" }, h("span", null, h("i", { style: { background: "var(--ink)" } }), "leader"), h("span", null, h("i", { style: { background: "var(--ok)" } }), "in sync"), h("span", null, h("i", { style: { background: "var(--crit)" } }), "out of sync"))),
+          h("span", { class: "right legend" }, h("span", null, h("i", { style: { background: "var(--text)" } }), "leader"), h("span", null, h("i", { style: { background: "var(--success)" } }), "in sync"), h("span", null, h("i", { style: { background: "var(--danger)" } }), "out of sync"))),
         h("div", { class: "pmap" }, v.partitions.map((p) => {
           const out = p.replicas.filter((x) => !p.isr.includes(x));
           const cls = p.leader < 0 ? "offline" : out.length ? "urp" : "";
@@ -295,7 +317,7 @@ function groupTable(rows, withTopics) {
   return h("div", { class: "table-wrap" }, h("table", { class: "data" },
     h("thead", null, h("tr", null, h("th", null, "Group"), h("th", null, "State"), h("th", { class: "r" }, "Members"), withTopics ? h("th", null, "Topics") : null, h("th", null, "Lag"), h("th", { class: "r" }, "Data age"), h("th", { class: "r" }, "Consuming"), h("th", { class: "r" }, "Caught up in"))),
     h("tbody", null, rows.map((g) => h("tr", { key: g.name },
-      h("td", { class: "name" }, g.name, g.error ? h("span", { class: "sub", style: { color: "var(--crit)" } }, g.error) : null),
+      h("td", { class: "name" }, g.name, g.error ? h("span", { class: "sub", style: { color: "var(--danger)" } }, g.error) : null),
       h("td", null, stateChip(g.state)),
       h("td", { class: "r num" }, int(g.members)),
       withTopics ? h("td", { class: "mono dim" }, g.topics.join(", ") || "—") : null,
@@ -392,7 +414,7 @@ function schemasTab(name) {
           h("span", { class: "chip mono" }, "v" + x.version),
           h("span", { class: "s" }, typeChip(x.type), x.compatibility.toLowerCase().replace(/_/g, " "))))))),
     h("section", { class: "card" },
-      h("div", { class: "card-head", style: { "padding-bottom": "14px", "border-bottom": "1px solid var(--line)" } },
+      h("div", { class: "card-head", style: { "padding-bottom": "14px", "border-bottom": "1px solid var(--border)" } },
         h("div", null,
           h("h3", { class: "card-title mono" }, sel.name),
           h("div", { class: "row muted wrap", style: { "margin-top": "6px", "font-size": "12px" } },

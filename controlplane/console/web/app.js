@@ -3,7 +3,7 @@
 
 import { h, render } from "./lib/h.js";
 import { icon, logo, sevIcon } from "./lib/icons.js";
-import { state, onChange, start } from "./lib/store.js";
+import { state, onChange, start, dismiss } from "./lib/store.js";
 import { startRouter } from "./lib/router.js";
 import { link, clusterHref, words } from "./views/common.js";
 import { fleetPage } from "./views/fleet.js";
@@ -11,7 +11,7 @@ import { clusterPage } from "./views/cluster.js";
 import { changesPage, applyModal } from "./views/gitops.js";
 import { activityPage } from "./views/activity.js";
 import { insightsPage } from "./views/insights.js";
-import { rate } from "./lib/fmt.js";
+import { rate, plural } from "./lib/fmt.js";
 import { palette, openPalette } from "./views/palette.js";
 
 // ─────────────────────────── theme ───────────────────────────
@@ -40,6 +40,7 @@ function sidebar() {
   const r = state.route;
   const f = state.fleet;
   const drift = f?.totals.drift || 0;
+  const blocked = f?.clusters.some((c) => c.blocked);
   const urgent = (f?.insights || []).filter((x) => x.severity === "critical" || x.severity === "warning");
   const crit = urgent.some((x) => x.severity === "critical");
   const name = state.meta?.name || "Fleet";
@@ -58,19 +59,24 @@ function sidebar() {
       link("/activity", { "aria-current": here("activity") }, icon("activity", "nav-icon"), "Activity")),
     h("div", { class: "nav-label" }, "Govern"),
     h("nav", { class: "nav", "aria-label": "Govern" },
-      link("/changes", { "aria-current": here("changes") }, icon("changes", "nav-icon"), "GitOps changes", drift ? h("span", { class: "nav-count hot" }, drift) : null)),
+      link("/changes", { "aria-current": here("changes") }, icon("changes", "nav-icon"), "GitOps changes", drift ? h("span", { class: "nav-count " + (blocked ? "hot" : "info") }, drift) : null)),
     h("div", { class: "nav-label clusters-nav" }, "Clusters"),
     h("nav", { class: "nav clusters-nav", "aria-label": "Clusters" }, (f?.clusters || []).map((c) =>
       link(clusterHref(c.name), { key: c.name, class: "cluster-link status-" + c.status, "aria-current": r.cluster === c.name ? "page" : null, title: `${c.name}: ${c.reason}` },
-        h("span", { class: "dot ring" }), h("span", null, c.name), h("span", { class: "sr-only" }, c.status),
+        h("span", { class: "dot ring" }), h("span", { class: "nm" }, c.name), h("span", { class: "sr-only" }, c.status),
         h("span", { class: "rate" }, c.status === "unreachable" ? "down" : rate(c.throughput) + "/s"),
-        c.drift ? h("span", { class: "nav-count" }, c.drift) : null))),
+        h("span", { class: "slot" }, c.drift ? h("span", { class: "nav-count", title: plural(c.drift, "change") + " from git" }, c.drift) : null)))),
     h("div", { class: "sidebar-foot" },
-      h("div", { class: "mode" + (state.meta?.allowApply ? " write" : "") }, h("span", { class: "dot" }),
-        state.meta?.allowApply ? "Plans can be applied" : "Read-only", state.meta?.demo ? h("span", { class: "chip accent", style: { "margin-left": "auto", height: "18px", "font-size": "10.5px" } }, "demo") : null),
-      h("div", { class: "theme-switch", role: "group", "aria-label": "Theme" },
-        [["light", "Light"], ["system", "Auto"], ["dark", "Dark"]].map(([id, label]) =>
-          h("button", { key: id, "aria-pressed": state.ui.theme === id ? "true" : "false", onclick: () => setTheme(id) }, label))),
+      h("div", { class: "foot-block" },
+        h("div", { class: "foot-label" }, "Environment"),
+        h("div", { class: "mode" + (state.meta?.allowApply ? " write" : "") }, h("span", { class: "dot" }),
+          h("span", null, state.meta?.allowApply ? "Plans can be applied" : "Read-only"),
+          state.meta?.demo ? h("span", { class: "chip mode-tag" }, "demo") : null)),
+      h("div", { class: "foot-block" },
+        h("div", { class: "foot-label" }, "Theme"),
+        h("div", { class: "theme-switch", role: "group", "aria-label": "Theme" },
+          [["light", "Light"], ["system", "Auto"], ["dark", "Dark"]].map(([id, label]) =>
+            h("button", { key: id, "aria-pressed": state.ui.theme === id ? "true" : "false", onclick: () => setTheme(id) }, label)))),
       h("div", { class: "version" }, "kaas " + (state.meta?.version || ""))));
 }
 
@@ -116,7 +122,8 @@ function page() {
 function toasts() {
   return h("div", { class: "toasts", role: "status", "aria-live": "polite" }, state.ui.toasts.map((t) =>
     h("div", { key: t.id, class: "toast sev-" + t.severity }, icon(sevIcon[t.severity] || "info"),
-      h("div", null, h("div", { class: "t" }, `${words(t.kind)} on ${t.cluster}`, t.n > 1 ? h("span", { class: "n" }, " ×" + t.n) : null), h("div", { class: "s" }, t.text)))));
+      h("div", null, h("div", { class: "t" }, `${words(t.kind)} on ${t.cluster}`, t.n > 1 ? h("span", { class: "n" }, " ×" + t.n) : null), h("div", { class: "s" }, t.text)),
+      h("button", { class: "x", "aria-label": "Dismiss", title: "Dismiss", onclick: () => dismiss(t.id) }, icon("close")))));
 }
 
 const root = document.getElementById("app");

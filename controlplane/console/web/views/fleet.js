@@ -6,7 +6,7 @@ import { dots, project, locate, MAP } from "../lib/geo.js";
 import { state } from "../lib/store.js";
 import { hero, feed, link, clusterHref, envBadge, loading, kpi, delta, insightList, inRange, rangeSwitch, navigate, meter, split, share } from "./common.js";
 
-const S1 = "var(--s1)", S2 = "var(--s2)";
+const S1 = "var(--series-produced)", S2 = "var(--series-consumed)";
 
 export function fleetPage() {
   const f = state.fleet;
@@ -26,7 +26,7 @@ export function fleetPage() {
         ? [icon("crit"), h("span", null, down.map((c) => `${c.name}: ${c.reason}`).join(" · "))]
         : `${int(t.brokers)} brokers serving ${compact(t.throughput)} records a second, with ${t.drift ? plural(t.drift, "change") + " waiting in git" : "everything matching git"}.`,
       actions: [
-        urgent.length ? link("/insights", { class: "btn" }, icon("warn"), urgent.length + " need action") : null,
+        urgent.length ? link("/insights", { class: "btn outline" }, icon("warn"), urgent.length + " need action") : null,
         t.drift ? link("/changes", { class: "btn primary" }, icon("changes"), "Review " + plural(t.drift, "change")) : null,
       ],
     }),
@@ -54,7 +54,7 @@ export function fleetPage() {
               h("span", null, h("i", { class: "sw dashed", style: { "--c": S2 } }), "Consumed")),
             rangeSwitch())),
         h("div", { class: "card-sub" }, "Records a second across every cluster"),
-        h("div", { class: "card-body", style: { "padding-bottom": "36px" } },
+        h("div", { class: "card-body" },
           lineChart("g-fleet", [
             { label: "Produced", pts: inRange(f.history), color: S1 },
             { label: "Consumed", pts: inRange(f.consumed), color: S2 },
@@ -74,12 +74,12 @@ export function fleetPage() {
 function summary(f) {
   const t = f.totals;
   const up = f.clusters.filter((c) => c.status === "healthy" || c.status === "degraded").length;
-  const tone = t.availability < 0 ? "none" : t.availability >= 99.9 ? "ok" : t.availability >= 95 ? "warn" : "crit";
+  const tone = t.availability < 0 ? "none" : t.availability >= 99.9 ? "ok" : t.availability >= 50 ? "warn" : "crit";
   const consumers = f.clusters.reduce((a, c) => a + c.groups, 0);
   return h("section", { class: "card", "aria-label": "Fleet summary" },
     h("div", { class: "band" },
       h("div", { class: "gauge" },
-        h("div", { class: "ring-wrap" }, ring(t.availability, { tone }),
+        h("div", { class: "ring-wrap" }, ring(t.availability, { tone, size: 112, stroke: 9 }),
           h("div", { class: "ring-label" }, h("div", null, h("b", null, pct(t.availability)), h("span", null, "available")))),
         h("div", null,
           h("h3", null, `${up} of ${plural(t.clusters, "cluster")} serving`),
@@ -139,41 +139,81 @@ function inv(k, v) {
 let land = null;
 
 function worldMap(clusters) {
-  // The land never changes: build it once and reuse the node.
-  land ||= h("svg", { key: "land", class: "land", viewBox: `0 0 ${MAP.w} ${MAP.h}`, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" },
-    dots().map(([x, y]) => h("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: "1.9" })));
   const placed = [], unplaced = [];
   for (const c of clusters) {
     const at = locate(c.region);
-    if (!at) { unplaced.push(c); continue; }
-    const [x, y] = project(at.lat, at.lon);
-    placed.push({ c, at, x: (x / MAP.w) * 100, y: (y / MAP.h) * 100 });
+    if (at) placed.push({ c, at });
+    else unplaced.push(c);
+  }
+  // Crop to where the fleet runs, padded, and no taller than a third of
+  // the width: five points don't need the whole world.
+  const v = view(placed.map((p) => p.at));
+  const [x0, y0] = project(v.latMax, v.lonMin), [x1, y1] = project(v.latMin, v.lonMax);
+  const key = [x0, y0, x1, y1].map((n) => n.toFixed(0)).join(",");
+  if (!land || land.props["data-view"] !== key) {
+    land = h("svg", { key: "land", class: "land", "data-view": key, viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, preserveAspectRatio: "none", "aria-hidden": "true" },
+      dots().filter(([x, y]) => x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4).map(([x, y]) => h("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: "1.7" })));
+  }
+  for (const p of placed) {
+    const [x, y] = project(p.at.lat, p.at.lon);
+    p.x = ((x - x0) / (x1 - x0)) * 100;
+    p.y = ((y - y0) / (y1 - y0)) * 100;
   }
   placed.sort((a, b) => a.x - b.x);
   const maxRate = Math.max(1, ...clusters.map((c) => c.throughput));
-  // Neighbours close enough for their labels to collide put the later
-  // one's label on the left.
   placed.forEach((p, i) => {
-    // Of two neighbours, the western one labels to its left.
-    p.flip = placed.some((q) => q !== p && q.x > p.x && q.x - p.x < 14 && Math.abs(q.y - p.y) < 7) || p.x > 82;
     // Two clusters in one city sit side by side.
     const twins = placed.slice(0, i).filter((q) => Math.abs(q.x - p.x) < 0.8 && Math.abs(q.y - p.y) < 0.8).length;
-    p.y += twins * 4;
+    p.y += twins * 5;
+    // Of two close neighbours the western one labels to its left, as does
+    // anything near the right edge.
+    p.flip = placed.some((q) => q !== p && q.x > p.x && q.x - p.x < 22 && Math.abs(q.y - p.y) < 12) || p.x > 78;
   });
+  // Labels on the same side that would still overlap are pushed apart
+  // vertically, with a leader line back to their point.
+  const labelled = [];
+  for (const p of [...placed].sort((a, b) => a.y - b.y)) {
+    const w = 3 + p.c.name.length * 1.1;
+    p.ty = 0;
+    for (const q of labelled) {
+      if (q.flip !== p.flip) continue;
+      const qx = q.flip ? [q.x - q.w, q.x] : [q.x, q.x + q.w], px = p.flip ? [p.x - w, p.x] : [p.x, p.x + w];
+      if (px[0] < qx[1] && qx[0] < px[1] && Math.abs(p.y + p.ty - (q.y + q.ty)) < 11) p.ty = q.y + q.ty + 11 - p.y;
+    }
+    p.w = w;
+    labelled.push(p);
+  }
   return [
-    h("div", { class: "map" }, land,
-      placed.map(({ c, at, x, y, flip }) => {
-        const d = 9 + Math.round(9 * Math.sqrt(c.throughput / maxRate));
+    h("div", { class: "map", style: { "--ar": `${(x1 - x0).toFixed(1)} / ${(y1 - y0).toFixed(1)}` } }, land,
+      placed.map(({ c, at, x, y, flip, ty }) => {
+        const down = c.status === "unreachable" || c.status === "critical";
+        const d = down ? 18 : 11 + Math.round(9 * Math.sqrt(c.throughput / maxRate));
         return link(clusterHref(c.name), {
-          key: "n-" + c.name, class: `node status-${c.status}${flip ? " flip" : ""}`,
-          style: { left: x + "%", top: y + "%", "--d": d + "px" },
+          key: "n-" + c.name, class: `node status-${c.status}${flip ? " flip" : ""}${ty ? " led" : ""}`,
+          style: { left: x + "%", top: y + "%", "--d": d + "px", "--ty": ty.toFixed(2) + "cqh" },
           "aria-label": `${c.name} in ${at.place}: ${c.status}, ${rate(c.throughput)} records a second`,
         },
-        h("span", { class: "halo" }), h("span", { class: "core" }),
+        down ? h("span", { class: "halo" }) : null, h("span", { class: "core" }),
         h("span", { class: "tag" }, c.name, h("span", { class: "num" }, c.status === "unreachable" ? "down" : rate(c.throughput) + "/s")));
       })),
     unplaced.length ? h("div", { class: "unplaced" }, "Not on the map (no known region): ", unplaced.map((c) => c.name).join(", ")) : null,
   ];
+}
+
+// view is the part of the world to draw: every located cluster with a
+// margin, widened or heightened to an aspect between 2.6 and 3.4.
+function view(ats) {
+  if (!ats.length) return { lonMin: MAP.lonMin, lonMax: MAP.lonMax, latMax: MAP.latMax, latMin: MAP.latMin };
+  let lonMin = Math.min(...ats.map((a) => a.lon)) - 28, lonMax = Math.max(...ats.map((a) => a.lon)) + 28;
+  let latMax = Math.max(...ats.map((a) => a.lat)) + 16, latMin = Math.min(...ats.map((a) => a.lat)) - 16;
+  const minLon = 120;
+  if (lonMax - lonMin < minLon) { const m = (lonMax + lonMin) / 2; lonMin = m - minLon / 2; lonMax = m + minLon / 2; }
+  const span = lonMax - lonMin;
+  const want = Math.min(Math.max(latMax - latMin, span / 3.4), span / 2.6);
+  const mid = (latMax + latMin) / 2;
+  latMax = mid + want / 2; latMin = mid - want / 2;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  return { lonMin: clamp(lonMin, MAP.lonMin, MAP.lonMax), lonMax: clamp(lonMax, MAP.lonMin, MAP.lonMax), latMax: clamp(latMax, MAP.latMin, MAP.latMax), latMin: clamp(latMin, MAP.latMin, MAP.latMax) };
 }
 
 // ─────────────────────────── clusters ───────────────────────────
@@ -197,7 +237,7 @@ function clustersTable(clusters) {
           h("td", null, status(c.status)),
           h("td", null, h("div", { class: "avail" }, uptimeStrip(c.uptime, { label: c.name + " status for each minute of the last hour" }), h("span", { class: "num" }, pct(c.availability)))),
           h("td", null, c.status === "unreachable" ? h("span", { class: "muted" }, "—")
-            : h("div", { class: "spark-cell" }, h("div", { class: "spark-box", style: { "--chart-line": S1, "--chart-fill-top": "color-mix(in oklab, var(--s1) 16%, transparent)", "--chart-fill-bottom": "transparent" } }, sparkline("t-" + c.name, inRange(c.history))),
+            : h("div", { class: "spark-cell" }, h("div", { class: "spark-box", style: { "--chart-line": S1, "--chart-fill-top": "color-mix(in oklab, var(--series-produced) 16%, transparent)", "--chart-fill-bottom": "transparent" } }, sparkline("t-" + c.name, inRange(c.history))),
               h("span", { class: "num" }, rate(c.throughput) + "/s"))),
           h("td", { class: "r num" }, c.freshness < 0 ? "—" : age(c.freshness)),
           h("td", { class: "r num" }, c.status === "unreachable" ? "—" : int(c.brokers)),

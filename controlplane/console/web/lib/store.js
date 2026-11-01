@@ -128,6 +128,11 @@ function connectEvents() {
   };
 }
 
+export function dismiss(id) {
+  state.ui.toasts = state.ui.toasts.filter((x) => x.id !== id);
+  changed();
+}
+
 // toast shows an event for a few seconds. A burst of the same kind on the
 // same cluster folds into one toast with a count rather than a stack.
 export function toast(e) {

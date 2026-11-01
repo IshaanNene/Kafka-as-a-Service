@@ -33,8 +33,9 @@ function gradient(id) {
 export function sparkline(id, pts) {
   const H = 46;
   if (!pts || pts.length < 2) {
-    return h("svg", { class: "spark", viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" },
-      h("line", { x1: 0, x2: W, y1: H - 1, y2: H - 1, stroke: "var(--line-strong)", "stroke-dasharray": "4 6", "vector-effect": "non-scaling-stroke" }));
+    // Nothing to draw yet: leave the space empty rather than draw a
+    // baseline that reads as a flat-lined series.
+    return h("svg", { class: "spark", viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" });
   }
   // Shape is the point: scale to the series' own range, not from zero.
   const hi = Math.max(...pts.map((p) => p.v)), lo = Math.min(...pts.map((p) => p.v));
@@ -78,17 +79,25 @@ export function areaChart(id, pts, { label, format, height = 220 } = {}) {
   };
   const leave = () => { for (const el of [tip, cross, marker]) el.hidden = true; };
   return h("div", { class: "chart", style: { height: H + "px" }, role: "img", "aria-label": `${label || "value"} over the last ${Math.round((t1 - t0) / 60000)} minutes; latest ${format(pts[pts.length - 1].v)}` },
+    h("div", { class: "plot" },
     h("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" },
       gradient(id),
       ticks.map((v) => h("line", { x1: 0, x2: W, y1: H - (v / max) * H, y2: H - (v / max) * H, stroke: "var(--chart-grid)", "vector-effect": "non-scaling-stroke" })),
       h("path", { d: area, fill: `url(#${id})` }),
       h("path", { d: line, fill: "none", stroke: "var(--chart-line)", "stroke-width": "2", "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" })),
-    ticks.slice(1).map((v) => h("span", { class: "y-label", style: { top: (100 - (v / max) * 100) + "%" } }, format(v))),
     xs.map((t, i) => h("span", { class: "x-label", style: { left: i * 50 + "%", transform: `translateX(${-i * 50}%)` } }, hm(t))),
     h("div", { class: "cross", hidden: true, ref: (el) => (cross = el) }),
     h("div", { class: "marker", hidden: true, ref: (el) => (marker = el) }),
     h("div", { class: "tip", hidden: true, ref: (el) => (tip = el) }, h("div", { class: "t" }, ""), h("div", { class: "v" }, "")),
-    h("div", { class: "hit", onmousemove: move, onmouseleave: leave }));
+    h("div", { class: "hit", onmousemove: move, onmouseleave: leave })),
+    yAxis(ticks, max, format));
+}
+
+// yAxis is the value labels in a gutter right of the plot, each centred
+// on its gridline, so no label ever sits on the data.
+function yAxis(ticks, max, format) {
+  return h("div", { class: "y-axis", "aria-hidden": "true" },
+    ticks.map((v) => h("span", { class: "y-label", style: { top: (100 - (v / max) * 100) + "%" } }, format(v))));
 }
 
 // bar is a value against a maximum, in a table cell.
@@ -138,24 +147,25 @@ export function lineChart(id, series, { format, height = 240, unit = "" } = {}) 
   const leave = () => { cross.hidden = tip.hidden = true; markers.forEach((m) => (m.hidden = true)); };
   const latest = drawn.map((s) => `${s.label} ${format(s.pts[s.pts.length - 1].v)}${unit}`).join(", ");
   return h("div", { class: "chart", style: { height: H + "px" }, role: "img", "aria-label": `${latest}, over the last ${Math.max(1, Math.round((t1 - t0) / 60000))} minutes` },
+    h("div", { class: "plot" },
     h("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" },
       h("defs", null, h("linearGradient", { id, x1: "0", y1: "0", x2: "0", y2: "1" },
-        h("stop", { offset: "0", "stop-color": drawn[0].color, "stop-opacity": ".14" }),
+        h("stop", { offset: "0", "stop-color": drawn[0].color, "stop-opacity": ".13" }),
         h("stop", { offset: "1", "stop-color": drawn[0].color, "stop-opacity": "0" }))),
       ticks.map((v) => h("line", { x1: 0, x2: W, y1: H - (v / max) * H, y2: H - (v / max) * H, stroke: "var(--chart-grid)", "vector-effect": "non-scaling-stroke" })),
       h("path", { d: drawn[0].area, fill: `url(#${id})` }),
       drawn.map((s, i) => h("path", {
-        d: s.line, fill: "none", stroke: s.color, "stroke-width": "2", "vector-effect": "non-scaling-stroke",
+        d: s.line, fill: "none", stroke: s.color, "stroke-width": i ? "2.5" : "2", "vector-effect": "non-scaling-stroke",
         "stroke-linejoin": "round", "stroke-dasharray": i ? "6 4" : null,
       }))),
-    ticks.slice(1).map((v) => h("span", { class: "y-label", style: { top: (100 - (v / max) * 100) + "%" } }, format(v))),
     xs.map((t, i) => h("span", { class: "x-label", style: { left: i * 25 + "%", transform: `translateX(${-i * 25}%)` } }, t1 - t0 < 600000 ? clock(t) : hm(t))),
     h("div", { class: "cross", hidden: true, ref: (el) => (cross = el) }),
     drawn.map((s, i) => h("div", { class: "marker", hidden: true, style: { background: s.color }, ref: (el) => (markers[i] = el) })),
     h("div", { class: "tip multi", hidden: true, ref: (el) => (tip = el) },
       h("div", { class: "t" }, ""),
       drawn.map((s, i) => h("div", { class: "row-v" }, h("i", { class: "sw" + (i ? " dashed" : ""), style: { "--c": s.color } }), h("span", null, s.label), h("b", null, "")))),
-    h("div", { class: "hit", onmousemove: move, onmouseleave: leave }));
+    h("div", { class: "hit", onmousemove: move, onmouseleave: leave })),
+    yAxis(ticks, max, format));
 }
 
 // ─────────────────────────── uptime ───────────────────────────
@@ -182,7 +192,7 @@ export function ring(pct, { size = 132, stroke = 10, tone = "ok" } = {}) {
   return h("svg", { class: "ring tone-" + tone, viewBox: `0 0 ${size} ${size}`, width: size, height: size, "aria-hidden": "true" },
     h("circle", { cx: size / 2, cy: size / 2, r, class: "ring-track", "stroke-width": stroke, fill: "none" }),
     h("circle", {
-      cx: size / 2, cy: size / 2, r, class: "ring-value", "stroke-width": stroke, fill: "none", "stroke-linecap": "round",
+      cx: size / 2, cy: size / 2, r, class: "ring-value", "stroke-width": stroke, fill: "none", "stroke-linecap": "butt",
       "stroke-dasharray": `${(c * f).toFixed(2)} ${c.toFixed(2)}`, transform: `rotate(-90 ${size / 2} ${size / 2})`,
     }));
 }

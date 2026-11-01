@@ -10,14 +10,17 @@ export const link = (href, props, ...kids) => h("a", { href, "data-link": "", ..
 export const clusterHref = (name, tab, rest) =>
   "/clusters/" + encodeURIComponent(name) + (tab && tab !== "overview" ? "/" + tab : "") + (rest ? "/" + encodeURIComponent(rest) : "");
 
+// hero is a page's header: the eyebrow, then the title with the page's
+// actions on the same line, then the lede. Every page's header starts at
+// the same offset.
 export function hero({ eyebrow, title, lede, actions, below }) {
+  const acts = [actions].flat().filter(Boolean);
   return h("header", { class: "hero" },
+    h("div", { class: "eyebrow" }, h("span", { class: "bar" }), eyebrow),
     h("div", { class: "hero-row" },
-      h("div", { class: "grow" },
-        h("div", { class: "eyebrow" }, h("span", { class: "bar" }), eyebrow),
-        h("h1", { class: "title" }, title),
-        lede ? h("p", { class: "lede" }, lede) : null),
-      actions ? h("div", { class: "hero-actions" }, actions) : null),
+      h("h1", { class: "title" }, title),
+      acts.length ? h("div", { class: "hero-actions" }, acts) : null),
+    lede ? h("p", { class: "lede" }, lede) : null,
     below);
 }
 
@@ -155,16 +158,17 @@ export function insightList(items, { limit, showCluster = true, expanded = false
   return h("ul", { class: "ins" }, list.map((x) => {
     const body = [
       h("span", { class: "sev", title: sevWord[x.severity] }, icon(sevIcon[x.severity] || "info"), h("span", { class: "sr-only" }, sevWord[x.severity])),
-      h("div", { style: { "min-width": "0" } },
-        h("div", { class: "t" }, x.title),
+      h("div", { class: "ins-body" },
+        h("div", { class: "t" }, x.title, expanded && showCluster ? h("span", { class: "chip mono" }, x.cluster) : null),
         expanded ? h("div", { class: "d" }, x.detail) : null,
         h("div", { class: "i" }, x.impact),
-        expanded && x.command ? copyCode(x.command) : null),
-      h("div", { class: "meta" }, showCluster ? h("span", { class: "mono" }, x.cluster) : null, x.href ? icon("arrow") : null),
+        expanded && (x.command || x.href) ? h("div", { class: "ins-actions" },
+          x.command ? copyCode(x.command) : null,
+          x.href ? link(x.href, { class: "btn sm outline" }, "Open in the console", icon("arrow")) : null) : null),
+      expanded ? null : h("div", { class: "meta" }, showCluster ? h("span", { class: "mono" }, x.cluster) : null, x.href ? icon("arrow") : null),
     ];
     return h("li", { key: x.id, class: "sev-" + x.severity },
-      x.href && !expanded ? link(x.href, { class: "ins-row" }, body) : h("div", { class: "ins-row" }, body),
-      expanded && x.href ? h("div", { style: { padding: "0 18px 14px 60px" } }, link(x.href, { class: "card-link" }, "Open in the console", icon("arrow"))) : null);
+      x.href && !expanded ? link(x.href, { class: "ins-row" }, body) : h("div", { class: "ins-row" + (expanded ? " wide" : "") }, body));
   }));
 }
 

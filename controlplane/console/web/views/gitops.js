@@ -15,7 +15,8 @@ function opClass(o) {
 const sign = { add: "+", change: "~", remove: "−" };
 
 function riskChip(r) {
-  return h("span", { class: "chip " + { safe: "ok", caution: "warn", destructive: "crit" }[r] }, r);
+  const [cls, ic] = { safe: ["ok", "ok"], caution: ["warn", "warn"], destructive: ["crit", "crit"] }[r];
+  return h("span", { class: "chip risk " + cls }, icon(ic), r);
 }
 
 function shown(o, v) {
@@ -43,7 +44,7 @@ export function gitopsTab(name) {
     v.error ? h("div", { class: "callout warn" }, icon("warn"), h("div", { class: "body" }, h("b", null, "The latest plan failed; showing the previous one. "), v.error)) : null,
     results ? resultsCard(name, results) : null,
     h("section", { class: "card" },
-      h("div", { class: "card-head", style: { "padding-bottom": "14px", "border-bottom": p.ops.length ? "1px solid var(--line)" : "0" } },
+      h("div", { class: "card-head", style: { "padding-bottom": "14px", "border-bottom": p.ops.length ? "1px solid var(--border)" : "0" } },
         h("div", { class: "plan-head", style: { flex: "1" } },
           h("h3", { class: "card-title" }, p.ops.length ? plural(p.ops.length, "change") + " to match " : "In sync with ", h("span", { class: "mono" }, file)),
           n.safe ? h("span", { class: "chip ok" }, `${n.safe} safe`) : null,
@@ -130,7 +131,7 @@ export function applyModal() {
     h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "apply-title" },
       h("div", { class: "modal-body" },
         h("h2", { id: "apply-title" }, `Apply ${plural(m.plan.ops.length, "change")} to ${m.cluster}?`),
-        h("p", null, n ? h("span", null, h("b", { style: { color: "var(--crit)" } }, `${n} destructive. `), "Deleted data and revoked access can't be brought back. ") : null,
+        h("p", null, n ? h("span", null, h("b", { style: { color: "var(--danger)" } }, `${n} destructive. `), "Deleted data and revoked access can't be brought back. ") : null,
           "Type ", h("b", { class: "mono" }, m.cluster), " to confirm."),
         h("input", {
           class: "input", autofocus: true, value: m.typed, "aria-label": "Cluster name", spellcheck: "false", autocomplete: "off",
@@ -159,28 +160,46 @@ export function changesPage() {
     }),
     managed.length === 0 ? h("section", { class: "card" }, empty("gitops", "No cluster is managed from git",
       "Point a cluster at a desired-state file with desired: in the fleet file.", copyCode("kaas console --fleet fleet.yaml"))) : null,
-    h("div", { class: "stack" }, managed.map((c) => {
-      const v = state.plans[c.name];
-      const p = v?.plan;
-      return h("section", { key: c.name, class: `card cluster-card status-${c.status}`, style: { gap: "12px" } },
-        h("div", { class: "cc-top" },
-          h("div", null, link(clusterHref(c.name, "gitops"), { class: "name" }, c.name), h("div", { class: "where" }, h("span", { class: "mono" }, (v?.desired || "").split("/").pop()))),
-          envBadge(c.env)),
-        h("div", { class: "row wrap" },
-          c.blocked ? h("span", { class: "chip crit" }, icon("lock"), "Blocked") : c.drift ? h("span", { class: "chip warn" }, plural(c.drift, "change")) : h("span", { class: "chip ok" }, icon("ok"), "In sync"),
-          c.driftRisk.safe ? h("span", { class: "chip ok" }, `${c.driftRisk.safe} safe`) : null,
-          c.driftRisk.caution ? h("span", { class: "chip warn" }, `${c.driftRisk.caution} caution`) : null,
-          c.driftRisk.destructive ? h("span", { class: "chip crit" }, `${c.driftRisk.destructive} destructive`) : null,
-          p ? h("span", { class: "plan-id" }, "plan " + p.id) : null,
-          h("span", { style: { "margin-left": "auto" } }, link(clusterHref(c.name, "gitops"), { class: "btn sm" }, c.drift ? "Review" : "Open", icon("arrow")))),
-        c.blocked ? h("div", { class: "muted", style: { "font-size": "12.5px" } }, c.blocked) : null,
-        p && p.ops.length ? h("ul", { class: "ops", style: { margin: "0 -18px -18px", "border-top": "1px solid var(--line)" } }, p.ops.slice(0, 4).map((o, i) => {
-          const cls = opClass(o);
-          return h("li", { key: i, class: "op " + cls, style: { "padding-top": "10px", "padding-bottom": "10px" } },
-            h("span", { class: "sign" }, sign[cls]),
-            h("div", { class: "line1" }, h("span", { class: "kind" }, o.kind.replace("-", " ")), h("span", { class: "target" }, o.target), o.key ? h("span", { class: "target dim" }, o.key) : null),
-            riskChip(o.risk));
-        }), p.ops.length > 4 ? h("li", { class: "op", style: { display: "block", "padding-top": "10px", "padding-bottom": "12px" } }, link(clusterHref(c.name, "gitops"), { class: "muted" }, `and ${p.ops.length - 4} more →`)) : null) : null);
-    })),
+    h("div", { class: "stack" },
+      drifting.map(driftCard),
+    // Clusters that match git need no more than a line each.
+    managed.length > drifting.length ? h("section", { class: "card" },
+      h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("ok"), "In sync"), h("span", { class: "right muted" }, plural(managed.length - drifting.length, "cluster"))),
+      h("ul", { class: "synced" }, managed.filter((c) => !c.drift).map((c) => {
+        const v = state.plans[c.name];
+        return h("li", { key: c.name, class: `status-${c.status}` },
+          h("span", { class: "dot" }),
+          link(clusterHref(c.name, "gitops"), { class: "name" }, c.name),
+          h("span", { class: "mono muted" }, (v?.desired || "").split("/").pop()),
+          envBadge(c.env),
+          v?.plan ? h("span", { class: "plan-id" }, "plan " + v.plan.id) : h("span"),
+          link(clusterHref(c.name, "gitops"), { class: "btn sm outline" }, "Open", icon("arrow")));
+      }))) : null),
   ];
+}
+
+function driftCard(c) {
+  const v = state.plans[c.name];
+  const p = v?.plan;
+  return h("section", { key: c.name, class: `card gcard status-${c.status}${c.blocked ? " blocked" : ""}` },
+    h("div", { class: "gcard-head" },
+      h("div", { class: "gcard-title" },
+        link(clusterHref(c.name, "gitops"), { class: "name" }, c.name),
+        c.blocked ? h("span", { class: "chip crit" }, icon("lock"), "Blocked") : h("span", { class: "chip warn" }, icon("warn"), plural(c.drift, "change")),
+        envBadge(c.env)),
+      link(clusterHref(c.name, "gitops"), { class: "btn sm outline" }, "Review", icon("arrow"))),
+    h("div", { class: "gcard-meta" },
+      h("span", { class: "mono" }, (v?.desired || "").split("/").pop()),
+      c.driftRisk.safe ? h("span", null, `${c.driftRisk.safe} safe`) : null,
+      c.driftRisk.caution ? h("span", null, `${c.driftRisk.caution} caution`) : null,
+      c.driftRisk.destructive ? h("span", { class: "danger" }, `${c.driftRisk.destructive} destructive`) : null,
+      p ? h("span", { class: "plan-id" }, "plan " + p.id) : null),
+    c.blocked ? h("div", { class: "gcard-blocked" }, c.blocked) : null,
+    p && p.ops.length ? h("ul", { class: "ops compact" }, p.ops.slice(0, 4).map((o, i) => {
+      const cls = opClass(o);
+      return h("li", { key: i, class: "op " + cls },
+        h("span", { class: "sign", "aria-label": cls }, sign[cls]),
+        h("div", { class: "line1" }, h("span", { class: "kind" }, o.kind.replace("-", " ")), h("span", { class: "target" }, o.target), o.key ? h("span", { class: "target dim" }, o.key) : null),
+        riskChip(o.risk));
+    }), p.ops.length > 4 ? h("li", { class: "op more" }, link(clusterHref(c.name, "gitops"), { class: "card-link" }, `${p.ops.length - 4} more`, icon("arrow"))) : null) : null);
 }

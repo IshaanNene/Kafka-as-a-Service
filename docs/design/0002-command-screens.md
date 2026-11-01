@@ -23,7 +23,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | page-500 | Cluster unreachable (503), internal error (500): per-seed probe rack | built |
 | page-404 | Unknown command, topic, group or context, with "did you mean" | built |
 | form-validation-errors | Bad flags and values, the bad one highlighted with the reason | built |
-| modal-dialog | Destructive confirm: type the name to delete a topic, group or records | P1 |
+| modal-dialog | Destructive confirm: type the name to delete a topic, group or records | built (topics; groups and records next) |
 | progress-loader | Multi-partition progress (delete records, offset resets) | P1 |
 | spinner-set | One spinner for short waits; `KAAS_REDUCED_MOTION` freezes it | P1 |
 | skeleton-loader | TUI screens before the first snapshot arrives | P1 |
@@ -42,7 +42,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas topics describe` | disk-partitioner | Partitions laid out per broker, leaders and replicas | **built** |
 | `kaas topics alter --partitions` | disk-partitioner | New partitions in green before writing; a typed yes; the topic as written | **built** |
 | `kaas topics create` | onboarding-stepper | Name → partitions and replication from the cluster's defaults → configs → the controller's check → create | **built** |
-| `kaas topics delete` | modal-dialog, empty-trash-lid | Type to confirm; a closing card | P1 |
+| `kaas topics delete` | modal-dialog, empty-trash-lid | Type the name over the dimmed topic; 5s to undo before the delete is sent; the bin closes once the cluster lets go | **built** |
 | `kaas brokers` | process-tree, gauge-cluster (Live Data) | Broker → leaders → partitions tree; disk, network and request gauges | **built** (tree; gauges next) |
 | `kaas groups` | process-task-manager | Groups and members with lag and rate, re-sorting live | **built** |
 | `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | **built** |

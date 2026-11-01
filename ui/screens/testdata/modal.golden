@@ -1,0 +1,28 @@
+                                      Topic: orders
+                 4 partitions · RF 3 · 251,038 records · 609 MiB on disk
+                     cleanup delete · retention 7d · cluster 5L6g3nSh
+
+    Partition  ╭──────────────────────────────────────────────────────────╮
+    0          │                                                          │
+    1          │  Delete topic?                                        ×  │
+ >> 2          │──────────────────────────────────────────────────────────│
+    3          │  This permanently deletes orders                         │
+               │  with its 251,038 records (609 MiB) in 4 partitions.     │
+    Layout · re│  billing and audit still read it.                        │
+   ┌───────────│  This cannot be undone.                                  │─────────────┐
+   │ 1 ████████│                                                          │░░░░░░░░░░░░ │
+   │ 2 ▒▒▒▒▒▒▒▒│  Type orders to confirm                                  │▒▒▒▒▒▒▒▒▒▒▒▒ │
+   │ 3 ▒▒▒▒▒▒▒▒│  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓  │▒▒▒▒▒▒▒▒▒▒▒▒ │
+   └───────────│  ┃ ord█                                               ┃  │─────────────┘
+       ■ p0  ■ │  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛  │
+               │                                                          │
+───────────────│                           ╭──────────╮ ╭──────────────╮  │───────────────
+  Leaders:     │  tab to move              │  Cancel  │ │ Delete topic │  │
+  In sync:     │                           ╰──────────╯ ╰──────────────╯  │
+  Set on topic:│                                                          │
+               ╰──────────────────────────────────────────────────────────╯
+    ▐[kaas watch -t orders]▌    [kaas topics]    [kaas bench produce -t orders]
+
+    Partition 2 has no leader: its producers and consumers are stuck.
+
+  -o json for scripts · kaas topics for every topic

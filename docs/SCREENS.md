@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 21 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 23 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -19,7 +19,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Server Error 500](#server-error-500) | Cluster unreachable (503), internal error (500): per-seed probe rack | built |
 | [Lost In Space 404](#lost-in-space-404) | Unknown command, topic, group or context, with "did you mean" | built |
 | [Form Validation Errors](#form-validation-errors) | Bad flags and values, the bad one highlighted with the reason | built |
-| [Modal Dialog](#modal-dialog) | Destructive confirm: type the name to delete a topic, group or records, `kaas topics delete` | P1 |
+| [Modal Dialog](#modal-dialog) | Destructive confirm: type the name to delete a topic, group or records, `kaas topics delete` | built |
 | [Progress Loader](#progress-loader) | Multi-partition progress (delete records, offset resets) | P1 |
 | [Spinner Set](#spinner-set) | One spinner for short waits; `KAAS_REDUCED_MOTION` freezes it | P1 |
 | [Skeleton Loader](#skeleton-loader) | TUI screens before the first snapshot arrives | P1 |
@@ -151,12 +151,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Modal Dialog
 
-[`modal-dialog`](https://www.ascii-magic.com/ascii/modal-dialog) · **P1** · A delete confirmation dialog pops up over a dimmed settings page, takes a typed name and closes.
+[`modal-dialog`](https://www.ascii-magic.com/ascii/modal-dialog) · **built** · A delete confirmation dialog pops up over a dimmed settings page, takes a typed name and closes.
 
 - Destructive confirm: type the name to delete a topic, group or records
-- `kaas topics delete`: Type to confirm; a closing card
+- `kaas topics delete`: Type the name over the dimmed topic; 5s to undo before the delete is sent; the bin closes once the cluster lets go
 
-<img src="img/ui/modal-dialog.svg" alt="ascii-magic Modal Dialog" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/modal-dialog.svg" alt="ascii-magic Modal Dialog" width="100%"></td><td width="50%"><img src="img/topics-delete.svg" alt="kaas screen built from Modal Dialog" width="100%"></td></tr></table>
 
 ### Progress Loader
 

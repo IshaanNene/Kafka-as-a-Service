@@ -69,6 +69,13 @@ func report(stderr surface, err error, jsonOut bool) int {
 	return ce.Exit
 }
 
+// cancelled is a change the user called off: no error screen, just what
+// didn't happen. It still exits 1, so a script sees nothing was done.
+func cancelled(msg string) *cliError {
+	return &cliError{Code: "cancelled", Exit: exitFailure, Message: msg,
+		screen: func(k kit.Kit, _ int) []string { return []string{k.S(kit.Muted, "↩ "+msg)} }}
+}
+
 func internalError(err error) *cliError {
 	return &cliError{
 		Code: "internal", Exit: exitFailure, Message: err.Error(),

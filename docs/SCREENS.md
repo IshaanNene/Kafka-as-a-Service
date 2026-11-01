@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 31 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 32 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -44,7 +44,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Packet Capture](#packet-capture) | `kaas sniff` | built |
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | built |
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | built |
-| [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | P1 |
+| [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | built |
 | [Settings Toggles](#settings-toggles) | `kaas config` | P1 |
 | [Modal Editor Session](#modal-editor-session) | `kaas config edit` | P1 |
 | [Test Suite Dots](#test-suite-dots) | `kaas doctor` | P1 |
@@ -380,11 +380,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Heap Allocator Map
 
-[`heap-map`](https://www.ascii-magic.com/ascii/heap-map) · **P1** · A memory allocator page map where blocks are allocated and freed, fragmentation builds up and a compaction pass packs it tight.
+[`heap-map`](https://www.ascii-magic.com/ascii/heap-map) · **built** · A memory allocator page map where blocks are allocated and freed, fragmentation builds up and a compaction pass packs it tight.
 
-- `kaas segments`: A partition's log segments: size, compaction, holes
+- `kaas segments`: A partition's log as offset-range cells read from its record batch headers (Kafka doesn't expose segment files): records, compaction thinning a range, holes no batch covers, transactions that committed, aborted or are still open and their markers; records, bytes, batches, codecs and roughly how many segments; a log bigger than `--budget` is sampled one fetch a cell, holes then unknown
 
-<img src="img/ui/heap-map.svg" alt="ascii-magic Heap Allocator Map" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/heap-map.svg" alt="ascii-magic Heap Allocator Map" width="100%"></td><td width="50%"><img src="img/segments.svg" alt="kaas screen built from Heap Allocator Map" width="100%"></td></tr></table>
 
 ### Settings Toggles
 

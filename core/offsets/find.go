@@ -72,36 +72,65 @@ func NewReader(ctx context.Context, cl *kgo.Client, topic string, partition int3
 	return nil, fmt.Errorf("%s has no partition %d", topic, partition)
 }
 
+// fetch asks the leader for one partition's batches from offset, as much
+// as maxBytes; committed only reads up to the last stable offset.
+func (r *Reader) fetch(ctx context.Context, offset int64, maxBytes int32, committed bool) (*kmsg.FetchResponseTopicPartition, error) {
+	req := kmsg.NewPtrFetchRequest()
+	req.MaxWaitMillis = 0
+	req.MinBytes = 1
+	req.MaxBytes = max(maxBytes, 1<<20)
+	if committed {
+		req.IsolationLevel = 1 // read committed, as consumers do by default
+	}
+	rt := kmsg.NewFetchRequestTopic()
+	rt.Topic, rt.TopicID = r.topic, r.id
+	rp := kmsg.NewFetchRequestTopicPartition()
+	rp.Partition, rp.FetchOffset, rp.PartitionMaxBytes = r.partition, offset, maxBytes
+	rp.CurrentLeaderEpoch, rp.LogStartOffset = -1, -1
+	rt.Partitions = append(rt.Partitions, rp)
+	req.Topics = append(req.Topics, rt)
+	kr, err := r.cl.Broker(int(r.leader)).Request(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	resp := kr.(*kmsg.FetchResponse)
+	if err := kerr.ErrorForCode(resp.ErrorCode); err != nil {
+		return nil, err
+	}
+	if len(resp.Topics) != 1 || len(resp.Topics[0].Partitions) != 1 {
+		return nil, errors.New("the leader sent no partition back")
+	}
+	p := &resp.Topics[0].Partitions[0]
+	if err := kerr.ErrorForCode(p.ErrorCode); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// Leader is the broker the reader fetches from.
+func (r *Reader) Leader() int32 { return r.leader }
+
+// Batches reads raw record batches from offset, up to maxBytes, past any
+// transaction's state: aborted batches and markers included.
+func (r *Reader) Batches(ctx context.Context, offset int64, maxBytes int32) ([]byte, error) {
+	p, err := r.fetch(ctx, offset, maxBytes, false)
+	if err != nil {
+		return nil, err
+	}
+	return p.RecordBatches, nil
+}
+
 // At reads the first record at or after offset, nil when there is none
 // before the end.
 func (r *Reader) At(ctx context.Context, offset int64) (*kgo.Record, error) {
 	for range 8 { // aborted or control batches can fill a fetch; read on past them
-		req := kmsg.NewPtrFetchRequest()
-		req.MaxWaitMillis = 0
-		req.MinBytes = 1
-		req.MaxBytes = 4 << 20
-		req.IsolationLevel = 1 // read committed, as consumers do by default
-		rt := kmsg.NewFetchRequestTopic()
-		rt.Topic, rt.TopicID = r.topic, r.id
-		rp := kmsg.NewFetchRequestTopicPartition()
-		rp.Partition, rp.FetchOffset, rp.PartitionMaxBytes = r.partition, offset, 1<<20
-		rp.CurrentLeaderEpoch, rp.LogStartOffset = -1, -1
-		rt.Partitions = append(rt.Partitions, rp)
-		req.Topics = append(req.Topics, rt)
-		kr, err := r.cl.Broker(int(r.leader)).Request(ctx, req)
+		p, err := r.fetch(ctx, offset, 1<<20, true)
 		if err != nil {
 			return nil, err
 		}
-		resp := kr.(*kmsg.FetchResponse)
-		if err := kerr.ErrorForCode(resp.ErrorCode); err != nil {
-			return nil, err
-		}
-		if len(resp.Topics) != 1 || len(resp.Topics[0].Partitions) != 1 {
-			return nil, errors.New("the leader sent no partition back")
-		}
 		fp, last := kgo.ProcessFetchPartition(kgo.ProcessFetchPartitionOpts{
 			Offset: offset, Topic: r.topic, Partition: r.partition, IsolationLevel: kgo.ReadCommitted(),
-		}, &resp.Topics[0].Partitions[0], kgo.DefaultDecompressor(), nil)
+		}, p, kgo.DefaultDecompressor(), nil)
 		if fp.Err != nil {
 			return nil, fp.Err
 		}

@@ -433,6 +433,23 @@ A fetch can spend its time polling rather than serving: a consumer that has caug
 
 `--profile` records until q, or for `--for` when you give it. On a pipe it prints the profile when it ends, as folded stacks (one line per stage with its time in microseconds), or as a tree with `-o json`.
 
+### `kaas segments`: what a partition's log holds
+
+```bash
+kaas segments orders                  # the partition with the most bytes on disk
+kaas segments users -p 3              # a compacted topic's partition 3
+kaas segments orders --budget 1GB     # read up to 1GB whole rather than sampling
+kaas segments orders -o json | jq '{density, holes}'
+```
+
+`kaas segments` maps one partition's log as a grid of cells, each a range of offsets from the log start to the end, read from the record batches the leader serves. A cell is solid where every offset still holds a record and thins out (▓▒░) where compaction removed some. A dot is a hole, offsets no batch covers. Colours say what the batches hold: plain records, transactions that committed or aborted, ones still open, and the markers that end them.
+
+![kaas segments: a payments log of plain batches and transactions, one in four aborted, after its oldest offsets were deleted](img/segments.svg)
+
+The panel adds the records, the bytes on disk (from the broker's log dirs, or estimated from the first batches when it won't say), the batches, the holes and the largest, the transactions, the codecs, and roughly how many segment files that makes at the topic's `segment.bytes`. Kafka doesn't show segment files over its protocol, so the map is by offset, not by file.
+
+A log that fits in `--budget` (64MB by default) is read whole. A bigger one is sampled, one small fetch a cell: then the records are an estimate and holes can't be counted. Nothing is consumed or committed. On a pipe it prints a line per stat, and `-o json` adds every cell.
+
 ### `kaas produce`: write records
 
 ```bash
@@ -558,7 +575,6 @@ Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI
 
 | Command | Screen |
 |---|---|
-| `kaas sniff` | A packet capture of Kafka protocol requests, colour-coded by API |
 | `kaas doctor` | A dot per health check, then per-topic health bars |
 | `kaas plan` / `apply` | A plan diff of topics, ACLs and quotas, then a rolling apply with an abort countdown |
 | `kaas reassign` | A download-queue view of every partition move, with speed and ETA |

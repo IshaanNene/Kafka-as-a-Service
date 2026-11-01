@@ -369,6 +369,26 @@ loop:
 	}
 	save("offsets-find", ff.cmdline, ff.screen(ff.hunts[0]).Render(k, 88, 26))
 
+	// Segments: a payments log of plain batches of varying size and
+	// transactions, one in four aborted, with its oldest offsets deleted.
+	gc, scl := kafkatest.Fake(t, kfake.SeedTopics(1, "payments"))
+	seedLedger(t, gc, "payments", 0, 64, func(i int) int { return 3 + i*7%23 })
+	sto := kadm.Offsets{}
+	sto.Add(kadm.Offset{Topic: "payments", Partition: 0, At: 96})
+	if _, err := kadm.NewClient(scl).DeleteRecords(ctx, sto); err != nil {
+		t.Fatal(err)
+	}
+	sg := segmenter{topic: "payments", part: -1, budget: 64 << 20}
+	scmd := newSegmentsCmd(new(string), new(string))
+	scmd.SetContext(ctx)
+	if err := sg.load(ctx, scmd, kadm.NewClient(scl)); err != nil {
+		t.Fatal(err)
+	}
+	if err := sg.run(scmd, scl, surface{kit: k, w: io.Discard, width: 88, height: 29}, "text"); err != nil {
+		t.Fatal(err)
+	}
+	save("segments", "kaas segments payments", sg.screen(nil).Render(k, 88, 28))
+
 	// Consume --pick: three weeks of orders, quieter at weekends and none
 	// on one day, with the last week but two picked.
 	pc, pcl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))

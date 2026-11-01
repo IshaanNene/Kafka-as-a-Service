@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 29 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 30 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -42,7 +42,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Bisect Hunt](#bisect-hunt) | `kaas offsets find` | built |
 | [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | built |
 | [Packet Capture](#packet-capture) | `kaas sniff` | built |
-| [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | P1 |
+| [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | built |
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | P1 |
 | [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | P1 |
 | [Settings Toggles](#settings-toggles) | `kaas config` | P1 |
@@ -362,11 +362,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Request Waterfall
 
-[`network-waterfall`](https://www.ascii-magic.com/ascii/network-waterfall) · **P1** · A browser network panel where requests appear as a page loads, each with queue, connect, wait and download segments on a waterfall.
+[`network-waterfall`](https://www.ascii-magic.com/ascii/network-waterfall) · **built** · A browser network panel where requests appear as a page loads, each with queue, connect, wait and download segments on a waterfall.
 
-- `kaas sniff --trace`: One request: queue, connect, send, wait, ack
+- `kaas sniff --trace`: A client's requests from its first, timed by the proxy stage by stage (connect, send, queue behind earlier requests on the connection, the broker's wait, ack), with the errors answers carry and lines where its group was joined and its first write acked
 
-<img src="img/ui/network-waterfall.svg" alt="ascii-magic Request Waterfall" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/network-waterfall.svg" alt="ascii-magic Request Waterfall" width="100%"></td><td width="50%"><img src="img/sniff-trace.svg" alt="kaas screen built from Request Waterfall" width="100%"></td></tr></table>
 
 ### Profiler Flame Graph
 

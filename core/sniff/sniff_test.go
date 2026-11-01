@@ -11,6 +11,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kfake"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kmsg"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
 )
@@ -167,5 +168,63 @@ func TestStartErrors(t *testing.T) {
 func TestBatchRecords(t *testing.T) {
 	if n := batchRecords(nil); n != 0 {
 		t.Errorf("nil: %d", n)
+	}
+}
+
+func TestStagesAndErrors(t *testing.T) {
+	_, admin := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	var mu sync.Mutex
+	var sent, seen []Request
+	p, err := StartWith(ctx, admin, Options{Listen: "127.0.0.1:0", Deep: true,
+		Sent: func(r Request) { mu.Lock(); sent = append(sent, r); mu.Unlock() },
+		Out:  func(r Request) { mu.Lock(); seen = append(seen, r); mu.Unlock() },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	cl, err := kgo.NewClient(kgo.SeedBrokers(p.Addr()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	began := time.Now()
+	if err := cl.ProduceSync(ctx, &kgo.Record{Topic: "orders", Value: []byte("x")}).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	// A heartbeat for a group nobody joined: the answer carries an error.
+	hb := kmsg.NewPtrHeartbeatRequest()
+	hb.Group, hb.MemberID, hb.Generation = "ghosts", "nobody", 1
+	if _, err := hb.RequestWith(ctx, cl); err != nil {
+		t.Fatal(err)
+	}
+	took := time.Since(began)
+	cl.Close()
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(sent) < len(seen) || len(seen) == 0 {
+		t.Fatalf("%d sent, %d answered", len(sent), len(seen))
+	}
+	connects, errs := 0, map[string]string{}
+	for _, r := range seen {
+		st := r.Stages
+		if st.Total() <= 0 || st.Total() > took+time.Second || r.Start.IsZero() || st.Wait < 0 || st.Queue < 0 {
+			t.Errorf("%s: stages %+v from %v", r.Name(), st, r.Start)
+		}
+		if st.Connect > 0 {
+			connects++
+		}
+		if r.Err != "" {
+			errs[r.Name()] = r.Err
+		}
+	}
+	if connects == 0 {
+		t.Error("no request carried its connection's dial")
+	}
+	if e := errs["Heartbeat"]; e == "" || errs["Produce"] != "" {
+		t.Errorf("errors %v", errs)
 	}
 }

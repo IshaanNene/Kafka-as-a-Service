@@ -454,6 +454,43 @@ loop:
 	sp.Close()
 	save("sniff", "kaas sniff", sm.screen().Render(k, 100, 30))
 
+	// Sniff --trace: a service starting up through the proxy, its group
+	// joined and its first write acked, timed stage by stage.
+	tc := newCapture(nil)
+	tp, err := sniff.StartWith(ctx, cl, sniff.Options{Listen: "127.0.0.1:0", Out: tc.add, Sent: tc.addSent, Deep: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tm := newTraceModel(k, tp, tc, "billing-svc", 10*time.Second, 0)
+	svc, err := kgo.NewClient(kgo.SeedBrokers(tp.Addr()), kgo.ClientID("billing-svc"),
+		kgo.ConsumerGroup("billing-trace"), kgo.ConsumeTopics("orders"), kgo.FetchMaxWait(300*time.Millisecond),
+		kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tctx, tcancel := context.WithTimeout(ctx, 700*time.Millisecond)
+	svc.PollFetches(tctx)
+	tcancel()
+	if err := svc.ProduceSync(ctx, &kgo.Record{Topic: "orders", Value: []byte("billed")}).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	tctx, tcancel = context.WithTimeout(ctx, 400*time.Millisecond)
+	svc.PollFetches(tctx)
+	tcancel()
+	next, _ = tm.Update(sniffTick(time.Now()))
+	tm = next.(traceModel)
+	tm.over = true
+	for i, r := range tm.reqs {
+		if r.Key == 14 {
+			tm.sel = i // the SyncGroup that joined it
+		}
+	}
+	svc.Close()
+	tp.Close()
+	tf := tm.screen()
+	tf.Hint = ""
+	save("sniff-trace", "kaas sniff --trace --client-id billing-svc", tf.Render(k, 104, 38))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

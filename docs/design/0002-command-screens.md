@@ -55,7 +55,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas offsets find` | bisect-hunt | A real bisect per partition, one Fetch per read: the first record at or after a time (checked against the broker's time index), or the first value matching a regex (checked by reading on past it) | **built** |
 | `kaas consume --from --to` | date-range-picker | `--to` stops a `--from` read at a time; `--pick` chooses the days on two months of calendar, with days the topic no longer keeps faint and the window's exact record count from the broker's time index | **built** |
 | `kaas sniff` | packet-sniffer | A proxy in front of the cluster that decodes every request through it, coloured by API, with the selected one's path and first bytes and the mix of recent APIs; it rewrites the broker addresses in Metadata, FindCoordinator, DescribeCluster and leader hints so clients stay on it | **built** |
-| `kaas sniff --trace` | network-waterfall | One request: queue, connect, send, wait, ack | P1 |
+| `kaas sniff --trace` | network-waterfall | A client's requests from its first, timed by the proxy stage by stage (connect, send, queue behind earlier requests on the connection, the broker's wait, ack), with the errors answers carry and lines where its group was joined and its first write acked | **built** |
 | `kaas sniff --profile` | flame-graph | Where produce and fetch latency goes, by stage | P1 |
 | `kaas segments` | heap-map | A partition's log segments: size, compaction, holes | P1 |
 | `kaas config` | settings-toggles | Topic and broker configs, with non-defaults flagged | P1 |

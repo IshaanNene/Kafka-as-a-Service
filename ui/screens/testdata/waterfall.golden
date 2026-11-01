@@ -1,0 +1,28 @@
+╭─ Trace ─ ● billing-svc · 127.0.0.1:53422 · 3 brokers ────────────────────────────────────────────────╮
+│ All  Produce  Fetch  Metadata  Groups  Offsets  Txn  Admin  Other                                    │
+│ Name            Status  Info                    Size    Time  Waterfall                              │
+│                                                               0               500ms           1▼     │
+│──────────────────────────────────────────────────────────────────────────────────────────────────────│
+│ ApiVersions     ok      kgo v1.22.2            412 B   2.0ms  █         │      │                     │
+│ Metadata        ok      orders                 310 B   1.6ms  █         │      │                     │
+│ FindCoordinator ok      group billing           52 B   2.4ms  █         │      │                     │
+│ JoinGroup       error   MEMBER_ID_REQUIRED…     74 B   2.1ms  █         │      │                     │
+│ JoinGroup       ok      billing · consumer…    190 B   302ms  ██████████│      │                     │
+│ SyncGroup       ok      billing · generati…     88 B   2.7ms           ██      │                     │
+│ OffsetFetch     ok      billing                 96 B   2.1ms            █      │                     │
+│ ListOffsets     ok      orders p0 latest o…    120 B   2.2ms            █      │                     │
+│ Fetch           ok      orders p0@1204 ord… 17.8 KiB    13ms            █      │                     │
+│▶Heartbeat       ok      billing · generati…     18 B   7.5ms            ▫█     │                     │
+│ Fetch           ok      session 7 · nothin…     40 B   500ms            █████████████████            │
+│ Produce         ok      audit p0 · 1 recor…     64 B   4.8ms            │     █│                     │
+│ Fetch           pending session 7 · nothin…                             │      │        ████████     │
+│                                                                         │      │                     │
+│                                                                         │      │                     │
+│                                                                         │      │                     │
+│                                                                         │      │                     │
+│                                                                         │      │first produce acked  │
+│──────────────────────────────────────────────────────────────────────────────────────────────────────│
+│ ▶ Heartbeat · connect - · send 100µs · queue 6.2ms · wait 1.1ms · ack 100µs                          │
+│ 13 requests  |  19.7 KiB answered  |  Finish: 1.05 s                                                 │
+│ joined billing: 317ms   first produce acked: 525ms       █ connect  █ send  ▫ queue  █ wait  █ ack   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -280,7 +280,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`process-task-manager`](https://www.ascii-magic.com/ascii/process-task-manager) · **built** · A task manager where per process CPU and memory numbers churn, rows slide to re-sort by load, and a runaway process gets ended.
 
 - `kaas groups`: Groups and members with lag and rate, re-sorting live
-- `kaas clients`: Connected clients by request rate
+- `kaas clients`: Group members and idempotent producers by records/s (Kafka exposes no connection list or request rates)
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/process-task-manager.svg" alt="ascii-magic Process Task Manager" width="100%"></td><td width="50%"><img src="img/groups.svg" alt="kaas screen built from Process Task Manager" width="100%"></td></tr></table>

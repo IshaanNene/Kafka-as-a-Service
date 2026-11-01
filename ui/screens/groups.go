@@ -110,28 +110,33 @@ func pad(s string, w int, right bool) string {
 }
 
 // header is the frame's title and badge: "Groups" and the sort tabs, the
-// active one blue, as the piece's "Activity  CPU ─ Memory ─ Energy". When
-// the frame is too narrow the badge shrinks to its dot, then the tabs
-// shrink to the active one.
+// active one blue, as the piece's "Activity  CPU ─ Memory ─ Energy".
 func (g Groups) header(k kit.Kit, w int) (title, badge string) {
+	return tabHeader(k, "Groups", g.Tabs, g.Sorted, g.Badge, w)
+}
+
+// tabHeader is a process-task-manager title: name, then the sort tabs with
+// the active one blue, and a green badge. When the frame is too narrow the
+// badge shrinks to its dot, then the tabs shrink to the active one.
+func tabHeader(k kit.Kit, name string, tabs []string, sorted int, badgeText string, w int) (title, badge string) {
 	fits := func(title, badge string) bool { return kit.Width(title)+kit.Width(badge)+8 <= w }
-	var tabs []string
-	active := k.S(kit.FG, "Groups")
-	for i, t := range g.Tabs {
+	var parts []string
+	active := k.S(kit.FG, name)
+	for i, t := range tabs {
 		role := kit.Rule
-		if i == g.Sorted {
+		if i == sorted {
 			role = kit.Accent
 			active += "  " + k.S(kit.Accent, t)
 		}
-		tabs = append(tabs, k.S(role, t))
+		parts = append(parts, k.S(role, t))
 	}
-	full := k.S(kit.FG, "Groups") + "  " + strings.Join(tabs, k.S(kit.Rule, " ─ "))
-	if len(g.Tabs) == 0 {
+	full := k.S(kit.FG, name) + "  " + strings.Join(parts, k.S(kit.Rule, " ─ "))
+	if len(tabs) == 0 {
 		full = active
 	}
 	dot := ""
-	if g.Badge != "" {
-		badge, dot = k.S(kit.OK, "● "+g.Badge), k.S(kit.OK, "●")
+	if badgeText != "" {
+		badge, dot = k.S(kit.OK, "● "+badgeText), k.S(kit.OK, "●")
 	}
 	for _, c := range [][2]string{{full, badge}, {full, dot}, {active, badge}, {active, dot}} {
 		if fits(c[0], c[1]) {
@@ -362,12 +367,21 @@ func (g Groups) panel(k kit.Kit, w int) []string {
 	return kit.Indent(1, append(left, right[:2]...))
 }
 
-// chart draws total lag over the last refreshes, three rows tall in eighth
-// blocks: blue, red where lag grew since the refresh before. A short history
-// is widened, up to four columns a refresh, so the chart fills the panel from
-// the start; the newest refresh is on the right.
+// chart draws total lag over the last refreshes: blue, red where lag grew
+// since the refresh before.
 func (g Groups) chart(k kit.Kit, w int) []string {
-	h := g.History
+	h := make([]float64, len(g.History))
+	for i, v := range g.History {
+		h[i] = float64(v)
+	}
+	return blockChart(k, h, w, kit.Accent, kit.Err)
+}
+
+// blockChart draws a series three rows tall in eighth blocks, in role, or
+// rise where a value grew on the one before. A short history is widened,
+// up to four columns a point, so the chart fills its space from the start;
+// the newest point is on the right.
+func blockChart(k kit.Kit, h []float64, w int, role, rise kit.Role) []string {
 	if len(h) > w {
 		h = h[len(h)-w:]
 	}
@@ -375,7 +389,7 @@ func (g Groups) chart(k kit.Kit, w int) []string {
 	if len(h) > 0 {
 		per = max(1, min(4, w/len(h)))
 	}
-	var peak int64
+	var peak float64
 	for _, v := range h {
 		peak = max(peak, v)
 	}
@@ -383,19 +397,19 @@ func (g Groups) chart(k kit.Kit, w int) []string {
 	levels := []rune(" ▁▂▃▄▅▆▇█")
 	out := make([]string, rows)
 	for i, v := range h {
-		role := kit.Accent
+		r0 := role
 		if i > 0 && v > h[i-1] {
-			role = kit.Err
+			r0 = rise
 		}
 		filled := 0
 		if peak > 0 {
-			filled = int(math.Round(float64(rows*steps) * float64(v) / float64(peak)))
+			filled = int(math.Round(float64(rows*steps) * v / peak))
 		}
 		for r := range rows {
 			level := min(max(filled-(rows-1-r)*steps, 0), steps)
 			switch {
 			case level > 0:
-				out[r] += k.S(role, strings.Repeat(string(levels[level]), per))
+				out[r] += k.S(r0, strings.Repeat(string(levels[level]), per))
 			case r == rows-1:
 				out[r] += k.S(kit.Faint, strings.Repeat("▁", per))
 			default:

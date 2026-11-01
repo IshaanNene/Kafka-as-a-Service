@@ -1,0 +1,20 @@
+╭─ Clients  Rate ─ Parts ─ Name ───────────── ● ─╮
+│ Client        Kind       Rate ▼  Status        │
+│────────────────────────────────────────────────│
+│ pid 4012      producer  1,840/s  writing       │
+│ billing-svc   consumer  1,210/s  caught up     │
+│ billing-svc   consumer    640/s  4,120 behind  │
+│ pid 5001      producer    220/s  in txn        │
+│ fraud-check   consumer      0/s  9,120 behind  │
+│ pid 3990      producer      0/s  idle 14m      │
+│ search-index  consumer        -  -             │
+│                                                │
+│────────────────────────────────────────────────│
+│ Rate      3,910/s       ▄▅▅▇█▇█   Groups     3 │
+│ Consumers 4             ███████   Hosts      4 │
+│ Producers 3             ███████                │
+╰────────────────────────────────────────────────╯
+ sorted by rate · every 2s · ctrl-c to stop
+ consumers from group members, producers from
+ KIP-664; plain producers and group-less readers
+ don't show

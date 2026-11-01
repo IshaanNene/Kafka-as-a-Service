@@ -52,7 +52,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting; pipes send a record per line | **built** |
 | `kaas produce --file` | upload-dropzone, empty-upload-tray | Each file's lines upload as records, four files at a time, with bytes read, records/s and a bar per file; the tray when they are all in | **built** |
 | `kaas offsets reset` | onboarding-stepper, infra-plan-diff | A stepper for whatever the flags leave out (group → topics → where to → the plan's effect); then every partition's committed offset → its new one as a plan diff, a typed yes, and the coordinator's answer per topic | **built** |
-| `kaas offsets find --time` | bisect-hunt | Binary search for the offset at a time or the first bad record | P1 |
+| `kaas offsets find` | bisect-hunt | A real bisect per partition, one Fetch per read: the first record at or after a time (checked against the broker's time index), or the first value matching a regex (checked by reading on past it) | **built** |
 | `kaas consume --from --to` | date-range-picker | Pick a time window to read | P1 |
 | `kaas sniff` | packet-sniffer | Kafka protocol requests, colour-coded by API key | P1 |
 | `kaas sniff --trace` | network-waterfall | One request: queue, connect, send, wait, ack | P1 |

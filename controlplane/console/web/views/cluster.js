@@ -1,9 +1,10 @@
 import { h } from "../lib/h.js";
 import { icon, status } from "../lib/icons.js";
-import { compact, rate, int, bytes, duration, plural, quota, ago } from "../lib/fmt.js";
-import { areaChart, bar } from "../lib/charts.js";
+import { compact, rate, int, bytes, duration, plural, quota, ago, age, pct, money, hm } from "../lib/fmt.js";
+import { bar, lineChart, uptimeStrip, ring, squarify } from "../lib/charts.js";
+import { locate } from "../lib/geo.js";
 import { state, changed } from "../lib/store.js";
-import { hero, stat, feed, link, clusterHref, envBadge, empty, loading } from "./common.js";
+import { hero, stat, feed, link, clusterHref, envBadge, empty, loading, kpi, delta, insightList, inRange, rangeSwitch } from "./common.js";
 import { gitopsTab } from "./gitops.js";
 import { navigate } from "../lib/router.js";
 
@@ -34,18 +35,27 @@ export function clusterPage(name, tab, topic) {
           : tab === "schemas" ? schemasTab(name)
             : tab === "gitops" ? gitopsTab(name)
               : overviewTab(v);
+  const at = locate(card.region);
   return [
     hero({
-      eyebrow: h("span", { class: "row" }, "Cluster", envBadge(card.env), card.region ? h("span", null, card.region) : null),
+      eyebrow: ["Cluster", envBadge(card.env), card.region ? h("span", null, card.region + (at ? " · " + at.place : "")) : null],
       title: card.name,
       lede: status(card.status, card.reason),
       actions: [
         card.gitops && card.drift ? link(clusterHref(name, "gitops"), { class: "btn primary" }, icon("changes"), "Review " + plural(card.drift, "change")) : null,
       ],
-      below: h("nav", { class: "tabs", "aria-label": "Cluster sections" }, tabs.map(([id, label, ic]) =>
-        link(clusterHref(name, id), { key: id, "aria-current": tab === id ? "page" : null },
-          icon(ic, "nav-icon"), label,
-          counts[id] != null ? h("span", { class: "nav-count" + (id === "gitops" && counts[id] ? " hot" : "") }, int(counts[id])) : null))),
+      below: [
+        h("div", { class: "facts" },
+          card.brokers ? h("span", null, h("b", null, int(card.brokers)), " brokers") : null,
+          card.controller >= 0 ? h("span", null, "controller ", h("b", null, "#" + card.controller)) : null,
+          card.clusterId ? h("span", { class: "mono" }, card.clusterId) : null,
+          card.availability >= 0 ? h("span", null, h("b", null, pct(card.availability)), " available in the last hour") : null,
+          card.cost ? h("span", null, h("b", null, money(card.cost, state.fleet?.pricing?.currency)), " a month, estimated") : null),
+        h("nav", { class: "tabs", "aria-label": "Cluster sections" }, tabs.map(([id, label, ic]) =>
+          link(clusterHref(name, id), { key: id, "aria-current": tab === id ? "page" : null },
+            icon(ic, "nav-icon"), label,
+            counts[id] != null ? h("span", { class: "nav-count" + (id === "gitops" && counts[id] ? " hot" : "") }, int(counts[id])) : null))),
+      ],
     }),
     card.status === "unreachable" ? unreachable(card) : null,
     body,
@@ -63,40 +73,103 @@ function unreachable(card) {
 
 // ─────────────────────────── overview ───────────────────────────
 
+const S1 = "var(--s1)", S2 = "var(--s2)";
+
 function overviewTab(v) {
   const c = v.card;
-  const maxLeaders = Math.max(1, ...v.brokers.map((b) => b.leaders));
+  const tone = c.availability < 0 ? "none" : c.availability >= 99.9 ? "ok" : c.availability >= 95 ? "warn" : "crit";
   return [
-    h("section", { class: "stats" },
-      stat("Throughput", h("span", { class: "num" }, rate(c.throughput)), { ic: "bolt", unit: "rec/s", hot: true, note: "records produced" }),
-      stat("Brokers", h("span", { class: "num" }, int(c.brokers)), { ic: "broker", note: c.controller >= 0 ? `controller is broker ${c.controller}` : "no controller" }),
-      stat("Topics", h("span", { class: "num" }, int(c.topics)), { ic: "topics", note: `${int(c.partitions)} partitions` }),
-      stat("Retained", h("span", { class: "num" }, compact(c.records)), { ic: "file", unit: "records", note: "between log start and end" }),
-      stat("Consumer lag", h("span", { class: "num" }, compact(c.lag)), { ic: "consumers", note: c.topLag ? `most behind: ${c.topLag}` : "no group is behind" })),
+    h("section", { class: "card", "aria-label": "Cluster summary" },
+      h("div", { class: "band" },
+        h("div", { class: "gauge" },
+          h("div", { class: "ring-wrap" }, ring(c.availability, { tone, size: 116 }),
+            h("div", { class: "ring-label" }, h("div", null, h("b", null, pct(c.availability)), h("span", null, "available")))),
+          h("div", null,
+            h("h3", null, statusLine(c)),
+            h("p", null, c.urp + c.offline ? `${int(c.urp + c.offline)} of ${int(c.partitions)} partitions short of replicas.` : `All ${int(c.partitions)} partitions fully replicated.`))),
+        kpi({ label: "Produced", color: S1, value: h("span", { class: "num" }, rate(c.throughput)), unit: "rec/s", foot: [delta(c.history), h("span", null, "into " + plural(c.topics, "topic"))], spark: inRange(c.history), sparkId: "c-in-" + c.name }),
+        kpi({ label: "Consumed", color: S2, value: h("span", { class: "num" }, rate(c.consumeRate)), unit: "rec/s", foot: [delta(c.consumed), h("span", null, "by " + plural(c.groups, "group"))], spark: inRange(c.consumed), sparkId: "c-out-" + c.name }),
+        kpi({
+          label: "Data freshness", ic: "connecting", value: h("span", { class: "num" }, c.freshness < 0 ? "—" : age(c.freshness)), unit: c.freshness > 0 ? "behind" : "",
+          foot: c.freshness > 0 && c.freshGroup ? h("span", null, "worst: ", h("b", { class: "mono" }, c.freshGroup)) : "every consumer is caught up",
+        }),
+        kpi({ label: "Retained", ic: "file", value: h("span", { class: "num" }, compact(c.records)), unit: "records", foot: c.disk ? bytes(c.disk) + " on disk" : "between log start and end" }))),
+    h("section", { class: "card mt" },
+      h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("ok"), "Last hour"),
+        h("span", { class: "right muted" }, "a bar a minute · hover for the time and status")),
+      h("div", { class: "card-body" }, uptimeStrip(c.uptime), uptimeScale(c.uptime))),
     h("div", { class: "grid-2 mt" },
       h("section", { class: "card" },
-        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, "Throughput"), h("span", { class: "right muted mono" }, "records/s · last 10 min")),
-        h("div", { class: "card-body", style: { "padding-bottom": "34px" } }, areaChart("g-" + c.name, c.history, { label: "rec/s", format: rate }))),
+        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("activity"), "Traffic"),
+          h("div", { class: "right" },
+            h("div", { class: "series-legend" },
+              h("span", null, h("i", { class: "sw", style: { "--c": S1 } }), "Produced"),
+              h("span", null, h("i", { class: "sw dashed", style: { "--c": S2 } }), "Consumed")),
+            rangeSwitch())),
+        h("div", { class: "card-sub" }, "Records a second"),
+        h("div", { class: "card-body", style: { "padding-bottom": "36px" } },
+          lineChart("g-" + c.name, [
+            { label: "Produced", pts: inRange(c.history), color: S1 },
+            { label: "Consumed", pts: inRange(c.consumed), color: S2 },
+          ], { format: rate, unit: "/s", height: 220 }))),
       h("section", { class: "card" },
-        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, "Recent events")),
-        h("div", { style: { "margin-top": "8px", "max-height": "300px", overflow: "auto" } }, feed(v.events, { showCluster: false, limit: 10 })))),
-    h("h2", { class: "section" }, "Brokers", h("span", { class: "muted" }, "leadership and disk per broker")),
-    h("section", { class: "card" }, h("div", { class: "table-wrap" },
-      h("table", { class: "data" },
-        h("thead", null, h("tr", null, h("th", null, "Broker"), h("th", null, "Address"), h("th", null, "Rack"), h("th", null, "Leader share"), h("th", { class: "r" }, "Replicas"), h("th", { class: "r" }, "Out of ISR"), h("th", { class: "r" }, "Disk"))),
-        h("tbody", null, v.brokers.map((b) => h("tr", { key: "b" + b.id },
-          h("td", { class: "name" }, h("span", { class: "row" }, h("span", { class: `dot ring status-${b.online ? "healthy" : "critical"}` }), "Broker " + b.id, b.controller ? h("span", { class: "chip iris" }, "controller") : null)),
-          h("td", { class: "mono dim" }, b.host || "offline"),
-          h("td", { class: "dim" }, b.rack || "—"),
-          h("td", null, h("div", { class: "bar-cell" }, bar(b.leaders, maxLeaders), h("span", { class: "num" }, int(b.leaders)))),
-          h("td", { class: "r num" }, int(b.replicas)),
-          h("td", { class: "r num" }, b.behind ? h("span", { class: "chip warn" }, int(b.behind)) : "0"),
-          h("td", { class: "r num" }, bytes(b.disk))))))),
-      h("div", { class: "card-foot" },
-        icon("lock"), "Every request to this cluster goes through one budget",
-        h("span", { class: "mono" }, `${int(v.budget.granted)} sent · ${int(v.budget.denied)} skipped · ${v.budget.tokens.toFixed(0)} tokens free`),
-        h("span", { class: "right" }, v.snapshotAt ? "snapshot " + ago(v.snapshotAt) : ""))),
+        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("bolt"), "Recommendations"),
+          v.insights.length ? h("span", { class: "right" }, h("span", { class: "nav-count" }, v.insights.length)) : null),
+        h("div", { class: "mt" }, insightList(v.insights, { showCluster: false, limit: 5 })))),
+    h("div", { class: "grid-2 mt" },
+      h("section", { class: "card" },
+        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("topics"), "Where the traffic goes"),
+          h("span", { class: "right muted" }, "topics sized by records a second")),
+        topicMap(v)),
+      h("section", { class: "card" },
+        h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("broker"), "Brokers"),
+          h("span", { class: "right muted" }, "share of partition leaders")),
+        rack(v),
+        h("div", { class: "card-foot" },
+          icon("lock"), h("span", { class: "mono" }, `${int(v.budget.granted)} requests sent · ${int(v.budget.denied)} skipped`),
+          h("span", { class: "right" }, v.snapshotAt ? "snapshot " + ago(v.snapshotAt) : "")))),
+    h("section", { class: "card mt" },
+      h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("activity"), "Recent events")),
+      h("div", { style: { "margin-top": "8px" } }, feed(v.events, { showCluster: false, limit: 6 })),
+      v.events.length > 6 ? h("div", { class: "card-foot" }, link("/activity", { class: "card-link" }, "All activity", icon("arrow"))) : null),
   ];
+}
+
+function statusLine(c) {
+  return { healthy: "Healthy and serving", degraded: "Serving, with replicas behind", critical: "Partitions are offline", unreachable: "Not answering", connecting: "Connecting" }[c.status] || c.status;
+}
+
+function uptimeScale(slots) {
+  if (!slots?.length) return null;
+  return h("div", { class: "uptime-scale" }, h("span", null, hm(slots[0].t)), h("span", null, hm(slots[Math.floor(slots.length / 2)].t)), h("span", null, "now"));
+}
+
+function topicMap(v) {
+  const items = v.topics.filter((t) => !t.internal && t.rate > 0).map((t) => ({ key: t.name, value: t.rate, t }));
+  if (!items.length) return h("div", { class: "card-body muted" }, "No topic is receiving records right now.");
+  const max = Math.max(...items.map((i) => i.value));
+  const cells = squarify(items, 100, 100);
+  return h("div", { class: "tmap", role: "list", "aria-label": "Topics by records a second" }, cells.map((r) => {
+    const k = 16 + Math.round(52 * Math.sqrt(r.value / max));
+    const tiny = r.w < 9 || r.h < 14;
+    return link(clusterHref(v.card.name, "topics", r.key), {
+      key: "tm-" + r.key, class: "tm" + (tiny ? " tiny" : ""), role: "listitem",
+      style: { left: r.x + "%", top: r.y + "%", width: r.w + "%", height: r.h + "%", "--k": k + "%" },
+      title: `${r.key}: ${rate(r.value)} records a second, ${int(r.t.partitions)} partitions`,
+    }, h("span", { class: "n" }, r.key), h("span", { class: "v" }, rate(r.value) + "/s"));
+  }));
+}
+
+function rack(v) {
+  const leaders = v.brokers.reduce((a, b) => a + b.leaders, 0) || 1;
+  if (!v.brokers.length) return h("div", { class: "card-body muted" }, "No brokers in the last snapshot.");
+  return h("ul", { class: "rack" }, v.brokers.map((b) => h("li", { key: "b" + b.id, class: "status-" + (b.online ? "healthy" : "critical") },
+    h("div", { class: "who" }, h("span", { class: "dot ring" }),
+      h("div", null, "Broker " + b.id, h("small", null, b.controller ? "controller" : b.rack || (b.online ? "online" : "offline")))),
+    h("div", { class: "share" },
+      h("div", { class: "lbl" }, h("span", null, `${int(b.leaders)} leaders · ${int(b.replicas)} replicas`), h("span", { class: "num" }, Math.round((100 * b.leaders) / leaders) + "%")),
+      bar(b.leaders, leaders, "s1")),
+    h("div", { class: "disk num muted" }, b.behind ? h("span", { class: "chip warn" }, `${b.behind} behind`) : b.disk ? bytes(b.disk) : "—"))));
 }
 
 // ─────────────────────────── topics ───────────────────────────
@@ -160,7 +233,7 @@ function topicDrawer(cluster, name) {
         stat("Partitions", h("span", { class: "num" }, int(r.partitions)), { note: `replication ${r.replication}` })),
       h("div", null,
         h("h2", { class: "section", style: { margin: "0 0 12px" } }, "Partitions",
-          h("span", { class: "right legend" }, h("span", null, h("i", { style: { background: "var(--volt)" } }), "leader"), h("span", null, h("i", { style: { background: "var(--ok)" } }), "in sync"), h("span", null, h("i", { style: { background: "var(--crit)" } }), "out of sync"))),
+          h("span", { class: "right legend" }, h("span", null, h("i", { style: { background: "var(--ink)" } }), "leader"), h("span", null, h("i", { style: { background: "var(--ok)" } }), "in sync"), h("span", null, h("i", { style: { background: "var(--crit)" } }), "out of sync"))),
         h("div", { class: "pmap" }, v.partitions.map((p) => {
           const out = p.replicas.filter((x) => !p.isr.includes(x));
           const cls = p.leader < 0 ? "offline" : out.length ? "urp" : "";
@@ -208,13 +281,14 @@ function consumersTab(v) {
 function groupTable(rows, withTopics) {
   const maxLag = Math.max(1, ...rows.map((g) => g.lag));
   return h("div", { class: "table-wrap" }, h("table", { class: "data" },
-    h("thead", null, h("tr", null, h("th", null, "Group"), h("th", null, "State"), h("th", { class: "r" }, "Members"), withTopics ? h("th", null, "Topics") : null, h("th", null, "Lag"), h("th", { class: "r" }, "Consuming"), h("th", { class: "r" }, "Caught up in"))),
+    h("thead", null, h("tr", null, h("th", null, "Group"), h("th", null, "State"), h("th", { class: "r" }, "Members"), withTopics ? h("th", null, "Topics") : null, h("th", null, "Lag"), h("th", { class: "r" }, "Data age"), h("th", { class: "r" }, "Consuming"), h("th", { class: "r" }, "Caught up in"))),
     h("tbody", null, rows.map((g) => h("tr", { key: g.name },
       h("td", { class: "name" }, g.name, g.error ? h("span", { class: "sub", style: { color: "var(--crit)" } }, g.error) : null),
       h("td", null, stateChip(g.state)),
       h("td", { class: "r num" }, int(g.members)),
       withTopics ? h("td", { class: "mono dim" }, g.topics.join(", ") || "—") : null,
       h("td", null, h("div", { class: "bar-cell" }, bar(g.lag, maxLag, g.catchup < 0 ? "warn" : ""), h("span", { class: "num" }, compact(g.lag)))),
+      h("td", { class: "r num", title: "how far behind the newest record its reads are" }, g.behind < 0 ? "—" : age(g.behind)),
       h("td", { class: "r num" }, g.rate > 0 ? rate(g.rate) + "/s" : "—"),
       h("td", { class: "r" }, catchup(g)))))));
 }
@@ -310,12 +384,12 @@ function schemasTab(name) {
         h("div", null,
           h("h3", { class: "card-title mono" }, sel.name),
           h("div", { class: "row muted wrap", style: { "margin-top": "6px", "font-size": "12px" } },
-            typeChip(sel.type), `version ${sel.version} of ${sel.versions}`, "·", `id ${sel.id}`, "·", h("span", { class: "chip iris" }, sel.compatibility)))),
+            typeChip(sel.type), `version ${sel.version} of ${sel.versions}`, "·", `id ${sel.id}`, "·", h("span", { class: "chip" }, sel.compatibility)))),
       h("pre", { class: "schema" }, highlight(pretty(sel.schema, sel.type)))));
 }
 
 function typeChip(t) {
-  return h("span", { class: "chip mono " + ({ AVRO: "info", PROTOBUF: "iris", JSON: "warn" }[t] || "") }, t.toLowerCase());
+  return h("span", { class: "chip mono" }, t.toLowerCase());
 }
 
 function pretty(s, type) {

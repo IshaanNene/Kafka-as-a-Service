@@ -80,3 +80,42 @@ export function configValue(key, v) {
   if (key.endsWith(".bytes")) return bytes(n);
   return v;
 }
+
+// Money, whole units: $1,533 a month reads better than $1,532.87.
+export function money(v, currency = "USD") {
+  if (v == null || !Number.isFinite(v)) return "—";
+  try {
+    return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(v);
+  } catch {
+    return nf0.format(v) + " " + currency;
+  }
+}
+
+// A percentage with as many decimals as it takes to not round 99.95 to 100.
+export function pct(v) {
+  if (v == null || v < 0) return "—";
+  if (v >= 99.995) return "100%";
+  if (v >= 99) return v.toFixed(2) + "%";
+  return v.toFixed(1) + "%";
+}
+
+// How old data is: under ten seconds to a tenth, then as a duration.
+export function age(s) {
+  if (s == null || s < 0) return "—";
+  if (s === 0) return "live";
+  if (s < 10) return s.toFixed(1) + "s";
+  return duration(s);
+}
+
+// A change as a signed percentage: +12%, −3%, ±0%.
+export function signed(r) {
+  const p = Math.round(r * 100);
+  return p === 0 ? "±0%" : (p > 0 ? "+" : "−") + Math.abs(p) + "%";
+}
+
+// "LeaderMoved" → "Leader moved", "ISRShrunk" → "ISR shrunk".
+export function words(kind) {
+  const s = kind.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2");
+  const w = s.toLowerCase().replace(/\b(isr|acls?)\b/g, (m) => m.toUpperCase());
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}

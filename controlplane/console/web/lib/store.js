@@ -23,6 +23,9 @@ export const state = {
     schemaSel: null,
     sev: "all",
     eventCluster: "all",
+    insightSev: "all",
+    insightCluster: "all",
+    range: 60, // minutes of history the charts show
     palette: null, // { q, sel }
     modal: null, // { kind: "apply", cluster, plan, typed, busy, error }
     results: {}, // cluster → apply results
@@ -125,9 +128,12 @@ function connectEvents() {
   };
 }
 
+// toast shows an event for a few seconds. A burst of the same kind on the
+// same cluster folds into one toast with a count rather than a stack.
 export function toast(e) {
-  const t = { id: Math.random(), ...e };
-  state.ui.toasts = [...state.ui.toasts.slice(-2), t];
+  const same = state.ui.toasts.find((x) => x.kind === e.kind && x.cluster === e.cluster);
+  const t = { id: Math.random(), ...e, n: same ? (same.n || 1) + 1 : 1 };
+  state.ui.toasts = [...state.ui.toasts.filter((x) => x !== same).slice(-2), t];
   setTimeout(() => {
     state.ui.toasts = state.ui.toasts.filter((x) => x.id !== t.id);
     changed();

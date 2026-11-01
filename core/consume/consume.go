@@ -16,13 +16,44 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
+
+	"github.com/IshaanNene/Kafka-as-a-Service/core/offsets"
 )
 
-// From is where reading starts on every partition.
+// From is where reading starts on every partition, and where it stops
+// when it has an end.
 type From struct {
 	kind  fromKind
 	back  int64     // records before the end, for "-N"
 	since time.Time // for a time or a duration ago
+	until time.Time // stop before the first record at or after this; zero for no stop
+	now   time.Time // when it was parsed, for how String writes times
+}
+
+// Until gives f an end: each partition stops before its first record at or
+// after t.
+func (f From) Until(t time.Time) From {
+	f.until = t
+	return f
+}
+
+// Since is where a time From starts; false for end, beginning and -N.
+func (f From) Since() (time.Time, bool) { return f.since, f.kind == fromTime }
+
+// End is f's end, zero when it has none.
+func (f From) End() time.Time { return f.until }
+
+// ParseUntil reads --to: a time or a duration back, as --from takes them,
+// and not in the future.
+func ParseUntil(s string, now time.Time) (time.Time, error) {
+	t, ok := offsets.ParseTime(s, now)
+	switch {
+	case !ok:
+		return t, fmt.Errorf("%q: want a time like 2026-10-31T09:00 or a duration back like 15m", s)
+	case t.After(now):
+		return t, fmt.Errorf("%s is in the future: leave --to out to keep following", t.Format(time.RFC3339))
+	}
+	return t, nil
 }
 
 type fromKind int
@@ -35,8 +66,8 @@ const (
 )
 
 // ParseFrom reads --from: "end", "beginning", "-N" (the last N records of
-// each partition), a duration such as "15m" (that long ago), or an RFC 3339
-// time.
+// each partition), a duration such as "15m" (that long ago), or a time such
+// as 2026-10-31T09:00 (local unless it names a zone).
 func ParseFrom(s string, now time.Time) (From, error) {
 	switch s {
 	case "", "end", "latest":
@@ -51,13 +82,10 @@ func ParseFrom(s string, now time.Time) (From, error) {
 		}
 		return From{kind: fromBack, back: n}, nil
 	}
-	if d, err := time.ParseDuration(s); err == nil && d > 0 {
-		return From{kind: fromTime, since: now.Add(-d)}, nil
+	if t, ok := offsets.ParseTime(s, now); ok {
+		return From{kind: fromTime, since: t, now: now}, nil
 	}
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		return From{kind: fromTime, since: t}, nil
-	}
-	return From{}, fmt.Errorf("%q: want end, beginning, -N, a duration like 15m, or an RFC 3339 time", s)
+	return From{}, fmt.Errorf("%q: want end, beginning, -N, a duration like 15m, or a time like 2026-10-31T09:00", s)
 }
 
 // String describes f the way the join lines say it.
@@ -68,9 +96,22 @@ func (f From) String() string {
 	case fromBack:
 		return fmt.Sprintf("%d before the end", f.back)
 	case fromTime:
-		return "records since " + f.since.Format("15:04:05")
+		s := "records since " + clock(f.since, f.now)
+		if !f.until.IsZero() {
+			s = clock(f.since, f.now) + " to " + clock(f.until, f.now)
+		}
+		return s
 	}
 	return "the end"
+}
+
+// clock is a time of day in now's zone, with the date when it isn't now's.
+func clock(t, now time.Time) string {
+	t = t.In(now.Location())
+	if t.Format("2006-01-02") != now.Format("2006-01-02") {
+		return t.Format("Jan 2 15:04:05")
+	}
+	return t.Format("15:04:05")
 }
 
 // Start is where one partition is read from, and where it ended when the
@@ -79,6 +120,7 @@ type Start struct {
 	Partition int32
 	Offset    int64 // first offset to read
 	End       int64 // log-end offset when the read began
+	Stop      int64 // the first offset not to read, for From.Until; -1 for none
 }
 
 // Plan resolves f to an offset on each partition of topic, or on parts when
@@ -92,10 +134,15 @@ func Plan(ctx context.Context, adm *kadm.Client, topic string, parts []int32, f 
 	if err != nil {
 		return nil, fmt.Errorf("end offsets: %w", err)
 	}
-	var at kadm.ListedOffsets
+	var at, until kadm.ListedOffsets
 	if f.kind == fromTime {
 		if at, err = adm.ListOffsetsAfterMilli(ctx, f.since.UnixMilli(), topic); err != nil {
 			return nil, fmt.Errorf("offsets at %s: %w", f.since.Format(time.RFC3339), err)
+		}
+	}
+	if !f.until.IsZero() {
+		if until, err = adm.ListOffsetsAfterMilli(ctx, f.until.UnixMilli(), topic); err != nil {
+			return nil, fmt.Errorf("offsets at %s: %w", f.until.Format(time.RFC3339), err)
 		}
 	}
 	var out []Start
@@ -111,7 +158,13 @@ func Plan(ctx context.Context, adm *kadm.Client, topic string, parts []int32, f 
 			return
 		}
 		s, _ := starts.Lookup(topic, e.Partition)
-		st := Start{Partition: e.Partition, End: e.Offset}
+		st := Start{Partition: e.Partition, End: e.Offset, Stop: -1}
+		if until != nil {
+			st.Stop = e.Offset
+			if o, ok := until.Lookup(topic, e.Partition); ok && o.Err == nil && o.Offset >= 0 {
+				st.Stop = min(o.Offset, e.Offset)
+			}
+		}
 		switch f.kind {
 		case fromEnd:
 			st.Offset = e.Offset
@@ -172,24 +225,32 @@ var ErrDone = errors.New("consume: done")
 // in order within a partition. It returns nil when ctx ends, Max is
 // reached, Exit is met, or each returns ErrDone.
 func Read(ctx context.Context, o Options, opts []kgo.Opt, each func(Record) error) error {
-	offsets := map[int32]kgo.Offset{}
-	left := map[int32]bool{} // partitions still short of their end, for Exit
+	from := map[int32]kgo.Offset{}
+	// limit is where each partition stops: its Stop, or with Exit its end
+	// when the read began. left is the partitions still short of theirs.
+	limit, left, hard := map[int32]int64{}, map[int32]bool{}, map[int32]bool{}
+	bounded := true
 	for _, s := range o.Plan {
-		offsets[s.Partition] = kgo.NewOffset().At(s.Offset)
-		if s.Offset < s.End {
+		from[s.Partition] = kgo.NewOffset().At(s.Offset)
+		switch {
+		case s.Stop >= 0:
+			limit[s.Partition], hard[s.Partition] = s.Stop, true
+		case o.Exit:
+			limit[s.Partition] = s.End
+		default:
+			bounded = false
+			continue
+		}
+		if s.Offset < limit[s.Partition] {
 			left[s.Partition] = true
 		}
 	}
-	if o.Exit && len(left) == 0 {
+	if bounded && len(left) == 0 {
 		return nil
-	}
-	ends := map[int32]int64{}
-	for _, s := range o.Plan {
-		ends[s.Partition] = s.End
 	}
 	cl, err := kgo.NewClient(append([]kgo.Opt{
 		kgo.SeedBrokers(o.Seeds...),
-		kgo.ConsumePartitions(map[string]map[int32]kgo.Offset{o.Topic: offsets}),
+		kgo.ConsumePartitions(map[string]map[int32]kgo.Offset{o.Topic: from}),
 	}, opts...)...)
 	if err != nil {
 		return err
@@ -215,6 +276,14 @@ func Read(ctx context.Context, o Options, opts []kgo.Opt, each func(Record) erro
 			if stop != nil {
 				return
 			}
+			if hard[r.Partition] && r.Offset >= limit[r.Partition] {
+				// Past --to: a fetch returns whole batches, so stop here.
+				delete(left, r.Partition)
+				if len(left) == 0 {
+					stop = ErrDone
+				}
+				return
+			}
 			rec := Record{Partition: r.Partition, Offset: r.Offset, Time: r.Timestamp, Key: r.Key, Value: r.Value}
 			for _, h := range r.Headers {
 				rec.Headers = append(rec.Headers, Header{Key: h.Key, Value: string(h.Value)})
@@ -227,10 +296,10 @@ func Read(ctx context.Context, o Options, opts []kgo.Opt, each func(Record) erro
 			if o.Max > 0 && n >= o.Max {
 				stop = ErrDone
 			}
-			if r.Offset >= ends[r.Partition]-1 {
+			if l, ok := limit[r.Partition]; ok && r.Offset >= l-1 {
 				delete(left, r.Partition)
 			}
-			if o.Exit && len(left) == 0 {
+			if bounded && len(left) == 0 {
 				stop = ErrDone
 			}
 		})
@@ -255,4 +324,62 @@ func Text(b []byte) (s string, ok bool) {
 		}
 	}
 	return string(b), true
+}
+
+// Counts is, for each of times, the sum over topic's partitions of the
+// first offset at or after it, the end where there is none: the records
+// between two times are the difference.
+func Counts(ctx context.Context, adm *kadm.Client, topic string, times []time.Time) ([]int64, error) {
+	out := make([]int64, len(times))
+	for i, t := range times {
+		at, err := adm.ListOffsetsAfterMilli(ctx, t.UnixMilli(), topic)
+		if err != nil {
+			return nil, err
+		}
+		var sum int64
+		var errs []error
+		at.Each(func(o kadm.ListedOffset) {
+			if o.Err != nil {
+				errs = append(errs, fmt.Errorf("partition %d: %w", o.Partition, o.Err))
+				return
+			}
+			sum += o.Offset
+		})
+		if err := errors.Join(errs...); err != nil {
+			return nil, err
+		}
+		out[i] = sum
+	}
+	return out, nil
+}
+
+// Oldest is the time of the oldest record topic still keeps, reading each
+// partition's first record; zero when every partition is empty.
+func Oldest(ctx context.Context, cl *kgo.Client, adm *kadm.Client, topic string) (time.Time, error) {
+	starts, err := adm.ListStartOffsets(ctx, topic)
+	if err != nil {
+		return time.Time{}, err
+	}
+	var oldest time.Time
+	var errs []error
+	for _, ps := range starts {
+		for p, s := range ps {
+			if s.Err != nil {
+				errs = append(errs, fmt.Errorf("partition %d: %w", p, s.Err))
+				continue
+			}
+			r, err := offsets.NewReader(ctx, cl, topic, p)
+			if err != nil {
+				return time.Time{}, err
+			}
+			rec, err := r.At(ctx, s.Offset)
+			if err != nil {
+				return time.Time{}, err
+			}
+			if rec != nil && (oldest.IsZero() || rec.Timestamp.Before(oldest)) {
+				oldest = rec.Timestamp
+			}
+		}
+	}
+	return oldest, errors.Join(errs...)
 }

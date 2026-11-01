@@ -21,10 +21,10 @@ import (
 
 func newConsumeCmd(brokers, themeName *string) *cobra.Command {
 	var (
-		output, from string
-		parts        []int
-		maxRecords   int
-		exit         bool
+		output, from, to string
+		parts            []int
+		maxRecords       int
+		exit, pick       bool
 	)
 	cmd := &cobra.Command{
 		Use:     "consume <topic>",
@@ -41,13 +41,23 @@ never moves anyone's offsets.
 
 --from is where each partition starts: end (the default: only new
 records), beginning, -N (the last N records of each partition), a
-duration such as 15m (records since then), or an RFC 3339 time.`,
+duration such as 15m (records since then), or a time such as
+2026-10-31T09:00 (local unless it names a zone).
+
+--to ends the read: each partition stops before its first record at or
+after that time, so --from and --to read a window and exit. --pick
+chooses the window on a calendar of what the topic still keeps, with
+the record count for the days you pick.`,
 		Example: `  # New records as they arrive
   kaas consume orders
   # The last 20 records of each partition, then keep following
   kaas consume orders --from -20
   # Everything from the last hour on partition 2, then stop
   kaas consume orders --from 1h -p 2 --exit
+  # A window: 09:00 to 09:30, then stop
+  kaas consume orders --from 2026-10-31T09:00 --to 2026-10-31T09:30
+  # Pick the days on a calendar
+  kaas consume orders --pick
   # Values as JSON lines, for jq
   kaas consume orders --from beginning --exit -o json | jq -r '.value | fromjson | .amount'`,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -63,6 +73,20 @@ duration such as 15m (records since then), or an RFC 3339 time.`,
 			start, err := consume.ParseFrom(from, time.Now())
 			if err != nil {
 				return usageError(cmd, "from", from, err.Error())
+			}
+			now := time.Now()
+			if to != "" {
+				until, err := consume.ParseUntil(to, now)
+				if err != nil {
+					return usageError(cmd, "to", to, err.Error())
+				}
+				if !cmd.Flags().Changed("from") {
+					return usageError(cmd, "to", to, "a window needs a start too: add --from")
+				}
+				if since, ok := start.Since(); !ok || !since.Before(until) {
+					return usageError(cmd, "to", to, "--to must come after a --from time")
+				}
+				start = start.Until(until)
 			}
 			if maxRecords < 0 {
 				return usageError(cmd, "max", strconv.Itoa(maxRecords), "must be 0 or more")
@@ -93,6 +117,17 @@ duration such as 15m (records since then), or an RFC 3339 time.`,
 			if err := missingTopic(s, []string{topic}); err != nil {
 				return err
 			}
+			surf := detect(cmd.OutOrStdout(), *themeName)
+			if pick {
+				if !surf.rich || !answerable(cmd.InOrStdin()) {
+					return usageError(cmd, "pick", "true", "needs a terminal to pick on: use --from and --to")
+				}
+				picked, ok, err := pickWindow(cmd, cl, topic, surf.kit, start)
+				if err != nil || !ok {
+					return err
+				}
+				start = picked
+			}
 			plan, err := consume.Plan(pctx, kadm.NewClient(cl), topic, want, start)
 			if err != nil {
 				if strings.Contains(err.Error(), "has no partition") {
@@ -101,7 +136,6 @@ duration such as 15m (records since then), or an RFC 3339 time.`,
 				return err
 			}
 			o := consume.Options{Seeds: seeds, Topic: topic, Plan: plan, Max: maxRecords, Exit: exit}
-			surf := detect(cmd.OutOrStdout(), *themeName)
 			if surf.rich && output == "text" {
 				return newChannelView(surf, o, start, *brokers).run(cmd.Context())
 			}
@@ -110,7 +144,9 @@ duration such as 15m (records since then), or an RFC 3339 time.`,
 	}
 	f := cmd.Flags()
 	f.StringVarP(&output, "output", "o", "text", "output format: text|json (one object per line)")
-	f.StringVar(&from, "from", "end", "where to start: end, beginning, -N, a duration like 15m, or an RFC 3339 time")
+	f.StringVar(&from, "from", "end", "where to start: end, beginning, -N, a duration like 15m, or a time")
+	f.StringVar(&to, "to", "", "stop before the first record at or after this time; needs a --from time")
+	f.BoolVar(&pick, "pick", false, "pick the days to read on a calendar")
 	f.IntSliceVarP(&parts, "partition", "p", nil, "partitions to read (repeatable); all when unset")
 	f.IntVarP(&maxRecords, "max", "n", 0, "stop after this many records; 0 for no limit")
 	f.BoolVarP(&exit, "exit", "e", false, "stop once every partition reaches the end it had when the read began")
@@ -283,7 +319,10 @@ func (v *channelView) run(ctx context.Context) error {
 		case r, ok := <-recs:
 			if !ok {
 				err := <-done
-				if v.o.Exit || v.o.Max > 0 {
+				switch {
+				case !v.from.End().IsZero() && (v.o.Max == 0 || v.read < v.o.Max):
+					v.stopped = fmt.Sprintf("read the window: %s", plural(v.read, "record"))
+				case v.o.Exit || v.o.Max > 0:
 					v.stopped = fmt.Sprintf("stopped after %s", plural(v.read, "record"))
 					if v.o.Exit && (v.o.Max == 0 || v.read < v.o.Max) {
 						v.stopped = fmt.Sprintf("read to the end: %s", plural(v.read, "record"))

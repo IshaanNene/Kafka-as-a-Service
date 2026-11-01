@@ -70,18 +70,30 @@ func ParseTo(s string, now time.Time) (Target, error) {
 	if n, err := strconv.ParseInt(s, 10, 64); err == nil {
 		return Target{Kind: Offset, N: n}, nil
 	}
+	t, ok := ParseTime(s, now)
+	switch {
+	case !ok:
+		return Target{}, fmt.Errorf("%q: want earliest, latest, an offset, +N or -N, a time like 2026-10-31T09:00, or a duration back like 2h", s)
+	case t.After(now):
+		return Target{}, fmt.Errorf("%s is in the future: use latest", t.Format(time.RFC3339))
+	}
+	return Target{Kind: Time, At: t}, nil
+}
+
+// ParseTime reads a moment the way kaas takes them everywhere: a duration
+// back from now (90m, 2h, 7d), or a time (2026-10-31T09:00:00Z,
+// 2026-10-31 09:00, 2026-10-31) in now's zone unless it names one.
+func ParseTime(s string, now time.Time) (time.Time, bool) {
+	s = strings.TrimSpace(s)
 	if d, ok := ago(s); ok {
-		return Target{Kind: Time, At: now.Add(-d)}, nil
+		return now.Add(-d), true
 	}
 	for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02T15:04", "2006-01-02 15:04", "2006-01-02"} {
 		if t, err := time.ParseInLocation(layout, s, now.Location()); err == nil {
-			if t.After(now) {
-				return Target{}, fmt.Errorf("%s is in the future: use latest", t.Format(time.RFC3339))
-			}
-			return Target{Kind: Time, At: t}, nil
+			return t, true
 		}
 	}
-	return Target{}, fmt.Errorf("%q: want earliest, latest, an offset, +N or -N, a time like 2026-10-31T09:00, or a duration back like 2h", s)
+	return time.Time{}, false
 }
 
 // ago reads a duration back from now; Go's durations plus d for days.

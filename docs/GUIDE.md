@@ -318,6 +318,20 @@ Each record is a line, the way a chat channel shows messages: its time, its part
 
 On a pipe it prints one raw value per line, like `kafka-console-consumer`. With `-o json` you get one object per line: `partition`, `offset`, `timestamp`, `key`, `value` and `headers`, with binary keys and values base64-encoded and marked as such. `kaas tail` is the same command.
 
+#### A time window: `--to` and `--pick`
+
+```bash
+kaas consume orders --from 2026-10-26T00:00:00Z --to 2026-10-31T00:00:00Z
+kaas consume orders --from 3h --to 1h -o json > window.jsonl
+kaas consume orders --pick
+```
+
+`--to` stops each partition before its first record at or after a time, so a window reads exactly what it holds and then exits. It needs a `--from` time (a duration or an RFC 3339 time) that comes before it, and it can't be in the future.
+
+`--pick` opens a calendar of two months to choose the days instead. Days before the oldest record the topic keeps, and days after today, are faint and can't be picked; days that hold nothing are dimmed. Move with the arrows, press enter on the first day and on the last, and the footer shows how many records the window holds, counted from the broker's time index rather than guessed. Enter again reads it in the channel view. A `--from` and `--to` given with `--pick` start the calendar on that window.
+
+![kaas consume --pick: two months with a picked range and its record count](img/consume-pick.svg)
+
 ### `kaas clients`: who is reading and writing
 
 ```bash

@@ -634,21 +634,22 @@ for line in sys.stdin:
 ## `kaas console`: the fleet in a browser
 
 ```bash
-kaas console --demo                          # four made-up clusters with live traffic
+kaas console --demo                          # five made-up clusters in four regions, with live traffic
 kaas console --fleet fleet.yaml              # your fleet
 kaas console -b kafka-0:9092 --desired gitops/prod.yaml   # one cluster and its desired state
 ```
 
-It prints `kaas console  http://127.0.0.1:7070  (4 clusters, read-only)`; open that address.
+It prints `kaas console  http://127.0.0.1:7070  (5 clusters, read-only)`; open that address.
 
-![Fleet: every cluster's health, throughput, lag and drift, fleet throughput and a live feed](img/console-fleet.png)
+![Overview: availability, produced and consumed, data freshness and cost, the fleet on a map, recommendations, traffic and every cluster's last hour](img/console-fleet.png)
 
 | Page | What it shows |
 |---|---|
-| **Fleet** | A card per cluster: health in words, throughput with a sparkline, the worst consumer lag, drift from git, schema and ACL counts. Fleet throughput over time, and a feed of events from every cluster |
-| **A cluster** | Brokers with leaders and disk, the busiest topics, lag, the request budget, and the cluster's own events |
+| **Overview** | What the fleet is doing for the business: availability over the last hour, records produced and consumed, data freshness, an estimated monthly cost, every cluster on a world map with its share of traffic, the top recommendations, produced against consumed over time, and a row per cluster with a minute-by-minute status strip |
+| **Recommendations** | Things worth acting on, worst first, each with what it costs, where to look and the `kaas` command that shows or fixes it. See [Recommendations](#recommendations) |
+| **A cluster** | Availability and the last hour minute by minute, produced, consumed, freshness and retained data, traffic, the cluster's recommendations, a treemap of where the traffic goes, brokers with their share of leaders, and the cluster's own events |
 | **Topics** | Every topic with partitions, replication, records, rate and retention. Click one for its partition map (leaders and replicas per broker) and the groups reading it |
-| **Consumers** | Groups ranked by lag, with consume rate and time to catch up |
+| **Consumers** | Groups ranked by lag, with data age, consume rate and time to catch up |
 | **Access** | ACLs by principal, as sentences ("allow User:billing read on topic orders"), and quotas by user and client |
 | **Schemas** | Schema Registry subjects with type, versions and compatibility, and the latest schema highlighted |
 | **GitOps** | The plan from the desired-state file: each change by risk, policy results, warnings, and Apply |
@@ -656,6 +657,11 @@ It prints `kaas console  http://127.0.0.1:7070  (4 clusters, read-only)`; open t
 | **Activity** | Every event, filterable by cluster and severity |
 
 ![The consumers tab: groups ranked by lag with rate and time to catch up](img/console-consumers.png)
+
+**The numbers.**
+- *Availability* is the share of the last hour's health samples (one every 10 seconds) in which the cluster answered with every partition online. The overview averages it over the fleet.
+- *Data freshness* is how far behind a consumer group is in time: its lag divided by the rate its topics are written at. The overview shows the group furthest behind.
+- *Est. run cost* is brokers × the hourly broker price × 730 hours, plus stored GiB × the monthly price, from `pricing` in the fleet file. Without `pricing` the overview shows the consumer backlog instead.
 
 Press **⌘K** or **/** to jump to any cluster, topic, group or page. Light, dark and system themes are in the sidebar.
 
@@ -677,9 +683,33 @@ Press **⌘K** or **/** to jump to any cluster, topic, group or page. Light, dar
 - An apply needs the cluster's name typed, a same-origin request, and the plan ID that was on screen. If the cluster or the file changed in between, nothing is applied and the new plan is shown.
 - Pages are served with a strict content security policy.
 
+### Recommendations
+
+Recommendations are read from each cluster's live state on every refresh, so one disappears as soon as its cause does.
+
+| Kind | Severity | When |
+|---|---|---|
+| Not answering | critical | No broker has answered for three metadata intervals |
+| Partitions offline | critical | A partition has no leader |
+| Under-replicated | warning | Replicas have fallen out of sync |
+| One copy in production | warning | A topic with replication factor 1 on a multi-broker production cluster |
+| Stopped consumer | warning | A group with no members and a growing backlog |
+| Stale data | warning | A group reading data a minute old or more |
+| Can't apply | warning | The desired-state file is blocked by a policy, or the plan is destructive |
+| Drift | advice | The cluster differs from its desired-state file |
+| Unread topic | advice | A topic written at 1 record/s or more that no group reads |
+| Leader skew | advice | A broker leads 1.5 times its even share of six or more partitions |
+
+![Recommendations, worst first, each with its impact and a command](img/console-insights.png)
+
 ### The fleet file
 
 ```yaml
+name: Acme Commerce              # shown in the sidebar and the overview; default Fleet
+pricing:                         # optional: an estimated monthly cost per cluster
+  broker_hour: 0.21              # per broker per hour
+  gib_month: 0.10                # per GiB stored, all replicas, per month
+  currency: USD                  # default USD
 clusters:
   - name: prod-eu
     brokers: [kafka-0.prod-eu:9092, kafka-1.prod-eu:9092]

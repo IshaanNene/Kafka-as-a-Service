@@ -32,6 +32,7 @@ const paths = {
   plus: ["M12 5v14", "M5 12h14"],
   minus: ["M5 12h14"],
   tilde: ["M4 14c2-4 5-4 8 0s6 4 8 0"],
+  chevron: ["m6 9 6 6 6-6"],
 };
 
 export function icon(name, cls) {
@@ -43,11 +44,11 @@ export function icon(name, cls) {
 // reads as a forward arrow.
 export function logo() {
   return h("svg", { class: "brand-mark", viewBox: "0 0 32 32", "aria-hidden": "true" },
-    h("rect", { x: "1", y: "1", width: "30", height: "30", rx: "9", fill: "var(--ink)" }),
+    h("rect", { x: "1", y: "1", width: "30", height: "30", rx: "9", fill: "var(--text)" }),
     h("rect", { x: "7", y: "9", width: "11", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
     h("rect", { x: "7", y: "14.3", width: "15", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
     h("rect", { x: "7", y: "19.6", width: "11", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
-    h("circle", { cx: "23.6", cy: "16", r: "2.6", fill: "var(--volt)" }));
+    h("circle", { cx: "23.6", cy: "16", r: "2.6", fill: "var(--brand)" }));
 }
 
 // A status: icon, word, and why — never colour alone.

@@ -31,6 +31,7 @@ import (
 
 // Config is a fleet file:
 //
+//	name: Acme Commerce
 //	clusters:
 //	  - name: prod-eu
 //	    brokers: [kafka-0.prod-eu:9092, kafka-1.prod-eu:9092]
@@ -38,8 +39,29 @@ import (
 //	    region: eu-west-1
 //	    desired: gitops/prod-eu.yaml
 //	    schema_registry: https://schemas.prod-eu:8081
+//	pricing: {broker_hour: 0.21, gib_month: 0.10, currency: USD}
 type Config struct {
+	Name     string          `yaml:"name"` // what the console calls the fleet; default "Fleet"
 	Clusters []ClusterConfig `yaml:"clusters"`
+	Pricing  *Pricing        `yaml:"pricing"`
+}
+
+// Pricing turns brokers and storage into an estimated monthly cost, so a
+// fleet's spend sits next to its health. Without it no cost is shown.
+type Pricing struct {
+	BrokerHour float64 `yaml:"broker_hour" json:"brokerHour"` // per broker per hour
+	GiBMonth   float64 `yaml:"gib_month" json:"gibMonth"`     // per GiB stored (all replicas) per month
+	Currency   string  `yaml:"currency" json:"currency"`      // shown as is; default USD
+}
+
+// hoursPerMonth is an average month.
+const hoursPerMonth = 730
+
+func (p *Pricing) monthly(brokers int, disk int64) float64 {
+	if p == nil {
+		return 0
+	}
+	return float64(brokers)*p.BrokerHour*hoursPerMonth + float64(disk)/(1<<30)*p.GiBMonth
 }
 
 // ClusterConfig is one cluster in the fleet.
@@ -112,9 +134,22 @@ func (iv Intervals) withDefaults() Intervals {
 	return iv
 }
 
-// historyLen is how many throughput points a cluster keeps: ten minutes at
-// the engine's 5-second metadata interval.
-const historyLen = 120
+// historyLen is how many throughput points a cluster keeps: an hour at the
+// engine's 5-second metadata interval.
+const historyLen = 720
+
+// healthEvery is how often a cluster's status is written down, and
+// healthLen how many are kept: an hour, for the uptime timeline.
+const (
+	healthEvery = 10 * time.Second
+	healthLen   = 360
+)
+
+// healthSample is a cluster's status at one moment.
+type healthSample struct {
+	at time.Time
+	s  Status
+}
 
 // Point is one throughput sample.
 type Point struct {
@@ -144,7 +179,9 @@ type Cluster struct {
 	reachable bool
 	lastErr   string
 	rates     map[string]*topicRate
-	history   []Point
+	history   []Point // records produced per second
+	consumed  []Point // records consumed per second, from group commits
+	health    []healthSample
 	groups    groups.Sample
 	prevGrp   groups.Sample
 	groupsErr string
@@ -223,6 +260,7 @@ func (c *Cluster) follow(ctx context.Context) {
 			return
 		case <-health.C:
 			c.checkHealth()
+			c.recordHealth(time.Now())
 		case <-sub.Ready():
 			u, ok := sub.Next()
 			if !ok {
@@ -310,6 +348,23 @@ func (c *Cluster) checkHealth() {
 	}
 }
 
+// recordHealth writes down the cluster's status every healthEvery.
+func (c *Cluster) recordHealth(now time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if n := len(c.health); n > 0 && now.Sub(c.health[n-1].at) < healthEvery {
+		return
+	}
+	s, _ := c.status()
+	if s == StatusConnecting {
+		return
+	}
+	c.health = append(c.health, healthSample{at: now, s: s})
+	if len(c.health) > healthLen {
+		c.health = c.health[len(c.health)-healthLen:]
+	}
+}
+
 func (c *Cluster) refreshGroups(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -321,6 +376,20 @@ func (c *Cluster) refreshGroups(ctx context.Context) {
 		return
 	}
 	c.prevGrp, c.groups, c.groupsErr = c.groups, s, ""
+	var total float64
+	measured := false
+	for _, g := range s.Groups {
+		if r, ok := groups.Rate(c.prevGrp, c.groups, g.Name); ok {
+			total += r
+			measured = true
+		}
+	}
+	if measured {
+		c.consumed = append(c.consumed, Point{T: s.At.UnixMilli(), V: total})
+		if len(c.consumed) > historyLen {
+			c.consumed = c.consumed[len(c.consumed)-historyLen:]
+		}
+	}
 }
 
 func (c *Cluster) refreshAccess(ctx context.Context) {
@@ -474,6 +543,9 @@ func errText(err error) string {
 type Fleet struct {
 	Clusters []*Cluster
 	iv       Intervals
+	Name     string
+	pricing  *Pricing
+	started  time.Time
 
 	mu     sync.Mutex
 	events []Event // a ring of the newest maxEvents
@@ -488,7 +560,13 @@ func NewFleet(cfg Config, iv Intervals, opts ...kgo.Opt) (*Fleet, error) {
 	if err := cfg.check(); err != nil {
 		return nil, err
 	}
-	f := &Fleet{iv: iv.withDefaults(), subs: map[chan Event]struct{}{}}
+	f := &Fleet{iv: iv.withDefaults(), subs: map[chan Event]struct{}{}, pricing: cfg.Pricing, started: time.Now(), Name: cfg.Name}
+	if f.Name == "" {
+		f.Name = "Fleet"
+	}
+	if f.pricing != nil && f.pricing.Currency == "" {
+		f.pricing.Currency = "USD"
+	}
 	for _, cc := range cfg.Clusters {
 		c, err := newCluster(f, cc, opts)
 		if err != nil {

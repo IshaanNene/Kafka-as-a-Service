@@ -10,6 +10,7 @@ function items() {
     { grp: "Go to", ic: "fleet", label: "Fleet overview", href: "/" },
     { grp: "Go to", ic: "changes", label: "Changes from git", href: "/changes" },
     { grp: "Go to", ic: "activity", label: "Activity", href: "/activity" },
+    { grp: "Go to", ic: "bolt", label: "Recommendations", href: "/insights" },
   ];
   for (const c of state.fleet?.clusters || []) {
     out.push({ grp: "Clusters", ic: "cluster", label: c.name, hint: [c.env, c.region].filter(Boolean).join(" · "), href: clusterHref(c.name) });

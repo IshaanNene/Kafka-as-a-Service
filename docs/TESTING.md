@@ -54,6 +54,8 @@ The management plane is tested the same way, on kfake clusters:
     5. stale plan ID.
 
     Then it applies for real and checks the cluster converged and a `PlanApplied` event was published.
+  - `TestUptime`, `TestPricing` and `TestSortInsights` check the minute-by-minute status strip and availability, the cost estimate and the order recommendations are shown in. `TestFleetInsights` checks that an unreachable cluster raises a critical recommendation with a command, and that drift raises one too.
+  - `TestDemoStarts` starts the five-cluster demo and parses each desired-state file.
   - `TestEventsReplayAfterReconnect` drops the stream and checks that `Last-Event-ID` brings back what was missed.
 - **`cmd/kaas`.** `TestPlanAndApply` runs `kaas plan` and `kaas apply` end to end:
   - the plan text;
@@ -62,7 +64,7 @@ The management plane is tested the same way, on kfake clusters:
   - `--yes` required without a terminal;
   - a stale `--plan` refused;
   - a real apply.
-- **The web app.** `controlplane/console/webtest` runs with `node --test` and checks the formatting every number on screen goes through. The `web` CI job also checks every module parses.
+- **The web app.** `controlplane/console/webtest` runs with `node --test` and checks the formatting every number on screen goes through (money, percentages, data age, change), how event kinds are worded, the treemap layout and the change badge. The `web` CI job also checks every module parses.
 
 ## Integration: real Kafka in containers
 

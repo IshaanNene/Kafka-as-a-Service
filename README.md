@@ -65,14 +65,17 @@ Any executable named `kaas-source-<name>` or `kaas-sink-<name>` that speaks JSON
 ## The console: every cluster, one page
 
 ```bash
-kaas console --demo                       # four made-up clusters with live traffic, at http://127.0.0.1:7070
+kaas console --demo                       # five made-up clusters with live traffic, at http://127.0.0.1:7070
 kaas console --fleet fleet.yaml           # your clusters
 ```
 
-![The kaas console: four clusters with health, throughput, lag, drift and a live feed](docs/img/console-fleet.png)
+![The kaas console: availability, traffic, freshness and cost across a fleet, with a map and recommendations](docs/img/console-fleet.png)
 
-`kaas console` serves a web console from the same binary. It shows every cluster in a fleet, each with:
-- health and throughput;
+`kaas console` serves a web console from the same binary. Its overview answers what a business asks of Kafka: is it up, is data flowing, how fresh is it, what does it cost, and what needs doing. It shows every cluster in a fleet, each with:
+- availability over the last hour, minute by minute;
+- records produced and consumed, and how far behind each consumer is in time;
+- recommendations worst first, each with its impact and the command that fixes it;
+- an estimated monthly cost;
 - topics, with a partition map;
 - consumer lag, with time to catch up;
 - ACLs, quotas and Schema Registry subjects;

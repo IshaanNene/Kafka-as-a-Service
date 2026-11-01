@@ -2,7 +2,7 @@
 // `node --test controlplane/console/webtest` (no dependencies).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compact, rate, bytes, duration, configValue, quota, plural } from "../web/lib/fmt.js";
+import { compact, rate, bytes, duration, configValue, quota, plural, money, pct, age, signed, words } from "../web/lib/fmt.js";
 import { parse } from "../web/lib/router.js";
 
 test("compact numbers", () => {
@@ -59,4 +59,27 @@ test("routes", () => {
   assert.deepEqual(parse("/clusters/prod-eu/topics/orders.v2"), { page: "cluster", cluster: "prod-eu", tab: "topics", topic: "orders.v2" });
   assert.deepEqual(parse("/clusters/a%2Fb/nonsense"), { page: "cluster", cluster: "a/b", tab: "overview", topic: null });
   assert.deepEqual(parse("/whatever"), { page: "fleet" });
+});
+
+test("money, percentages, data age and change", () => {
+  assert.equal(money(1532.6, "USD"), "$1,533");
+  assert.equal(money(null), "—");
+  assert.match(money(10, "XYZ"), /10/);
+  assert.equal(pct(-1), "—");
+  assert.equal(pct(99.996), "100%");
+  assert.equal(pct(99.95), "99.95%");
+  assert.equal(pct(80), "80.0%");
+  assert.equal(age(-1), "—");
+  assert.equal(age(0), "live");
+  assert.equal(age(4.25), "4.3s");
+  assert.equal(signed(0.123), "+12%");
+  assert.equal(signed(-0.4), "−40%");
+  assert.equal(signed(0.001), "±0%");
+});
+
+test("event kinds are said in words", () => {
+  assert.equal(words("LeaderMoved"), "Leader moved");
+  assert.equal(words("ISRShrunk"), "ISR shrunk");
+  assert.equal(words("IsrExpanded"), "ISR expanded");
+  assert.equal(words("ACLChanged"), "ACL changed");
 });

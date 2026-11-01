@@ -30,6 +30,7 @@ function create(v, svg) {
   patchProps(el, v.props, svg);
   patchChildren(el, v.children, svg && v.tag !== "foreignObject");
   if (v.props.ref) v.props.ref(el);
+  el._v = v;
   return el;
 }
 
@@ -43,10 +44,14 @@ function patch(node, v, svg) {
     if (node.nodeValue !== v) node.nodeValue = v;
     return;
   }
+  // A view that hands back the very same vnode (a cached, unchanging
+  // part such as the map's land) has nothing to patch.
+  if (node._v === v) return;
   svg = svg || v.tag === "svg";
   patchProps(node, v.props, svg);
   patchChildren(node, v.children, svg && v.tag !== "foreignObject");
   if (v.props.ref) v.props.ref(node);
+  node._v = v;
 }
 
 function patchChildren(parent, vs, svg) {

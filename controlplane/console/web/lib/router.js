@@ -4,13 +4,14 @@ const tabs = new Set(["overview", "topics", "consumers", "access", "schemas", "g
 
 // parse turns a path into a route:
 //   /                              the fleet
-//   /changes, /activity
+//   /changes, /activity, /insights
 //   /clusters/:name[/:tab]
 //   /clusters/:name/topics/:topic  the topics tab with a topic open
 export function parse(path) {
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "changes") return { page: "changes" };
   if (parts[0] === "activity") return { page: "activity" };
+  if (parts[0] === "insights") return { page: "insights" };
   if (parts[0] === "clusters" && parts[1]) {
     const tab = tabs.has(parts[2]) ? parts[2] : "overview";
     return { page: "cluster", cluster: parts[1], tab, topic: tab === "topics" ? parts[3] || null : null };

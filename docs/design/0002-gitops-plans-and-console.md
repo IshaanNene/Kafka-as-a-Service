@@ -94,6 +94,10 @@ kaas apply -f gitops/prod-eu.yaml --plan "$(jq -r .id plan.json)" --yes   # afte
   - Critical on an offline partition.
   - Degraded on an under-replicated partition.
   - Lag and drift are shown on each cluster's card, not counted as health.
+- **Availability** comes from a health sample every 10 seconds, kept for an hour. Each minute of the status strip shows the worst sample in it; availability is the share of samples that were healthy or degraded.
+- **Freshness** is a group's lag divided by the rate its topics are written at, so lag is said in time rather than records.
+- **Cost** is an estimate from the optional `pricing` in the fleet file: brokers × hourly price × 730, plus stored GiB × monthly price.
+- **Recommendations** (`insights.go`) are recomputed from live state on every read, never stored, so each goes away with its cause. Each says what it costs the business, links to the page that shows it and gives a `kaas` command. They are sorted critical, warning, then advice.
 - **Events** come from the engine's typed events (leader moves, ISR changes, brokers joining or leaving), plus drift, applies and reachability. They live in a ring of 500 and stream over SSE with `Last-Event-ID` replay, so a reconnecting browser misses nothing in the ring.
 - **Schemas** are read from each cluster's Schema Registry (Confluent-compatible REST API): subjects, their latest version, version count, and compatibility, global or per subject.
 
@@ -102,9 +106,9 @@ kaas apply -f gitops/prod-eu.yaml --plan "$(jq -r .id plan.json)" --yes   # afte
 | Route | Returns |
 |---|---|
 | `GET /api/meta` | Version, demo, whether apply is allowed |
-| `GET /api/fleet` | A card per cluster, fleet throughput history, recent events |
+| `GET /api/fleet` | A card per cluster (with availability, uptime slots, freshness and cost), fleet totals, produced and consumed history, recommendations, recent events |
 | `GET /api/events` | Server-sent events |
-| `GET /api/clusters/{name}` | Brokers, topics, groups, events, the request budget |
+| `GET /api/clusters/{name}` | Brokers, topics, groups with data age, events, recommendations, the request budget |
 | `GET /api/clusters/{name}/topics/{topic}` | Partitions and the groups reading it |
 | `GET /api/clusters/{name}/access` | ACLs and quotas |
 | `GET /api/clusters/{name}/schemas` | Subjects |
@@ -123,10 +127,20 @@ Apply errors:
 
 ### The web app
 
-- **Pages.** Fleet, Changes (every cluster's drift on one page), Activity, and per cluster: overview, topics with a partition map, consumers, access, schemas and GitOps.
+- **Pages.** Overview, Recommendations, Changes (every cluster's drift on one page), Activity, and per cluster: overview, topics with a partition map, consumers, access, schemas and GitOps.
+- **Design tokens.** Every colour is a semantic CSS custom property in `app.css`, defined once for dark and once for light; components never use literal colours. Each colour has one job:
+  - **Surfaces:** four elevation steps (`--bg`, `--surface`, `--surface-raised`, `--overlay`) with 1px borders at about 9% white (`--border`).
+  - **Text:** `--text`, `--text-muted` and `--text-subtle`, each at least 4.5:1 on every surface.
+  - **Brand:** Electric Orange (`--brand`, `#FF8A3D`) marks the brand and the primary action only. It never means health, and headline accents are neutral.
+  - **Status:** success, warning (amber, yellower than the brand), danger and info, each with a solid, a `-bg` tint and a `-text` variant. Recommendations use the same red, amber and blue triplet for critical, warning and advice.
+  - **Unknown:** `--neutral-unknown` stands for no data.
+  - **Focus:** a 2px blue ring (`--focus`).
+
+  Status never relies on colour alone. Degraded is a diamond and down is a hollow ring, both on the map and in the sidebar. In the uptime strip a down minute is hatched, a degraded minute stands shorter, and a minute with no sample is only an outline.
 - **Updates.** Data is polled every 2.5 seconds and events are streamed. A rendering batch per animation frame and a keyed morph keep the page still while numbers change underneath.
 - **Charts.**
-  - One series each, on a recessive grid.
+  - Fixed series colours everywhere, far from the status hues: produced is cyan (`--series-produced`) and consumed is violet and dashed (`--series-consumed`). The pair passes the colour-vision checks in both themes.
+  - A recessive grid.
   - A crosshair and tooltip on hover.
   - Sparklines scaled to their own range, so a quiet cluster's shape still shows.
 - **Navigation.** ⌘K or `/` jumps to any cluster, topic, group or page.

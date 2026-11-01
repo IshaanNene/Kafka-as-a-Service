@@ -171,7 +171,8 @@ done
 	if !strings.Contains(out, "upper") || !strings.Contains(out, "kafka ") || !strings.Contains(out, dir) {
 		t.Errorf("plugins:\n%s", out)
 	}
-	_, errOut, err := runPipe("hi\nthere\n", "pipe", "--from", "stdin?format=text", "--to", "upper:x", "--plugin-dir", dir)
+	t.Chdir(dir) // a relative --plugin-dir, as a user would type it
+	_, errOut, err := runPipe("hi\nthere\n", "pipe", "--from", "stdin?format=text", "--to", "upper:x", "--plugin-dir", ".")
 	if err != nil {
 		t.Fatal(err)
 	}

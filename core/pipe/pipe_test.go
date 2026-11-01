@@ -457,6 +457,7 @@ func TestExecPluginFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	write("kaas-source-quick", `printf '{"id":1,"value":"a"}\n{"id":2,"value":"b"}\n'`+"\n")
 	write("kaas-source-broken", `echo 'oops not json'`+"\n")
 	write("kaas-source-says", `echo '{"error":"token expired"}'; echo "auth failed for project x" >&2; sleep 1`+"\n")
 	write("kaas-sink-refuses", `read line; echo '{"error":"quota","seq":1}'; cat >/dev/null`+"\n")
@@ -472,6 +473,10 @@ func TestExecPluginFailures(t *testing.T) {
 			return err
 		}
 		return New([]Endpoint{in}, []Endpoint{out}, Options{}).Run(context.Background())
+	}
+	// A source that exits without reading its acks has simply declined them.
+	if err := run("quick:x", "file:"+filepath.Join(dir, "q")); err != nil {
+		t.Errorf("a source that exits after writing: %v", err)
 	}
 	for _, c := range []struct{ from, to, want string }{
 		{"broken:x", "file:" + filepath.Join(dir, "o"), "isn't a JSON record"},

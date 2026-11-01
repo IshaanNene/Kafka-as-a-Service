@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -63,7 +64,11 @@ func pluginDirs(env Env) []string {
 // findPlugin is the path of the executable named name.
 func findPlugin(name string, env Env) (string, error) {
 	for _, d := range pluginDirs(env) {
-		p := filepath.Join(d, name)
+		// Absolute, or exec would look a bare "kaas-sink-x" up on PATH.
+		p, err := filepath.Abs(filepath.Join(d, name))
+		if err != nil {
+			continue
+		}
 		if st, err := os.Stat(p); err == nil && !st.IsDir() && st.Mode()&0o111 != 0 {
 			return p, nil
 		}
@@ -99,7 +104,11 @@ func Discover(env Env) []Plugin {
 				continue
 			}
 			seen[name] = true
-			out = append(out, Plugin{Scheme: scheme, Role: role, Path: filepath.Join(d, name)})
+			path, err := filepath.Abs(filepath.Join(d, name))
+			if err != nil {
+				path = filepath.Join(d, name)
+			}
+			out = append(out, Plugin{Scheme: scheme, Role: role, Path: path})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -319,7 +328,9 @@ func (s *pluginSource) ack(b Batch, ids []json.RawMessage) Batch {
 			buf.Write(id)
 			buf.WriteString("}\n")
 		}
-		if _, err := s.p.in.Write(buf.Bytes()); err != nil && !errors.Is(err, os.ErrClosed) {
+		// A plugin that has exited, or closed its stdin, isn't listening
+		// for acks: that's its choice, not a failure.
+		if _, err := s.p.in.Write(buf.Bytes()); err != nil && !errors.Is(err, os.ErrClosed) && !errors.Is(err, syscall.EPIPE) {
 			return s.p.failed(err)
 		}
 		return nil

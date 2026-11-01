@@ -1,13 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -28,7 +28,7 @@ const produceBatch = 1000
 func newProduceCmd(brokers, themeName *string) *cobra.Command {
 	var (
 		output, key, value, keySep string
-		headers                    []string
+		headers, files             []string
 		partition                  int
 		valueSet                   bool
 	)
@@ -45,13 +45,18 @@ change a field and send again.
 Otherwise each line of stdin is one record, as kafka-console-producer
 reads them: the whole line is the value, or with --key-separator, the part
 before it is the key. --value sends one record without reading stdin.
--H adds headers to every record; -p picks the partition.`,
+-H adds headers to every record; -p picks the partition.
+
+--file sends files the same way, a record per line, up to 4 at a time,
+each with its own progress bar; repeat it for more files.`,
 		Example: `  # Compose a record in the editor
   kaas produce orders
   # One record from flags
   kaas produce orders -k user-17 --value '{"order":1043}' -H source=cli
   # Keyed records from a file, one per line
   kaas produce orders --key-separator ':' < orders.txt
+  # Several files at once, with progress
+  kaas produce orders -f orders-10.jsonl -f orders-11.jsonl
   # Where each record landed, for a script
   printf 'a\nb\n' | kaas produce orders -o json | jq .offset`,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -76,6 +81,16 @@ before it is the key. --value sends one record without reading stdin.
 				return usageError(cmd, "partition", strconv.Itoa(partition), "must be 0 or more")
 			}
 			valueSet = cmd.Flags().Changed("value")
+			if valueSet && len(files) > 0 {
+				return usageError(cmd, "file", files[0], "send a --value or files, not both")
+			}
+			for _, f := range files {
+				if st, err := os.Stat(f); err != nil {
+					return usageError(cmd, "file", f, "can't read it: "+strings.TrimPrefix(err.Error(), "stat "+f+": "))
+				} else if st.IsDir() {
+					return usageError(cmd, "file", f, "a directory; pass the files in it")
+				}
+			}
 			if _, err := connect(cmd, *brokers, *themeName); err != nil {
 				return err
 			}
@@ -111,6 +126,9 @@ before it is the key. --value sends one record without reading stdin.
 				return p.send(cmd.Context(), []produce.Record{r}, detect(cmd.OutOrStdout(), *themeName))
 			}
 			surf := detect(cmd.OutOrStdout(), *themeName)
+			if len(files) > 0 {
+				return p.files(cmd.Context(), files, keySep, surf, s.ClusterID)
+			}
 			if in, ok := cmd.InOrStdin().(*os.File); ok && term.IsTerminal(in.Fd()) && surf.rich && output == "text" {
 				return p.edit(cmd, *themeName)
 			}
@@ -123,7 +141,8 @@ before it is the key. --value sends one record without reading stdin.
 	f.StringVar(&value, "value", "", "send one record with this value instead of reading stdin")
 	f.StringArrayVarP(&headers, "header", "H", nil, "a key=value header on every record (repeatable)")
 	f.IntVarP(&partition, "partition", "p", -1, "the partition to write to; -1 lets the key decide")
-	f.StringVar(&keySep, "key-separator", "", "split each stdin line into key and value at the first occurrence")
+	f.StringVar(&keySep, "key-separator", "", "split each line into key and value at the first occurrence")
+	f.StringArrayVarP(&files, "file", "f", nil, "send each line of this file as a record (repeatable)")
 	return cmd
 }
 
@@ -152,6 +171,8 @@ type resultJSON struct {
 	Partition int32     `json:"partition"`
 	Offset    int64     `json:"offset"`
 	Timestamp time.Time `json:"timestamp"`
+	File      string    `json:"file,omitempty"` // with --file
+	Line      int       `json:"line,omitempty"`
 }
 
 // send writes recs and reports them: JSON lines, a confirmation on a
@@ -191,8 +212,6 @@ func cmpErr(a, b error) error {
 
 // lines sends each stdin line as a record, in batches.
 func (p producer) lines(ctx context.Context, in io.Reader, keySep string) error {
-	sc := bufio.NewScanner(in)
-	sc.Buffer(make([]byte, 64<<10), 16<<20)
 	var batch []produce.Record
 	flush := func() error {
 		if len(batch) == 0 {
@@ -202,22 +221,15 @@ func (p producer) lines(ctx context.Context, in io.Reader, keySep string) error 
 		batch = batch[:0]
 		return err
 	}
-	n := 0
-	for sc.Scan() {
-		n++
-		r, err := produce.ParseLine(sc.Text(), keySep)
-		if err != nil {
-			return fmt.Errorf("line %d: %w", n, err)
-		}
+	err := produce.EachLine(in, keySep, func(_ int, r produce.Record, _ int64) error {
 		r.Headers, r.Partition = p.headers, p.partition
 		batch = append(batch, r)
 		if len(batch) == produceBatch {
-			if err := flush(); err != nil {
-				return err
-			}
+			return flush()
 		}
-	}
-	if err := sc.Err(); err != nil {
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	return flush()

@@ -76,6 +76,13 @@ func cancelled(msg string) *cliError {
 		screen: func(k kit.Kit, _ int) []string { return []string{k.S(kit.Muted, "↩ "+msg)} }}
 }
 
+// shown is a failure the command's own screen has already explained: it
+// exits 1 with no second screen, and pipes and -o json still get err.
+func shown(code string, err error) *cliError {
+	return &cliError{Code: code, Exit: exitFailure, Message: err.Error(),
+		screen: func(kit.Kit, int) []string { return nil }}
+}
+
 func internalError(err error) *cliError {
 	return &cliError{
 		Code: "internal", Exit: exitFailure, Message: err.Error(),

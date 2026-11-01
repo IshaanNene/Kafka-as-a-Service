@@ -41,6 +41,8 @@ const SHOTS = {
   "onboarding-stepper": "topics-create",
   "modal-dialog": "topics-delete",
   "empty-trash-lid": "topics-delete-done",
+  "upload-dropzone": "produce-file",
+  "empty-upload-tray": "produce-file-done",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

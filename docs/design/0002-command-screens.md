@@ -50,7 +50,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas clients` | process-task-manager | Group members and idempotent producers by records/s (Kafka exposes no connection list or request rates) | **built** |
 | `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | **built** |
 | `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting; pipes send a record per line | **built** |
-| `kaas produce --file` | upload-dropzone, empty-upload-tray | File records upload with per-file progress | P1 |
+| `kaas produce --file` | upload-dropzone, empty-upload-tray | Each file's lines upload as records, four files at a time, with bytes read, records/s and a bar per file; the tray when they are all in | **built** |
 | `kaas offsets reset` | onboarding-stepper, infra-plan-diff | Group → topic → strategy → preview of offset changes → apply | P1 |
 | `kaas offsets find --time` | bisect-hunt | Binary search for the offset at a time or the first bad record | P1 |
 | `kaas consume --from --to` | date-range-picker | Pick a time window to read | P1 |

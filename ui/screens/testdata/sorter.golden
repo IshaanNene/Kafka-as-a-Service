@@ -1,0 +1,15 @@
+  1[||||||||||||||||||||||||||||            62.0%]  2[||||||||||||||                          31.0%]
+  3[|||                                      7.0%]
+  Read[|||||||||||||||||||||||||||||||0.8× writes]  Partitions: 14 across 5 topics; 3 brokers
+                                                    Write: 1.2k rec/s · 96 KiB/s
+                                                    Read: 1,010 rec/s by 3 groups
+────────────────────────────────────────────────────────────────────────────────────────────────────
+    PART  LEADER ▐  IN/s▼  OUT/s    BYTES/s       SIZE  TOPIC
+       2  b1         612     600   48.0 KiB   81.0 MiB  orders end 1,204,551
+       0  b2         301     290   23.4 KiB   40.0 MiB  orders end 602,113
+       1  b3          88       0    6.9 KiB    9.0 MiB  payments.eu.charges end 41,920
+       0  b1         3.5     120      280 B    2.0 MiB  audit end 9,001
+       0  none         -       -          -          -  users.profiles offline
+  + 9 more · raise --top to see them
+
+^CQuit    --sort in      --top 5       every 2s

@@ -1,0 +1,12 @@
+  1[||||||||||||||||||||||        62.0%]  2[|||||||||||                   31.0%]
+  3[||                             7.0%]
+  Read[|||||||||||||||||||||0.8× writes]  Partitions: 14 across 5 topics; 3
+                                                      brokers
+                                          Write: 1.2k rec/s · 96 KiB/s
+                                          Read: 1,010 rec/s by 3 groups
+────────────────────────────────────────────────────────────────────────────────
+    PART  LEADER ▐  IN/s▼  OUT/s    BYTES/s       SIZE  TOPIC
+       2  b1         612     600   48.0 KiB   81.0 MiB  orders end 1,204,551
+  + 13 more · raise --top to see them
+
+^CQuit    --sort in      --top 5       every 2s

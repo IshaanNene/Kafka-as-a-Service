@@ -18,6 +18,9 @@ type Part struct {
 	ISR        []int32
 	Start, End int64 // -1 unknown
 	Bytes      int64 // on the leader; -1 unknown
+	// New is a partition kaas topics alter adds, green as the piece's fresh
+	// partition. Before it is written it has no leader or replicas yet.
+	New bool
 }
 
 // Detail is one "Label:  value" line in the details block.
@@ -136,6 +139,16 @@ func wrapParts(s string, w int) []string {
 	return append(out, kit.Wrap(line, w)...)
 }
 
+// placed is a replica list, or "-" for a new partition the controller
+// has not placed yet. An existing partition's empty ISR stays blank: no
+// replica is in sync.
+func placed(x Part, xs []int32) string {
+	if x.New && len(xs) == 0 {
+		return "-"
+	}
+	return ids(xs)
+}
+
 func ids(xs []int32) string {
 	s := make([]string, len(xs))
 	for i, x := range xs {
@@ -162,13 +175,16 @@ func (p Partitions) table(k kit.Kit, w int) []string {
 	cols := []column{
 		{name: "Partition", cell: func(x Part) string { return strconv.Itoa(int(x.ID)) }},
 		{name: "Leader", cell: func(x Part) string {
-			if x.Leader < 0 {
+			switch {
+			case x.Leader < 0 && x.New:
+				return "-"
+			case x.Leader < 0:
 				return "none"
 			}
 			return strconv.Itoa(int(x.Leader))
 		}, right: true},
-		{name: "Replicas", cell: func(x Part) string { return ids(x.Replicas) }},
-		{name: "ISR", cell: func(x Part) string { return ids(x.ISR) }},
+		{name: "Replicas", cell: func(x Part) string { return placed(x, x.Replicas) }},
+		{name: "ISR", cell: func(x Part) string { return placed(x, x.ISR) }},
 		{name: "Start", cell: func(x Part) string { return num(x.Start) }, right: true, drop: 4},
 		{name: "End", cell: func(x Part) string { return num(x.End) }, right: true, drop: 3},
 		{name: "Records", cell: func(x Part) string {
@@ -223,11 +239,14 @@ func (p Partitions) table(k kit.Kit, w int) []string {
 		if focus {
 			lead, base = " "+k.S(kit.Notice, ">>")+" ", kit.FG
 		}
+		if x.New {
+			base = kit.OK
+		}
 		var cells []string
 		for i, c := range cols {
 			role := base
 			switch {
-			case c.name == "Leader" && x.Leader < 0:
+			case c.name == "Leader" && x.Leader < 0 && !x.New:
 				role = kit.Err
 			case c.name == "ISR" && len(x.ISR) < len(x.Replicas):
 				role = kit.Warn
@@ -320,7 +339,11 @@ func (p Partitions) layout(k kit.Kit, w int) []string {
 	// Legend: partition colours, then what the glyphs mean.
 	var legend []string
 	for i, x := range p.Parts {
-		legend = append(legend, k.S(partColors[i%len(partColors)], "■")+k.S(kit.Muted, fmt.Sprintf(" p%d", x.ID)))
+		label := k.S(kit.Muted, fmt.Sprintf(" p%d", x.ID))
+		if x.New {
+			label = k.S(kit.OK, fmt.Sprintf(" p%d new", x.ID))
+		}
+		legend = append(legend, k.S(partColors[i%len(partColors)], "■")+label)
 	}
 	legend = append(legend, k.S(kit.Muted, "█ leader"), k.S(kit.Muted, "▒ follower"), k.S(kit.Muted, "░ out of sync"))
 	line := ""

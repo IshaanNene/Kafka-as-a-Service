@@ -211,6 +211,8 @@ loop:
 		t.Fatal(err)
 	}
 	save("topics-describe", "kaas topics describe users.profiles", td.screen().Render(k, 90))
+	alter := alteration{td: td, to: len(td.topic.Partitions) + 2, readers: topicReaders(ctx, kadm.NewClient(cl), "users.profiles")}
+	save("topics-alter", fmt.Sprintf("kaas topics alter users.profiles --partitions %d", alter.to), alter.screen().Render(k, 90))
 
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.

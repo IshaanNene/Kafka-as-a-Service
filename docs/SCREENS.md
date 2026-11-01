@@ -252,7 +252,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`disk-partitioner`](https://www.ascii-magic.com/ascii/disk-partitioner) · **built** · A curses-style partition editor that carves a new partition out of free space, writes the table and formats it.
 
 - `kaas topics describe`: Partitions laid out per broker, leaders and replicas
-- `kaas topics alter --partitions`: New partitions carved from the free space, then written
+- `kaas topics alter --partitions`: New partitions in green before writing; a typed yes; the topic as written
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/disk-partitioner.svg" alt="ascii-magic Partition Editor" width="100%"></td><td width="50%"><img src="img/topics-describe.svg" alt="kaas screen built from Partition Editor" width="100%"></td></tr></table>

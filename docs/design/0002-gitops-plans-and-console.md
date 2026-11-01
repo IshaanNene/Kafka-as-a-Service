@@ -128,10 +128,18 @@ Apply errors:
 ### The web app
 
 - **Pages.** Overview, Recommendations, Changes (every cluster's drift on one page), Activity, and per cluster: overview, topics with a partition map, consumers, access, schemas and GitOps.
-- **Design tokens.** Every colour is a CSS custom property in `app.css`, defined once for dark and once for light; components never use literal colours. Surfaces are neutral graphite (Obsidian). The Electric Orange accent (`#FF8A3D`) marks primary actions, the selected page and the brand, never health. Health uses semantic pairs (success, warning, critical, information), each a foreground and a subtle background; recommendations use violet. Text keeps 4.5:1 contrast on every surface.
+- **Design tokens.** Every colour is a semantic CSS custom property in `app.css`, defined once for dark and once for light; components never use literal colours. Each colour has one job:
+  - **Surfaces:** four elevation steps (`--bg`, `--surface`, `--surface-raised`, `--overlay`) with 1px borders at about 9% white (`--border`).
+  - **Text:** `--text`, `--text-muted` and `--text-subtle`, each at least 4.5:1 on every surface.
+  - **Brand:** Electric Orange (`--brand`, `#FF8A3D`) marks the brand and the primary action only. It never means health, and headline accents are neutral.
+  - **Status:** success, warning (amber, yellower than the brand), danger and info, each with a solid, a `-bg` tint and a `-text` variant. Recommendations use the same red, amber and blue triplet for critical, warning and advice.
+  - **Unknown:** `--neutral-unknown` stands for no data.
+  - **Focus:** a 2px blue ring (`--focus`).
+
+  Status never relies on colour alone. Degraded is a diamond and down is a hollow ring, both on the map and in the sidebar. In the uptime strip a down minute is hatched, a degraded minute stands shorter, and a minute with no sample is only an outline.
 - **Updates.** Data is polled every 2.5 seconds and events are streamed. A rendering batch per animation frame and a keyed morph keep the page still while numbers change underneath.
 - **Charts.**
-  - Fixed series colours everywhere: produced is teal, consumed is violet and dashed, healthy capacity is green. The pair passes the colour-vision checks in both themes.
+  - Fixed series colours everywhere, far from the status hues: produced is cyan (`--series-produced`) and consumed is violet and dashed (`--series-consumed`). The pair passes the colour-vision checks in both themes.
   - A recessive grid.
   - A crosshair and tooltip on hover.
   - Sparklines scaled to their own range, so a quiet cluster's shape still shows.

@@ -38,6 +38,20 @@ jobs:
           name: coverage
           path: cover.out
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax
+        run: |
+          for f in $(find controlplane/console/web -name '*.js'); do
+            cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs || { echo "::error file=$f::syntax error"; exit 1; }
+          done
+      - run: node --test controlplane/console/webtest/*.test.mjs
+
   lint:
     runs-on: ubuntu-latest
     steps:

@@ -18,6 +18,16 @@ tasks:
     cmds:
       - go test -race ./...
 
+  test:web:
+    desc: The console's JavaScript tests (needs Node 20+; the Go build does not)
+    cmds:
+      - node --test controlplane/console/webtest/*.test.mjs
+
+  console:
+    desc: The web console on a made-up fleet of four clusters, at http://127.0.0.1:7070
+    cmds:
+      - go run ./cmd/kaas console --demo --allow-apply --web-dir controlplane/console/web
+
   test:integration:
     desc: Testcontainers tests (needs Docker). Set KAAS_KAFKA_IMAGE to pick a version.
     cmds:

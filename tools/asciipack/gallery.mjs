@@ -43,6 +43,7 @@ const SHOTS = {
   "empty-trash-lid": "topics-delete-done",
   "upload-dropzone": "produce-file",
   "empty-upload-tray": "produce-file-done",
+  "infra-plan-diff": "offsets-reset",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

@@ -60,7 +60,7 @@ func TestStepperFits(t *testing.T) {
 	k, _ := kits(t)
 	s := stepperFixture(1)
 	s.Heading = "Lay out its partitions"
-	s.Body = Radios(k, "Replication factor", []string{"1", "2", "3"}, 2, true)
+	s.Body = Radios(k, "Replication factor", []string{"1", "2", "3"}, 2, true, 40)
 	for _, w := range []int{40, 50, 76, 120, 200} {
 		out := s.Render(k, w, 22)
 		for _, l := range out {
@@ -71,5 +71,13 @@ func TestStepperFits(t *testing.T) {
 		if j := kit.Join(out); !strings.Contains(j, "Step 2 of 4") || !strings.Contains(j, "Continue →") || !strings.Contains(j, "(✓)") || strings.Contains(j, "…") {
 			t.Errorf("width %d lost the step, button or tick:\n%s", w, j)
 		}
+	}
+}
+
+func TestRadiosWrap(t *testing.T) {
+	k, _ := kits(t)
+	out := Radios(k, "Move each partition to", []string{"earliest", "latest", "time", "offset", "shift"}, 2, true, 40)
+	if len(out) != 3 || kit.Width(out[1]) > 40 || kit.Width(out[2]) > 40 || !strings.Contains(kit.Join(out), "● time") {
+		t.Errorf("wrapped radios:\n%s", kit.Join(out))
 	}
 }

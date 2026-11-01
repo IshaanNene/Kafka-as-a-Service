@@ -1,0 +1,28 @@
+ $ kaas offsets reset billing -t orders -t payments --to 2h
+ kaas will perform the following actions:
+
+   # billing · orders will be updated in-place
+   ~ offsets "billing" "orders" {
+       ~ p0 = 1,204 -> 980     # re-reads 224
+       ~ p1 = 2,010 -> 1,700   # re-reads 310
+         # (1 unchanged partition hidden)
+     }
+
+   # billing · payments will be created
+   + offsets "billing" "payments" {
+       + p0 = 0   # start of the log
+     }
+
+ Plan: 1 to add, 2 to change.
+ billing reads 534 records again · to the first record after 2026-11-01 10:00
+
+ Do you want to perform these actions? Enter a value: yes
+
+ orders: Committing... [2 partitions]
+ orders: Commit complete after 4ms
+ payments: Committing... [1 partition]
+ payments: Commit complete after 3ms
+
+ Reset complete! Offsets: 1 added, 2 changed.
+──────────────────────────────────────────────────────────────────────────────────────────
+ group: billing  ·  state: Empty  ·  applied                           +1 ~2   members: 0

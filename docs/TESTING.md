@@ -13,6 +13,7 @@ The tiers follow the usual approaches to testing Kafka applications: unit tests 
 | Tier | Runs on | What it proves | Run it |
 |---|---|---|---|
 | **Unit and kfake** | Every PR | Logic against an in-memory Kafka (franz-go's kfake), including fault injection | `task test` |
+| **Console and GitOps** | Every PR | Plans converge on kfake, the console API's shapes and guards, the event stream's replay, and the web app's formatting | `task test`, `task test:web` |
 | **Screen goldens** | Every PR | Every screen draws the same at fixed sizes, and live screens never truncate | `task test` |
 | **Fuzz** | Every PR (60s a target) | No input crashes a parser of untrusted bytes, and round trips are lossless | `task test:fuzz` |
 | **Contract** | Every PR | The JSON record format, the plugin protocol and generator fields stay compatible | `task test` |
@@ -32,6 +33,36 @@ Most packages are tested against **kfake**, an in-memory Kafka that speaks the r
 - **`TestKafkaLatency`.** A client dialer adds latency to every write, as a proxy like Toxiproxy would. The copy slows down but stays complete.
 
 The checks that matter most are written once and run on every tier: `checkCopy`, `checkResume` and `checkRebalance` run on kfake in unit tests, and on real brokers in integration and chaos tests.
+
+## Console and GitOps
+
+The management plane is tested the same way, on kfake clusters:
+
+- **`core/plan`.**
+  - A desired-state file is planned, applied and re-planned until nothing is left (`TestPlanApplyConverges`).
+  - Every refusal in parsing has a case: unknown keys, bad operations and resources, principals without a type, sizes where a number belongs, CEL rules that don't compile or don't return a bool.
+  - Plan IDs are stable for the same changes. Policies block, prune only touches the kinds a file manages, and retention decreases are rated caution.
+- **`core/acls` and `core/quotas`.** Exact create, list and delete. Deleting a literal grant must leave the prefixed grant of the same name alone.
+- **`controlplane/schemas`.** The registry client against an in-memory registry, including compatibility levels and basic auth from the URL.
+- **`controlplane/console`.**
+  - `TestFleetAPI` starts a fleet of two clusters: one healthy and drifting from its file, and one unreachable. It checks each cluster's status, that no list is ever `null`, the 404s and the security headers.
+  - `TestApplyIsGuarded` walks the whole guard matrix:
+    1. apply disabled;
+    2. wrong content type;
+    3. cross-origin request;
+    4. wrong name typed;
+    5. stale plan ID.
+
+    Then it applies for real and checks the cluster converged and a `PlanApplied` event was published.
+  - `TestEventsReplayAfterReconnect` drops the stream and checks that `Last-Event-ID` brings back what was missed.
+- **`cmd/kaas`.** `TestPlanAndApply` runs `kaas plan` and `kaas apply` end to end:
+  - the plan text;
+  - `--exit-code` exiting 5;
+  - JSON output;
+  - `--yes` required without a terminal;
+  - a stale `--plan` refused;
+  - a real apply.
+- **The web app.** `controlplane/console/webtest` runs with `node --test` and checks the formatting every number on screen goes through. The `web` CI job also checks every module parses.
 
 ## Integration: real Kafka in containers
 

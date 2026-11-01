@@ -261,6 +261,20 @@ Every combination runs with its own producer. The table fills in case by case, w
 - **On a pipe:** one summary line per case, in the perf tool's terms.
 - **With `-o json`:** every percentile and the full histogram.
 
+### `kaas bench consume`: the read side
+
+The kaas version of `kafka-consumer-perf-test`. Fetch sizes and waits multiply into cases, the same way:
+
+```bash
+kaas bench consume -t orders --records 100000 --fetch-size 64KB,1MB,8MB --max-wait 100ms,500ms
+```
+
+Each case reads from the beginning of the topic with its own client, so no case is served from another case's buffer. It never joins a group and never commits. A case reads `--records`, or the whole topic if it holds fewer. If the topic is empty, `kaas bench produce` fills it.
+
+![kaas bench consume: fetch sizes compared, with poll waits and throughput](img/bench-consume.svg)
+
+The latencies here are poll waits: how long the reader waited for each batch. A poll served from data already fetched takes microseconds, and one that waits on the broker takes a round trip. Small fetches show more of the second kind. `--fetch-size` takes sizes like `64KB` or `1MB` per partition. On a pipe you get one line per case, and with `-o json` you get the full results, including `polls`.
+
 ### When something is wrong
 
 Errors are screens too, and each one says what to do next.

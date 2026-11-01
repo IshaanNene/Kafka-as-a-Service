@@ -104,6 +104,9 @@ func TestErrorContract(t *testing.T) {
 		{[]string{"bench", "produce", "-b", brokers, "-t", "oders"}, exitNotFound, "did you mean orders?"},
 		{[]string{"bench", "produce", "-b", brokers}, exitUsage, "--topic: required"},
 		{[]string{"bench", "produce", "-t", "orders", "--compression", "brotli"}, exitUsage, `--compression "brotli": must be one of`},
+		{[]string{"bench", "consume", "-b", brokers, "-t", "orders"}, exitUsage, "has no records to read yet"},
+		{[]string{"bench", "consume", "-t", "orders", "--fetch-size", "lots"}, exitUsage, `--fetch-size "lots": want a size like 64KB`},
+		{[]string{"bench", "consume", "-t", "orders", "--fetch-size", "100B"}, exitUsage, "must be at least 1KB"},
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
@@ -170,5 +173,36 @@ func TestBenchCommand(t *testing.T) {
 	var res []struct{ Records int64 }
 	if err := json.Unmarshal([]byte(runKaas(t, "bench", "produce", "-b", brokers, "-t", "orders", "--records", "50", "-o", "json")), &res); err != nil || len(res) != 1 || res[0].Records != 50 {
 		t.Errorf("json = %v (%v)", res, err)
+	}
+
+	// 453 records now: 2×200 and 50, plus a warm-up record for each of the 3 cases.
+	out = runKaas(t, "bench", "consume", "-b", brokers, "-t", "orders", "--records", "300", "--fetch-size", "4KB,1MB")
+	if n := strings.Count(out, "300 records read"); n != 2 || !strings.Contains(out, "fetch=4KB wait=500ms") {
+		t.Errorf("want 2 consume case lines, got:\n%s", out)
+	}
+	var cres []struct {
+		Case struct {
+			FetchSize int `json:"fetch_size"`
+			Records   int
+		}
+		Records int64
+		Polls   int64
+	}
+	if err := json.Unmarshal([]byte(runKaas(t, "bench", "consume", "-b", brokers, "-t", "orders", "-o", "json")), &cres); err != nil ||
+		len(cres) != 1 || cres[0].Records != 453 || cres[0].Case.Records != 453 || cres[0].Case.FetchSize != 1<<20 || cres[0].Polls == 0 {
+		t.Errorf("consume json = %+v (%v)", cres, err)
+	}
+}
+
+func TestParseSize(t *testing.T) {
+	for in, want := range map[string]int{"1048576": 1 << 20, "64KB": 64 << 10, "1mb": 1 << 20, "8 MiB": 8 << 20, "512k": 512 << 10} {
+		if got, err := parseSize(in); err != nil || got != want {
+			t.Errorf("parseSize(%q) = %d, %v; want %d", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"", "0", "-1KB", "1GB", "4096MB"} {
+		if _, err := parseSize(in); err == nil {
+			t.Errorf("parseSize(%q) should fail", in)
+		}
 	}
 }

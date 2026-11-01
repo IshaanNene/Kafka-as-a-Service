@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kfake"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kmsg"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/bench"
 	brokerload "github.com/IshaanNene/Kafka-as-a-Service/core/brokers"
@@ -108,20 +110,44 @@ func TestScreenshots(t *testing.T) {
 	save("invalid-flag", "kaas bench produce --acks 2", screen("bench", "produce", "-b", brokers, "-t", "orders", "--size", "512", "--acks", "2"))
 
 	// Bench: four real cases against kfake.
-	b := benchRun{
-		cmd: &cobra.Command{}, topic: "orders", seeds: kgo.SeedBrokers(c.ListenAddrs()...),
-		// Capped, so each case runs long enough to chart its throughput;
-		// kfake is in-memory and would otherwise report millions per second.
-		cases: bench.Matrix([]int{100, 1024}, []string{"1", "all"}, []string{"none", "lz4"}, 30_000, 15_000),
-		out:   surface{w: io.Discard, raw: io.Discard, rich: true, width: 100, height: 60, kit: k},
-		title: "bench produce · orders", right: "3 brokers · kfake",
-	}
+	// Capped, so each case runs long enough to chart its throughput;
+	// kfake is in-memory and would otherwise report millions per second.
+	b := produceRun(&cobra.Command{}, "orders",
+		bench.Matrix([]int{100, 1024}, []string{"1", "all"}, []string{"none", "lz4"}, 30_000, 15_000),
+		kgo.SeedBrokers(c.ListenAddrs()...))
+	b.out = surface{w: io.Discard, raw: io.Discard, rich: true, width: 100, height: 60, kit: k}
+	b.title, b.right = "bench produce · orders", "3 brokers · kfake"
 	b.cmd.SetContext(ctx)
 	b.lv = &live{s: b.out}
 	if err := b.run(); err != nil {
 		t.Fatal(err)
 	}
 	save("bench", "kaas bench produce -t orders --size 100,1024 --compression none,lz4", b.lv.last)
+
+	// Bench consume: read back what the produce cases wrote, large
+	// fetches against small ones. Each fetch is held 5ms, as a network
+	// would, or in-memory kfake finishes before the chart has a point.
+	var slowFetch atomic.Bool
+	slowFetch.Store(true)
+	c.ControlKey(int16(kmsg.Fetch), func(kmsg.Request) (kmsg.Response, error, bool) {
+		c.KeepControl()
+		if slowFetch.Load() {
+			c.SleepControl(func() { time.Sleep(5 * time.Millisecond) })
+		}
+		return nil, nil, false
+	})
+	cr := consumeRun(&cobra.Command{}, "orders",
+		bench.FetchMatrix([]int{1 << 20, 256 << 10, 16 << 10}, []time.Duration{500 * time.Millisecond}, 100_000),
+		kgo.SeedBrokers(c.ListenAddrs()...), 100_000)
+	cr.out = b.out
+	cr.title, cr.right = "bench consume · orders", "3 brokers · kfake"
+	cr.cmd.SetContext(ctx)
+	cr.lv = &live{s: cr.out}
+	if err := cr.run(); err != nil {
+		t.Fatal(err)
+	}
+	slowFetch.Store(false)
+	save("bench-consume", "kaas bench consume -t orders --records 100000 --fetch-size 1MB,256KB,16KB", cr.lv.last)
 
 	// Watch: the real engine while records flow and topics come and go.
 	e := engine.New(cl, engine.Config{MetadataInterval: time.Second, FastInterval: 500 * time.Millisecond})

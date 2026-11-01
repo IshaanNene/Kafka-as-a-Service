@@ -84,9 +84,9 @@ type Progress struct {
 	Rate                []float64 // acked records/sec, one per tick window
 }
 
-// Result is a finished case.
-type Result struct {
-	Case       Case          `json:"case"`
+// Stats is what any finished case measured. Latencies are per record ack
+// for produce and per poll for consume.
+type Stats struct {
 	Records    int64         `json:"records"`
 	Errors     int64         `json:"errors"`
 	Bytes      int64         `json:"bytes"`
@@ -101,6 +101,31 @@ type Result struct {
 	Max        time.Duration `json:"max"`
 	Hist       []int64       `json:"histogram"` // counts per Buckets, plus overflow
 	FirstError string        `json:"first_error,omitempty"`
+}
+
+// finish fills the rates and percentiles from the raw measurements.
+func (s *Stats) finish(lat []time.Duration) {
+	if sec := s.Took.Seconds(); sec > 0 {
+		s.RecsPerSec = float64(s.Records) / sec
+		s.MBPerSec = float64(s.Bytes) / sec / (1 << 20)
+	}
+	if len(lat) == 0 {
+		return
+	}
+	slices.Sort(lat)
+	var sum time.Duration
+	for _, d := range lat {
+		sum += d
+	}
+	s.Avg = sum / time.Duration(len(lat))
+	s.P50, s.P95, s.P99, s.P999 = pct(lat, 50), pct(lat, 95), pct(lat, 99), pct(lat, 99.9)
+	s.Max = lat[len(lat)-1]
+}
+
+// Result is a finished produce case.
+type Result struct {
+	Case Case `json:"case"`
+	Stats
 }
 
 // Options tunes a run.
@@ -141,7 +166,7 @@ func Produce(ctx context.Context, topic string, c Case, o Options) (Result, erro
 	// One untimed record first: metadata, connections and the producer ID
 	// are one-off costs that would otherwise land on the first records.
 	if err := cl.ProduceSync(ctx, &kgo.Record{Value: value}).FirstErr(); err != nil {
-		return Result{Case: c, FirstError: err.Error()}, fmt.Errorf("warm-up: %w", err)
+		return Result{Case: c, Stats: Stats{FirstError: err.Error()}}, fmt.Errorf("warm-up: %w", err)
 	}
 
 	var (
@@ -159,32 +184,11 @@ func Produce(ctx context.Context, topic string, c Case, o Options) (Result, erro
 	}
 
 	start := time.Now()
-	stop := make(chan struct{})
-	reported := make(chan struct{})
-	go func() {
-		defer close(reported)
-		t := time.NewTicker(o.Tick)
-		defer t.Stop()
-		var rates []float64
-		last := int64(0)
-		for {
-			select {
-			case <-stop:
-				return
-			case <-t.C:
-			}
-			a := acked.Load()
-			rates = append(rates, float64(a-last)/o.Tick.Seconds())
-			last = a
-			if o.Report == nil {
-				continue
-			}
-			mu.Lock()
-			h := slices.Clone(hist)
-			mu.Unlock()
-			o.Report(Progress{Sent: sent.Load(), Acked: a, Errors: errs.Load(), Elapsed: time.Since(start), Hist: h, Rate: slices.Clone(rates)})
-		}
-	}()
+	stop := ticker(o, start, &sent, &acked, &errs, func() []int64 {
+		mu.Lock()
+		defer mu.Unlock()
+		return slices.Clone(hist)
+	})
 
 	for range c.Records {
 		if limit != nil {
@@ -213,32 +217,46 @@ func Produce(ctx context.Context, topic string, c Case, o Options) (Result, erro
 	}
 	ferr := cl.Flush(ctx)
 	took := time.Since(start)
-	close(stop)
-	<-reported
+	stop()
 
-	r := Result{Case: c, Records: acked.Load(), Errors: errs.Load(), Took: took, Hist: hist}
+	r := Result{Case: c, Stats: Stats{Records: acked.Load(), Errors: errs.Load(), Took: took, Hist: hist}}
 	if v, ok := firstErr.Load().(string); ok {
 		r.FirstError = v
 	}
 	r.Bytes = r.Records * int64(c.Size)
-	if s := took.Seconds(); s > 0 {
-		r.RecsPerSec = float64(r.Records) / s
-		r.MBPerSec = float64(r.Bytes) / s / (1 << 20)
-	}
-	if len(lat) > 0 {
-		slices.Sort(lat)
-		var sum time.Duration
-		for _, d := range lat {
-			sum += d
-		}
-		r.Avg = sum / time.Duration(len(lat))
-		r.P50, r.P95, r.P99, r.P999 = pct(lat, 50), pct(lat, 95), pct(lat, 99), pct(lat, 99.9)
-		r.Max = lat[len(lat)-1]
-	}
+	r.finish(lat)
 	if ferr != nil {
 		return r, ferr
 	}
 	return r, ctx.Err()
+}
+
+// ticker reports progress every o.Tick, with the done count's rate per
+// window, until the returned stop is called.
+func ticker(o Options, start time.Time, sent, done, errs *atomic.Int64, hist func() []int64) (stop func()) {
+	quit := make(chan struct{})
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		t := time.NewTicker(o.Tick)
+		defer t.Stop()
+		var rates []float64
+		last := int64(0)
+		for {
+			select {
+			case <-quit:
+				return
+			case <-t.C:
+			}
+			n := done.Load()
+			rates = append(rates, float64(n-last)/o.Tick.Seconds())
+			last = n
+			if o.Report != nil {
+				o.Report(Progress{Sent: sent.Load(), Acked: n, Errors: errs.Load(), Elapsed: time.Since(start), Hist: hist(), Rate: slices.Clone(rates)})
+			}
+		}
+	}()
+	return func() { close(quit); <-finished }
 }
 
 func bucket(d time.Duration) int {

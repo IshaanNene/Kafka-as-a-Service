@@ -233,7 +233,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`benchmark-table`](https://www.ascii-magic.com/ascii/benchmark-table) · **built** · A benchmark runner that measures each case with a live iteration counter and fills a table of timings compared to the last baseline.
 
 - `kaas bench produce`: One row per case (size × acks × compression), a live counter, a latency histogram and a throughput graph
-- `kaas bench consume`: Same, for fetch
+- `kaas bench consume`: Same, for fetch: a case per fetch size × max wait, with poll waits
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/benchmark-table.svg" alt="ascii-magic Benchmark Results" width="100%"></td><td width="50%"><img src="img/bench.svg" alt="kaas screen built from Benchmark Results" width="100%"></td></tr></table>

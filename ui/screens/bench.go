@@ -49,6 +49,7 @@ type Bench struct {
 	Rate      []float64
 	RateTitle string
 	Foot      string
+	Verb      string // the running counter's word; "acked" when empty
 }
 
 var spinner = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -143,7 +144,11 @@ func (b Bench) Render(k kit.Kit, width int) []string {
 			if r.Total > 0 {
 				pct = float64(r.Acked) / float64(r.Total)
 			}
-			count := fmt.Sprintf("acked %s/%s", Num(float64(r.Acked)), Num(float64(r.Total)))
+			verb := b.Verb
+			if verb == "" {
+				verb = "acked"
+			}
+			count := fmt.Sprintf("%s %s/%s", verb, Num(float64(r.Acked)), Num(float64(r.Total)))
 			pw := max(4, min(24, inner-nw-kit.Width(count)-12))
 			fill := int(pct * float64(pw))
 			body = append(body, lead+k.S(kit.FG, name)+"  "+k.S(kit.Accent, count)+"  "+

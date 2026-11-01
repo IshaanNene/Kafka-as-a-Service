@@ -37,7 +37,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas snapshot` | data-table | Topics, partitions and URPs, sortable | **built** |
 | `kaas watch` | toast-stack, sparkline-row (Live Data) | Events slide in as toasts; one records/sec sparkline per `-t` topic | **built** |
 | `kaas bench produce` | benchmark-table, histogram (Live Data), network-traffic (Live Data) | One row per case (size × acks × compression), a live counter, a latency histogram and a throughput graph | **built** |
-| `kaas bench consume` | benchmark-table, network-traffic | Same, for fetch | P1 |
+| `kaas bench consume` | benchmark-table, network-traffic | Same, for fetch: a case per fetch size × max wait, with poll waits | **built** |
 | `kaas topics` | data-table, file-tree (`--tree`) | Topic list with retention, cleanup and disk; prefix hierarchy as a tree | **built** |
 | `kaas topics describe` | disk-partitioner | Partitions laid out per broker, leaders and replicas | **built** |
 | `kaas topics alter --partitions` | disk-partitioner | New partitions carved from the free space, then written | P1 |

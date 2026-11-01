@@ -268,6 +268,22 @@ The sorted column is marked `▐ ▼`, and the busiest row is yellow. `--sort` t
 
 Rates are the difference between two readings, so the first live frame shows `-` until the second reading. `--once`, a pipe, and `-o json` all wait one `--interval` (2s by default) for that second reading before printing. The JSON has one object per partition: `topic`, `partition`, `leader`, `in_per_sec`, `out_per_sec`, `bytes_per_sec`, `size_bytes`, and `end_offset`. A negative value means unknown, for example when the cluster refuses `DescribeLogDirs`. `OUT/s` counts only groups that commit; `kaas consume` never commits, so its reads don't show up here.
 
+### `kaas produce`: write records
+
+```bash
+kaas produce orders                                   # compose one in the editor
+kaas produce orders -k user-17 --value '{"order":1043}' -H source=cli
+kaas produce orders --key-separator ':' < orders.txt  # one record per line
+```
+
+On a terminal, with nothing piped in, `kaas produce` opens an editor. The value, key and headers each get a tab, and `tab` moves between them. JSON is highlighted as you type: keys in purple, strings in light blue, numbers and literals in blue. `enter` keeps your indentation and indents after `{` or `[`, and a closing bracket steps back out.
+
+The status bar checks the value as you type and points at the first problem by line and column. `ctrl-s` refuses to send until the problem is fixed. A pretty-printed JSON value is sent compacted, so the stored record has no editor newlines. After a send, the buffers stay as they are and the status bar shows where the record landed, so you can change one field and send again. When you quit, each send is printed as a line.
+
+![kaas produce: composing a JSON value in the editor, with key and headers tabs](img/produce.svg)
+
+On a pipe, each line is one record, the way `kafka-console-producer` reads them. With `--key-separator`, the text before the separator is the key; a line without the separator is an error that names the line, so a record never silently loses its key. `--value` sends one record without reading stdin. `-H key=value` adds a header to every record, and `-p` picks the partition. Pipe output is silent unless you pass `-o json`, which prints `{topic, partition, offset, timestamp}` for each record.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

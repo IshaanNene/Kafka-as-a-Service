@@ -37,6 +37,7 @@ const SHOTS = {
   "empty-all-caught-up": "lag-caught-up",
   "relay-chat-channel": "consume",
   "process-sorter": "top",
+  "code-editor": "produce",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

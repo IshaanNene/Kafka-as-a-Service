@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kfake"
@@ -426,6 +427,21 @@ loop:
 	}
 	clv.history = clHistory
 	save("clients", "kaas clients", clv.screen(true).Render(k, 100))
+
+	// Produce: a record typed into the editor key by key, sent, then a
+	// field changed for the next one.
+	ed := newEditor(producer{cl: cl, topic: "orders", partition: -1}, k)
+	ed, _ = sendEditor(ed, tea.WindowSizeMsg{Width: 100, Height: 24})
+	ed, _ = sendEditor(ed, typeKeys("\tuser-17\tsource=checkout\ntrace-id=4bf92f3577b34da6\t")...)
+	ed, _ = sendEditor(ed, typeKeys(`{`+"\n"+`"order_id": "A-1043",`+"\n"+`"customer": "user-17",`+"\n"+
+		`"items": [{"sku": "B-220", "qty": 2}, {"sku": "C-118", "qty": 1}],`+"\n"+`"total": 49.90,`+"\n"+
+		`"gift": false,`+"\n"+`"note": null`+"\n"+`}`)...)
+	ed, sendCmd := sendEditor(ed, tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
+	ed, _ = sendEditor(ed, sendCmd())
+	ed, _ = sendEditor(ed, tea.KeyPressMsg{Code: tea.KeyUp}, tea.KeyPressMsg{Code: tea.KeyUp}, tea.KeyPressMsg{Code: tea.KeyUp})
+	ed, _ = sendEditor(ed, tea.KeyPressMsg{Code: tea.KeyEnd})
+	ed, _ = sendEditor(ed, typeKeys("\b\b\b\b\b\b59.90,")...)
+	save("produce", "kaas produce orders", ed.screen().Render(k, 100, 22))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

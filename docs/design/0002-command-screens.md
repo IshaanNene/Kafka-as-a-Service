@@ -49,7 +49,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas top` | process-sorter | Partitions by records and bytes in/out, with a meter per broker | **built** |
 | `kaas clients` | process-task-manager | Group members and idempotent producers by records/s (Kafka exposes no connection list or request rates) | **built** |
 | `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | **built** |
-| `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting | P1 |
+| `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting; pipes send a record per line | **built** |
 | `kaas produce --file` | upload-dropzone, empty-upload-tray | File records upload with per-file progress | P1 |
 | `kaas offsets reset` | onboarding-stepper, infra-plan-diff | Group → topic → strategy → preview of offset changes → apply | P1 |
 | `kaas offsets find --time` | bisect-hunt | Binary search for the offset at a time or the first bad record | P1 |

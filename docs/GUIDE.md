@@ -171,6 +171,24 @@ On a terminal without `--partitions`, `create` walks through four steps, each ch
 
 With `--partitions`, or without a terminal, the flags say it all: `-p` and `-r` (0 takes the broker's default) and repeatable `-c key=value`. `--dry-run` has the controller check the topic without creating it. A topic that already exists exits 1, unless you pass `--if-not-exists`. `-o json` gives `{topic, id, partitions, replicationFactor, configs, created, dryRun}`.
 
+#### `kaas topics delete`: remove topics, with a moment to undo
+
+```bash
+kaas topics delete orders.v1                 # type the name, then 5s to undo
+kaas topics delete orders.v1 orders.v2       # type "delete 2 topics"
+kaas topics delete orders.v1 --yes -o json   # scripts: no dialog, no wait
+```
+
+Kafka can't bring a deleted topic back, so on a terminal `delete` makes you look before anything happens:
+- **The dialog** opens over the topic's own describe page, dimmed, and says what goes with it: the records, the size on disk, the partitions, and the consumer groups still reading it.
+- **You type the topic's name** to arm the red button. For several topics you type `delete N topics`.
+- **For 5 seconds** the bin stays open with an Undo timer draining. `u` or `esc` cancels, and nothing has been sent yet; `enter` deletes now.
+- **Once the window ends**, kaas sends the delete. It waits until the cluster no longer lists the topic before the lid shuts.
+
+<table><tr><td width="62%"><img src="img/topics-delete.svg" alt="kaas topics delete: the dialog over the dimmed topic, the name half typed"></td><td><img src="img/topics-delete-done.svg" alt="kaas topics delete: the bin closed, topic deleted"></td></tr></table>
+
+Without a terminal to type into, `--yes` is required, and the delete is sent at once. With a terminal but stdout piped, kaas asks for the name on stderr instead of opening the dialog. An unknown topic exits 3. Internal topics such as `__consumer_offsets` are refused (exit 2). If a topic couldn't be deleted, for example because the brokers set `delete.topic.enable=false`, kaas exits 1 with the controller's reason. `-o json` prints `[{topic, deleted, error}]`.
+
 #### `kaas topics alter`: add partitions
 
 ```bash

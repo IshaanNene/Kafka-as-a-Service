@@ -228,6 +228,19 @@ loop:
 	wz = drive(t, wz, keys("enter", "left", "left", "down", "right", "right", "down")...)
 	save("topics-create", "kaas topics create", wz.screen(80).Render(k, 80, 22))
 
+	// Delete: the dialog over the dimmed topic, half typed; then the bin
+	// as it closes. The topic stays: later screens need it.
+	del, err := gatherDeletion(ctx, cl, []string{"users.profiles"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dm := deleteModel{d: del, k: k, now: time.Now}
+	dm = driveDelete(t, dm, tea.WindowSizeMsg{Width: 90, Height: 34})
+	dm = driveDelete(t, dm, typeKeys("users.prof")...)
+	save("topics-delete", "kaas topics delete users.profiles", strings.Split(dm.View().Content, "\n"))
+	del.results = map[string]error{"users.profiles": nil}
+	save("topics-delete-done", "kaas topics delete users.profiles", del.card(0).Render(k, 56))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

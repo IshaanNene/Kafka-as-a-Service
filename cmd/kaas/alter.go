@@ -175,8 +175,8 @@ func (a alteration) run(cmd *cobra.Command, cl *kgo.Client, output, themeName st
 			w, k = surf.w, surf.kit
 		}
 		q := fmt.Sprintf("Are you sure you want to write %s to %s? ", plural(a.to-a.from(), "new partition"), topic)
-		if !confirm(cmd.InOrStdin(), w, k, q) {
-			return fmt.Errorf("not confirmed: nothing was written")
+		if !confirm(cmd.InOrStdin(), w, k, q, "yes") {
+			return cancelled("Not confirmed: nothing was written.")
 		}
 		shown++
 	}
@@ -216,11 +216,11 @@ func allLed(td topicDescription) bool {
 	return true
 }
 
-// confirm asks q and reads one line: only "yes" goes ahead, as in the piece.
-func confirm(in io.Reader, w io.Writer, k kit.Kit, q string) bool {
-	_, _ = io.WriteString(w, "    "+k.S(kit.FG, q)+k.S(kit.Muted, "(type yes) "))
+// confirm asks q and reads one line: only want, typed exactly, goes ahead.
+func confirm(in io.Reader, w io.Writer, k kit.Kit, q, want string) bool {
+	_, _ = io.WriteString(w, "    "+k.S(kit.FG, q)+k.S(kit.Muted, "(type ")+k.S(kit.Warn, want)+k.S(kit.Muted, ") "))
 	line, _ := bufio.NewReader(in).ReadString('\n')
-	return strings.TrimSpace(line) == "yes"
+	return strings.TrimSpace(line) == want
 }
 
 type alterJSON struct {

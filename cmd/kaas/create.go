@@ -260,7 +260,7 @@ func (c creation) wizard(cmd *cobra.Command, themeName string) error {
 		return err
 	}
 	if w := final.(wizardModel); !w.finished {
-		return fmt.Errorf("cancelled: nothing was created")
+		return cancelled("Cancelled: nothing was created.")
 	}
 	return nil
 }

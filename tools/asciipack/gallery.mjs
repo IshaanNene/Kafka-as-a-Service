@@ -39,6 +39,8 @@ const SHOTS = {
   "process-sorter": "top",
   "code-editor": "produce",
   "onboarding-stepper": "topics-create",
+  "modal-dialog": "topics-delete",
+  "empty-trash-lid": "topics-delete-done",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

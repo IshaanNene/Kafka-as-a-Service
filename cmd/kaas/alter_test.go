@@ -108,7 +108,7 @@ func TestConfirm(t *testing.T) {
 		want bool
 	}{{"yes\n", true}, {"  yes\t\n", true}, {"y\n", false}, {"YES\n", false}, {"", false}} {
 		var out bytes.Buffer
-		if got := confirm(strings.NewReader(tc.in), &out, kit.Kit{}, "Sure? "); got != tc.want {
+		if got := confirm(strings.NewReader(tc.in), &out, kit.Kit{}, "Sure? ", "yes"); got != tc.want {
 			t.Errorf("confirm(%q) = %v, want %v", tc.in, got, tc.want)
 		}
 		if out.String() != "    Sure? (type yes) " {

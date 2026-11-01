@@ -77,11 +77,12 @@ Every change is shown as a plan and checked by the controller before it's applie
 
 The management plane is a web console in the same binary, plus two commands for CI.
 
-![The kaas console: four clusters with health, throughput, lag, drift and a live feed](img/console-fleet.png)
+![The kaas console: availability, traffic, freshness and cost across a fleet, with a map and recommendations](img/console-fleet.png)
 
 | Feature | What it gives you | Command |
 |---|---|---|
-| **Fleet console** | Every cluster on one page: health in words, throughput, worst lag, drift, schemas and ACLs, and a live event feed across the fleet | [`kaas console`](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+| **Fleet console** | Every cluster on one page: availability over the last hour, produced and consumed, data freshness, estimated cost, a world map, drift, and a live event feed across the fleet | [`kaas console`](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+| **Recommendations** | Offline and under-replicated partitions, stopped consumers, stale data, single-copy topics, unread topics, leader skew and drift, each with its impact and a command | [Recommendations](USAGE.md#recommendations) |
 | **Cluster pages** | Brokers, topics with a partition map, consumer lag with time to catch up, the request budget and the cluster's events | [Pages](USAGE.md#kaas-console-the-fleet-in-a-browser) |
 | **ACLs as sentences** | "allow User:billing read on topic orders", grouped by principal, with quotas by user and client | [Access](USAGE.md#kaas-console-the-fleet-in-a-browser) |
 | **Schema Registry** | Subjects, types, versions and compatibility per cluster, with the latest schema highlighted | [Fleet file](USAGE.md#the-fleet-file) |

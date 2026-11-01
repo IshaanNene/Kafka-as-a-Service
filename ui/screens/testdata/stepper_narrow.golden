@@ -1,0 +1,22 @@
+╭─ Create topic ─────────────────── Step 1 of 4 ─╮
+│      │                                         │
+│      │ Name your topic                         │
+│  (1) │ ─────────────────────────────────────── │
+│   │  │                                         │
+│   │  │ Topic name                              │
+│   │  │ ╭─────────────────────────────────────╮ │
+│   2  │ │ payments.eu.refunds█                │ │
+│   │  │ ╰─────────────────────────────────────╯ │
+│   │  │                                         │
+│   │  │ Family                                  │
+│   3  │ payments › eu › refunds                 │
+│   │  │ 2 topics share payments.eu              │
+│   │  │                                         │
+│   │  │                                         │
+│   4  │                                         │
+│      │                        ╭──────────────╮ │
+│      │                        │  Continue →  │ │
+│      │                        ╰──────────────╯ │
+╰────────────────────────────────────────────────╯
+ enter continue · tab next field · esc back
+ ctrl-c quit

@@ -38,6 +38,7 @@ const SHOTS = {
   "relay-chat-channel": "consume",
   "process-sorter": "top",
   "code-editor": "produce",
+  "onboarding-stepper": "topics-create",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

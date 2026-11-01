@@ -214,6 +214,20 @@ loop:
 	alter := alteration{td: td, to: len(td.topic.Partitions) + 2, readers: topicReaders(ctx, kadm.NewClient(cl), "users.profiles")}
 	save("topics-alter", fmt.Sprintf("kaas topics alter users.profiles --partitions %d", alter.to), alter.screen().Render(k, 90))
 
+	// Create: the wizard driven to its configs step, against the cluster.
+	wsnap, err := snapshot.Fetch(ctx, cl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wz := newWizard(creation{cl: cl, adm: kadm.NewClient(cl), snap: wsnap}, k)
+	wz = drive(t, wz, tea.WindowSizeMsg{Width: 80, Height: 24})
+	wz = drive(t, wz, typeKeys("payments.eu.chargebacks")...)
+	wz = drive(t, wz, keys("enter")...)
+	wz = drive(t, wz, keys("backspace", "backspace", "backspace")...)
+	wz = drive(t, wz, typeKeys("12")...)
+	wz = drive(t, wz, keys("enter", "left", "left", "down", "right", "right", "down")...)
+	save("topics-create", "kaas topics create", wz.screen(80).Render(k, 80, 22))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

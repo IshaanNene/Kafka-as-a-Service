@@ -153,6 +153,24 @@ Every partition's leader, replicas, in-sync replicas, offsets, records and size,
 
 On a pipe it prints the `kafka-topics --describe` layout, so existing `grep` habits still work.
 
+#### `kaas topics create`: make a topic
+
+```bash
+kaas topics create                                  # step by step
+kaas topics create payments -p 12 -r 3 -c cleanup.policy=compact
+kaas topics create payments -p 12 --if-not-exists -o json   # idempotent, for scripts
+```
+
+On a terminal without `--partitions`, `create` walks through four steps, each checked before you move on:
+1. **Name.** The name is checked against Kafka's rules and the topics you already have, including names that would collide in Kafka's metrics, where `.` and `_` become the same. You also see where the name sits in its family, for example `payments › eu › refunds` and how many topics share `payments.eu`.
+2. **Layout.** The partition count and replication factor start from the cluster's own `num.partitions` and `default.replication.factor`, which kaas gets by asking the controller. You see how many replicas that makes per broker, and RF 1 comes with a warning.
+3. **Configs.** Retention, cleanup, min in-sync replicas and compression are cards you change with `←` `→`. A card turns green when it differs from the broker.
+4. **Create.** The controller checks the whole topic before anything is created. `enter` then creates it, and a bar fills as each partition gets a leader.
+
+![kaas topics create: the configs step, with retention and cleanup set](img/topics-create.svg)
+
+With `--partitions`, or without a terminal, the flags say it all: `-p` and `-r` (0 takes the broker's default) and repeatable `-c key=value`. `--dry-run` has the controller check the topic without creating it. A topic that already exists exits 1, unless you pass `--if-not-exists`. `-o json` gives `{topic, id, partitions, replicationFactor, configs, created, dryRun}`.
+
 #### `kaas topics alter`: add partitions
 
 ```bash

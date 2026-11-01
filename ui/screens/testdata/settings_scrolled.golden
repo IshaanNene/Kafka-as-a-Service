@@ -1,0 +1,14 @@
+╭─ Config · topic orders ───── ✓ 2 set on the topic · 1 from brokers ──╮
+│  min.cleanable.d…  Share of the …  ━━━━━━●─────         0.5          │
+│                                                                      │
+│ MESSAGES ─────────────────────────────────────────────────────────── │
+│  compression.type  Codec the bro…                      zstd  broker  │
+│  message.downcon…  Convert batch…        (━━━━●) On                  │
+│                                                                      │
+│ REPLICATION ──────────────────────────────────────────────────────── │
+│  min.insync.repl…  Replicas that…  ━━━━━━●─────      2 of 3  topic   │
+│▌ unclean.leader.…  Let an out-of…        (●────) Off                 ┃
+│──────────────────────────────────────────────────────────────────────│
+│  retention.ms = 86400000 (1d) · set on the topic · default 7d        │
+│  How long records are kept before the log deletes them.              │
+╰─ ↑↓ move · s set only · q quit ──────────────────────────────────────╯

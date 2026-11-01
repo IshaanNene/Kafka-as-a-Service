@@ -127,6 +127,7 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 // Meta is what the browser needs before anything else.
 type Meta struct {
+	Name       string   `json:"name"`
 	Version    string   `json:"version"`
 	AllowApply bool     `json:"allowApply"`
 	Demo       bool     `json:"demo"`
@@ -134,7 +135,7 @@ type Meta struct {
 }
 
 func (s *Server) meta(w http.ResponseWriter, _ *http.Request) {
-	m := Meta{Version: s.opts.Version, AllowApply: s.opts.AllowApply, Demo: s.opts.Demo}
+	m := Meta{Name: s.fleet.Name, Version: s.opts.Version, AllowApply: s.opts.AllowApply, Demo: s.opts.Demo}
 	for _, c := range s.fleet.Clusters {
 		m.Clusters = append(m.Clusters, c.Config.Name)
 	}

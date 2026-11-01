@@ -329,17 +329,17 @@ func TestLoadConfig(t *testing.T) {
 
 func TestDemoStarts(t *testing.T) {
 	if testing.Short() {
-		t.Skip("starts three in-memory clusters")
+		t.Skip("starts four in-memory clusters")
 	}
 	d, err := StartDemo(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer d.Close()
-	if len(d.Config.Clusters) != 4 {
+	if len(d.Config.Clusters) != 5 {
 		t.Fatalf("demo clusters: %d", len(d.Config.Clusters))
 	}
-	for _, c := range d.Config.Clusters[:3] {
+	for _, c := range d.Config.Clusters[:4] {
 		if _, err := plan.Load(c.Desired); err != nil {
 			t.Errorf("%s's desired file doesn't parse: %v", c.Name, err)
 		}

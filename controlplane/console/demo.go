@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -40,6 +41,8 @@ type demoCluster struct {
 	quotas            []quotas.Quota
 	desired           string
 	subjects          [][3]string // subject, type, compatibility
+	singleCopy        []string    // topics created with one replica
+	quitters          []demoGroup // groups that read for a while, then stop
 }
 
 type demoTopic struct {
@@ -118,8 +121,11 @@ prune: {acls: true}
 			{"payments", 6, 210, nil},
 			{"clickstream", 12, 1300, nil},
 			{"search.queries", 6, 380, nil},
+			{"ml.features", 6, 90, nil},
 		},
-		groups: []demoGroup{{"billing", "orders", false}, {"fraud-scoring", "payments", false}, {"search-indexer", "search.queries", false}, {"analytics-sink", "clickstream", false}},
+		groups:     []demoGroup{{"billing", "orders", false}, {"fraud-scoring", "payments", false}, {"search-indexer", "search.queries", false}, {"analytics-sink", "clickstream", false}},
+		singleCopy: []string{"ml.features"},
+		quitters:   []demoGroup{{"legacy-reporting", "orders", false}},
 		acls: []acls.ACL{
 			allow("User:billing", "topic", "orders", "read"), allow("User:fraud", "topic", "payments", "read"),
 			allow("User:search", "topic", "search.queries", "read"),
@@ -131,16 +137,39 @@ topics:
   payments: {partitions: 6, replication: 3}
   clickstream: {partitions: 12, replication: 3}
   search.queries: {partitions: 6, replication: 3}
+  ml.features: {partitions: 6, replication: 1}
 acls:
   - {principal: User:billing, resource: topic, name: orders, operation: read}
   - {principal: User:fraud, resource: topic, name: payments, operation: read}
   - {principal: User:search, resource: topic, name: search.queries, operation: read}
 policies:
+  - {name: replicated, rule: "topic.replication >= 3 || topic.name.startsWith('ml.')", message: production topics need three replicas}
+`,
+	},
+	{
+		name: "prod-apac", env: "production", region: "ap-southeast-1", brokers: 3,
+		topics: []demoTopic{
+			{"orders", 6, 240, map[string]string{"retention.ms": "604800000"}},
+			{"payments", 6, 95, nil},
+			{"clickstream", 6, 520, nil},
+		},
+		groups: []demoGroup{{"billing", "orders", false}, {"fraud-scoring", "payments", false}, {"analytics-sink", "clickstream", false}},
+		acls: []acls.ACL{
+			allow("User:billing", "topic", "orders", "read"), allow("User:fraud", "topic", "payments", "read"),
+			allow("User:analytics", "topic", "clickstream", "read"),
+		},
+		subjects: [][3]string{{"orders-value", "AVRO", ""}, {"payments-value", "AVRO", "FULL"}},
+		desired: `cluster: prod-apac
+topics:
+  orders: {partitions: 6, replication: 3, configs: {retention.ms: 7d}}
+  payments: {partitions: 6, replication: 3}
+  clickstream: {partitions: 6, replication: 3}
+policies:
   - {name: replicated, rule: topic.replication >= 3, message: production topics need three replicas}
 `,
 	},
 	{
-		name: "staging", env: "staging", region: "eu-west-1", brokers: 1,
+		name: "staging", env: "staging", region: "eu-central-1", brokers: 1,
 		topics: []demoTopic{
 			{"orders", 3, 25, nil},
 			{"payments", 3, 10, nil},
@@ -195,6 +224,9 @@ func StartDemo(ctx context.Context) (*Demo, error) {
 	// A disaster-recovery cluster that doesn't answer, to show what that
 	// looks like.
 	d.Config.Clusters = append(d.Config.Clusters, ClusterConfig{Name: "dr-ap-south", Brokers: []string{"127.0.0.1:1"}, Env: "production", Region: "ap-south-1"})
+	// Roughly what three m5.xlarge-class brokers and gp3 storage cost.
+	d.Config.Name = "Acme Commerce"
+	d.Config.Pricing = &Pricing{BrokerHour: 0.21, GiBMonth: 0.10, Currency: "USD"}
 	return d, nil
 }
 
@@ -235,7 +267,11 @@ func (d *Demo) start(ctx context.Context, dc demoCluster, reg *schemas.Memory) (
 		for k, v := range t.configs {
 			cfg[k] = &v
 		}
-		if _, err := adm.CreateTopics(ctx, t.partitions, int16(dc.brokers), cfg, t.name); err != nil {
+		rf := int16(dc.brokers)
+		if slices.Contains(dc.singleCopy, t.name) {
+			rf = 1
+		}
+		if _, err := adm.CreateTopics(ctx, t.partitions, rf, cfg, t.name); err != nil {
 			return nil, err
 		}
 	}
@@ -265,6 +301,15 @@ func (d *Demo) start(ctx context.Context, dc demoCluster, reg *schemas.Memory) (
 	for _, g := range dc.groups {
 		wg.Add(1)
 		go func() { defer wg.Done(); consume(runCtx, seeds, g) }()
+	}
+	for _, g := range dc.quitters {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			quitCtx, quit := context.WithTimeout(runCtx, 20*time.Second)
+			defer quit()
+			consume(quitCtx, seeds, g)
+		}()
 	}
 	if dc.brokers > 1 {
 		// Leaders move now and then, as they do in a rolling restart.

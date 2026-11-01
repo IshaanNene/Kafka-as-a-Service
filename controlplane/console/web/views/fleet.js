@@ -4,7 +4,7 @@ import { compact, rate, plural, int, money, pct, age, bytes } from "../lib/fmt.j
 import { lineChart, sparkline, uptimeStrip, ring } from "../lib/charts.js";
 import { dots, project, locate, MAP } from "../lib/geo.js";
 import { state } from "../lib/store.js";
-import { hero, feed, link, clusterHref, envBadge, loading, kpi, delta, insightList, inRange, rangeSwitch, navigate } from "./common.js";
+import { hero, feed, link, clusterHref, envBadge, loading, kpi, delta, insightList, inRange, rangeSwitch, navigate, meter, split, share } from "./common.js";
 
 const S1 = "var(--s1)", S2 = "var(--s2)";
 
@@ -101,12 +101,14 @@ function summary(f) {
         foot: t.freshness > 0 && t.freshGroup
           ? h("span", null, "worst: ", h("b", { class: "mono" }, t.freshGroup), " on ", t.freshCluster)
           : h("span", null, "every consumer is caught up"),
+        viz: t.freshness >= 0 ? meter(t.freshness, 60, { label: "stale after 1m", over: "past target" }) : null,
       }),
       f.pricing
         ? kpi({
           label: "Est. run cost", ic: "bolt", value: h("span", { class: "num" }, money(t.cost, f.pricing.currency)), unit: "/ month",
           foot: h("span", { title: `brokers × ${money(f.pricing.brokerHour, f.pricing.currency)}/h, storage × ${f.pricing.gibMonth} ${f.pricing.currency}/GiB-month` },
             `${plural(t.brokers, "broker")}${t.disk ? " · " + bytes(t.disk) : ""}`),
+          viz: costSplit(t, f.pricing),
         })
         : kpi({
           label: "Consumer backlog", ic: "consumers", value: h("span", { class: "num" }, compact(t.lag)), unit: "records",
@@ -115,6 +117,17 @@ function summary(f) {
     h("div", { class: "inventory" },
       inv("Brokers", int(t.brokers)), inv("Topics", int(t.topics)), inv("Partitions", compact(t.partitions)),
       inv("Consumer groups", int(consumers)), inv("Schemas", int(t.schemas)), inv("Backlog", compact(t.lag))));
+}
+
+// costSplit says where the estimate comes from: brokers or storage.
+function costSplit(t, p) {
+  const compute = t.brokers * p.brokerHour * 730;
+  const storage = (t.disk / 2 ** 30) * p.gibMonth;
+  const total = compute + storage || 1;
+  return split([
+    { label: "Brokers", value: compute, text: money(compute, p.currency) },
+    { label: "Storage", value: storage, text: money(storage, p.currency) },
+  ], `brokers ${share(compute / total)} · storage ${share(storage / total)}`);
 }
 
 function inv(k, v) {
@@ -184,7 +197,7 @@ function clustersTable(clusters) {
           h("td", null, status(c.status)),
           h("td", null, h("div", { class: "avail" }, uptimeStrip(c.uptime, { label: c.name + " status for each minute of the last hour" }), h("span", { class: "num" }, pct(c.availability)))),
           h("td", null, c.status === "unreachable" ? h("span", { class: "muted" }, "—")
-            : h("div", { class: "spark-cell" }, h("div", { class: "spark-box", style: { "--chart-line": S1, "--chart-fill-top": "color-mix(in oklab, var(--s1) 30%, transparent)", "--chart-fill-bottom": "transparent" } }, sparkline("t-" + c.name, inRange(c.history))),
+            : h("div", { class: "spark-cell" }, h("div", { class: "spark-box", style: { "--chart-line": S1, "--chart-fill-top": "color-mix(in oklab, var(--s1) 16%, transparent)", "--chart-fill-bottom": "transparent" } }, sparkline("t-" + c.name, inRange(c.history))),
               h("span", { class: "num" }, rate(c.throughput) + "/s"))),
           h("td", { class: "r num" }, c.freshness < 0 ? "—" : age(c.freshness)),
           h("td", { class: "r num" }, c.status === "unreachable" ? "—" : int(c.brokers)),

@@ -4,7 +4,7 @@ import { compact, rate, int, bytes, duration, plural, quota, ago, age, pct, mone
 import { bar, lineChart, uptimeStrip, ring, squarify } from "../lib/charts.js";
 import { locate } from "../lib/geo.js";
 import { state, changed } from "../lib/store.js";
-import { hero, stat, feed, link, clusterHref, envBadge, empty, loading, kpi, delta, insightList, inRange, rangeSwitch } from "./common.js";
+import { hero, stat, feed, link, clusterHref, envBadge, empty, loading, kpi, delta, insightList, inRange, rangeSwitch, meter, split, share } from "./common.js";
 import { gitopsTab } from "./gitops.js";
 import { navigate } from "../lib/router.js";
 
@@ -92,8 +92,9 @@ function overviewTab(v) {
         kpi({
           label: "Data freshness", ic: "connecting", value: h("span", { class: "num" }, c.freshness < 0 ? "—" : age(c.freshness)), unit: c.freshness > 0 ? "behind" : "",
           foot: c.freshness > 0 && c.freshGroup ? h("span", null, "worst: ", h("b", { class: "mono" }, c.freshGroup)) : "every consumer is caught up",
+          viz: c.freshness >= 0 ? meter(c.freshness, 60, { label: "stale after 1m", over: "past target" }) : null,
         }),
-        kpi({ label: "Retained", ic: "file", value: h("span", { class: "num" }, compact(c.records)), unit: "records", foot: c.disk ? bytes(c.disk) + " on disk" : "between log start and end" }))),
+        kpi({ label: "Retained", ic: "file", value: h("span", { class: "num" }, compact(c.records)), unit: "records", foot: c.disk ? bytes(c.disk) + " on disk" : "between log start and end", viz: retainedSplit(v) }))),
     h("section", { class: "card mt" },
       h("div", { class: "card-head" }, h("h3", { class: "card-title" }, icon("ok"), "Last hour"),
         h("span", { class: "right muted" }, "a bar a minute · hover for the time and status")),
@@ -144,13 +145,24 @@ function uptimeScale(slots) {
   return h("div", { class: "uptime-scale" }, h("span", null, hm(slots[0].t)), h("span", null, hm(slots[Math.floor(slots.length / 2)].t)), h("span", null, "now"));
 }
 
+// retainedSplit is which topics hold the retained records: the two
+// largest by name, then the rest.
+function retainedSplit(v) {
+  const ts = v.topics.filter((t) => !t.internal && t.records > 0).sort((a, b) => b.records - a.records);
+  if (!ts.length) return null;
+  const parts = ts.slice(0, 2).map((t) => ({ label: t.name, value: t.records, text: compact(t.records) + " records" }));
+  const rest = ts.slice(2).reduce((a, t) => a + t.records, 0);
+  if (rest) parts.push({ label: "other", value: rest, text: compact(rest) + " records" });
+  return split(parts, h("span", null, h("b", { class: "mono" }, ts[0].name), " holds ", share(ts[0].records / ts.reduce((a, t) => a + t.records, 0))));
+}
+
 function topicMap(v) {
   const items = v.topics.filter((t) => !t.internal && t.rate > 0).map((t) => ({ key: t.name, value: t.rate, t }));
   if (!items.length) return h("div", { class: "card-body muted" }, "No topic is receiving records right now.");
   const max = Math.max(...items.map((i) => i.value));
   const cells = squarify(items, 100, 100);
   return h("div", { class: "tmap", role: "list", "aria-label": "Topics by records a second" }, cells.map((r) => {
-    const k = 16 + Math.round(52 * Math.sqrt(r.value / max));
+    const k = 10 + Math.round(30 * Math.sqrt(r.value / max));
     const tiny = r.w < 9 || r.h < 14;
     return link(clusterHref(v.card.name, "topics", r.key), {
       key: "tm-" + r.key, class: "tm" + (tiny ? " tiny" : ""), role: "listitem",

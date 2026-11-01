@@ -140,7 +140,7 @@ export function lineChart(id, series, { format, height = 240, unit = "" } = {}) 
   return h("div", { class: "chart", style: { height: H + "px" }, role: "img", "aria-label": `${latest}, over the last ${Math.max(1, Math.round((t1 - t0) / 60000))} minutes` },
     h("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" },
       h("defs", null, h("linearGradient", { id, x1: "0", y1: "0", x2: "0", y2: "1" },
-        h("stop", { offset: "0", "stop-color": drawn[0].color, "stop-opacity": ".26" }),
+        h("stop", { offset: "0", "stop-color": drawn[0].color, "stop-opacity": ".14" }),
         h("stop", { offset: "1", "stop-color": drawn[0].color, "stop-opacity": "0" }))),
       ticks.map((v) => h("line", { x1: 0, x2: W, y1: H - (v / max) * H, y2: H - (v / max) * H, stroke: "var(--chart-grid)", "vector-effect": "non-scaling-stroke" })),
       h("path", { d: drawn[0].area, fill: `url(#${id})` }),

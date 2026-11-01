@@ -89,7 +89,7 @@
   --threshold-warn: #f5b942;
   --threshold-crit: #ff626b;
   --chart-line: var(--s1);
-  --chart-fill-top: color-mix(in oklab, var(--s1) 18%, transparent);
+  --chart-fill-top: color-mix(in oklab, var(--s1) 12%, transparent);
   --chart-fill-bottom: transparent;
   --chart-grid: #222b25;
   --axis: #79857c;
@@ -394,6 +394,20 @@ h3.card-title .ic { color: var(--ink-3); }
 .kpi-foot { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi-spark { margin: auto -18px 0; height: 40px; }
 .kpi-spark .spark { height: 40px; }
+.kpi-viz { margin-top: auto; padding: 12px 0 16px; }
+.meter-track { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
+.meter-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--capacity); }
+.meter.over .meter-track i { background: var(--threshold-warn); }
+.meter-track .mark { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: var(--ink-2); }
+.meter-lbl, .ksplit-lbl { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; }
+.meter.over .meter-lbl span:first-child { color: var(--warn); }
+.ksplit-bar { display: flex; gap: 2px; height: 6px; }
+.ksplit-bar i { min-width: 3px; border-radius: 2px; }
+.ksplit .p0 { background: var(--ink-2); }
+.ksplit .p1 { background: var(--ink-4); }
+.ksplit .p2 { background: var(--line-strong); }
+.ksplit-lbl { display: block; text-overflow: ellipsis; }
+.ksplit-lbl b { font-weight: 500; color: var(--ink-2); }
 
 .chg { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 999px; font: 500 11px/1.2 var(--font-mono); background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
 /* A change in traffic is information, not a health state: neutral, with
@@ -427,13 +441,12 @@ h3.card-title .ic { color: var(--ink-3); }
   position: absolute; top: 50%; left: calc(var(--d, 10px) / 2 + 10px); transform: translateY(-50%);
   display: flex; align-items: center; gap: 8px; white-space: nowrap;
   padding: 5px 9px; border-radius: 8px; font-size: 12px; font-weight: 600;
-  background: color-mix(in oklab, var(--raised) 86%, transparent); border: 1px solid var(--line-strong);
-  backdrop-filter: blur(6px); box-shadow: var(--shadow);
+  background: var(--raised); border: 1px solid var(--line);
 }
 .node.flip .tag { left: auto; right: calc(var(--d, 10px) / 2 + 10px); }
 .node .tag .num { font-size: 11px; font-weight: 400; color: var(--ink-3); }
 .node .tag .status { font-size: 11px; }
-.tshare { padding: 6px 20px 16px; border-top: 1px solid var(--line); margin-top: auto; }
+.tshare { padding: 6px 20px 16px; border-top: 1px solid var(--line); }
 .tshare-head { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); padding: 12px 0 6px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; }
 .tshare-row { display: grid; grid-template-columns: 8px minmax(150px, 1.1fr) 2fr 44px; gap: 12px; align-items: center; padding: 7px 0; color: var(--ink); text-decoration: none; font-size: 13px; border-radius: 6px; }
 .tshare-row:hover .nm { text-decoration: underline; text-underline-offset: 3px; }
@@ -442,6 +455,7 @@ h3.card-title .ic { color: var(--ink-3); }
 .tshare-row .num { text-align: right; color: var(--ink-2); font-size: 12px; }
 .tshare-row .bar { min-width: 0; }
 .card:has(> .tshare) { display: flex; flex-direction: column; }
+.card:has(> .tshare) > .map { margin-block: auto; }
 .map-legend { display: flex; gap: 14px; align-items: center; font-size: 12px; color: var(--ink-3); }
 .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .map-legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--status); }
@@ -454,7 +468,7 @@ h3.card-title .ic { color: var(--ink-3); }
 .uptime i:hover { opacity: 1; outline: 1px solid var(--ink-3); outline-offset: 1px; }
 .uptime .s-degraded { background: var(--warn); }
 .uptime .s-critical, .uptime .s-unreachable { background: var(--crit); }
-.uptime .s-none { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); opacity: 1; }
+.uptime .s-none { background: var(--line); opacity: .55; }
 .uptime.sm { height: 18px; gap: 1.5px; min-width: 150px; }
 .uptime-scale { display: flex; justify-content: space-between; margin-top: 8px; font: 400 10.5px/1 var(--font-mono); color: var(--ink-3); }
 .avail { display: flex; align-items: center; gap: 10px; }
@@ -492,7 +506,7 @@ h3.card-title .ic { color: var(--ink-3); }
 .tm {
   position: absolute; display: flex; flex-direction: column; justify-content: space-between;
   padding: 8px 10px; overflow: hidden; border-radius: 8px; border: 2px solid var(--surface);
-  background: color-mix(in oklab, var(--s1) var(--k, 30%), var(--surface-2));
+  background: color-mix(in oklab, var(--s1) var(--k, 20%), var(--surface-2));
   color: var(--ink); transition: filter .15s var(--ease);
 }
 .tm:hover { filter: brightness(1.12); }
@@ -657,7 +671,7 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; font-weight: 400
 
 .chart { position: relative; height: 220px; user-select: none; }
 .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.chart .y-label { position: absolute; right: 0; font: 400 10.5px/1 var(--font-mono); color: var(--axis); transform: translateY(calc(-100% - 4px)); }
+.chart .y-label { position: absolute; right: 0; padding: 1px 0 1px 4px; background: var(--surface); border-radius: 3px; font: 400 10.5px/1 var(--font-mono); color: var(--axis); transform: translateY(calc(-100% - 4px)); }
 .chart .x-label { position: absolute; bottom: -20px; font: 400 10.5px/1 var(--font-mono); color: var(--axis); transform: translateX(-50%); white-space: nowrap; }
 .chart .cross { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line-strong); pointer-events: none; }
 .chart .marker {

@@ -105,13 +105,41 @@ export function delta(pts) {
 
 // kpi is a headline number with what it's about, how it's moving, and
 // its recent shape.
-export function kpi({ label, value, unit, foot, spark, sparkId, color, ic }) {
+export function kpi({ label, value, unit, foot, spark, sparkId, color, ic, viz }) {
   return h("div", { class: "kpi" },
     h("div", { class: "kpi-label" }, color ? h("i", { class: "key", style: { "--c": color } }) : ic ? icon(ic) : null, label),
     h("div", { class: "kpi-value" }, value, unit ? h("small", null, unit) : null),
     h("div", { class: "kpi-foot" }, foot),
-    spark ? h("div", { class: "kpi-spark", style: color ? { "--chart-line": color, "--chart-fill-top": `color-mix(in oklab, ${color} 30%, transparent)`, "--chart-fill-bottom": "transparent" } : null },
-      sparkline(sparkId, spark)) : null);
+    spark ? h("div", { class: "kpi-spark", style: color ? { "--chart-line": color, "--chart-fill-top": `color-mix(in oklab, ${color} 16%, transparent)`, "--chart-fill-bottom": "transparent" } : null },
+      sparkline(sparkId, spark)) : null,
+    viz ? h("div", { class: "kpi-viz" }, viz) : null);
+}
+
+// meter is a value against a threshold: the bar fills to the threshold
+// mark and past it, turning to warning there, with both ends labelled so
+// the colour is never the only signal.
+export function meter(v, limit, { label, over }) {
+  const full = limit * 2;
+  const w = Math.min(100, (Math.max(0, v) / full) * 100);
+  const bad = v > limit;
+  return h("div", { class: "meter" + (bad ? " over" : "") },
+    h("div", { class: "meter-track" }, h("i", { style: { width: w.toFixed(1) + "%" } }), h("b", { class: "mark", title: label })),
+    h("div", { class: "meter-lbl" }, h("span", null, bad ? over : "within target"), h("span", null, label)));
+}
+
+// split is one bar cut into parts, for a total and what makes it up,
+// with a caption that says the part worth saying. Parts are neutral steps,
+// each named in its tooltip.
+export function split(parts, caption) {
+  const total = parts.reduce((a, p) => a + p.value, 0) || 1;
+  return h("div", { class: "ksplit" },
+    h("div", { class: "ksplit-bar" }, parts.filter((p) => p.value > 0).map((p, i) =>
+      h("i", { key: p.label, class: "p" + i, title: `${p.label}: ${p.text} (${share(p.value / total)})`, style: { flex: `${p.value / total} 1 0` } }))),
+    h("div", { class: "ksplit-lbl" }, caption));
+}
+
+export function share(f) {
+  return f > 0 && f < 0.005 ? "<1%" : Math.round(f * 100) + "%";
 }
 
 const sevWord = { critical: "Critical", warning: "Warning", info: "Advice" };

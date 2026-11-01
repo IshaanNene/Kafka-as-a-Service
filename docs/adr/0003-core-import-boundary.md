@@ -15,3 +15,5 @@ The TUI, agent, API and MCP server must share identical cluster-state semantics 
 
 ## Consequences
 Core stays unit-testable against kfake and embeddable in the agent. Surfaces adapt core types rather than core adapting to them.
+
+Pipe endpoints that need a transport, such as the HTTP webhook sink and `listen://` source, live in `connectors/` and register themselves with `core/pipe` (`pipe.Register`). The pipe engine and its Kafka, file and generator endpoints stay in core.

@@ -25,6 +25,7 @@ import (
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/top"
 	"github.com/IshaanNene/Kafka-as-a-Service/internal/termshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
 	"github.com/IshaanNene/Kafka-as-a-Service/ui/kit"
@@ -282,6 +283,52 @@ loop:
 	}
 	cv.rate = 3
 	save("consume", "kaas consume inventory --from -5", cv.frame(time.Now()))
+
+	// Top: two readings 2s apart, with orders busiest, payments next,
+	// and billing reading its share of both.
+	tv := &topView{cl: cl, adm: adm, sort: screens.SortIn, limit: 12, interval: 2 * time.Second}
+	if err := tv.refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	before := tv.cur.End
+	for i := range 2400 {
+		cl.Produce(ctx, &kgo.Record{Topic: "orders", Key: []byte(strconv.Itoa(i % 7)), Value: []byte(`{"order":"an order"}`)}, nil)
+		if i%3 == 0 {
+			cl.Produce(ctx, &kgo.Record{Topic: "payments", Key: []byte(strconv.Itoa(i % 5)), Value: []byte("a payment")}, nil)
+		}
+		if i%40 == 0 {
+			cl.Produce(ctx, &kgo.Record{Topic: "inventory", Value: []byte("a restock")}, nil)
+		}
+	}
+	if err := cl.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for group, topics := range reads {
+		if pace[group] == 0 {
+			continue
+		}
+		ends, err := adm.ListEndOffsets(ctx, topics...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var os kadm.Offsets
+		ends.Each(func(o kadm.ListedOffset) {
+			key := group + "/" + o.Topic + "/" + strconv.Itoa(int(o.Partition))
+			// Each reader keeps up with most of what was just written.
+			at[key] = min(o.Offset, at[key]+(o.Offset-before[top.Key{Topic: o.Topic, Partition: o.Partition}])*9/10)
+			os.Add(kadm.Offset{Topic: o.Topic, Partition: o.Partition, At: at[key], LeaderEpoch: -1})
+		})
+		if err := adm.CommitAllOffsets(ctx, group, os); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tv.refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tv.cur.At = tv.prev.At.Add(2 * time.Second)
+	tv.rows = top.Rates(tv.prev, tv.cur)
+	tv.sortRows()
+	save("top", "kaas top", tv.screen(true).Render(k, 100, 34))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

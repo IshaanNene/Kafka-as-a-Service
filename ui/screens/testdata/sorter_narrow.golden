@@ -1,0 +1,17 @@
+  1[||||||||||||||||||||||||          62.0%]
+  2[||||||||||||                      31.0%]
+  3[|||                                7.0%]
+  Read[|||||||||||||||||||||||||0.8× writes]
+  Partitions: 14 across 5 topics; 3 brokers
+  Write: 1.2k rec/s · 96 KiB/s
+  Read: 1,010 rec/s by 3 groups
+────────────────────────────────────────────
+    PART ▐  IN/s▼ TOPIC
+       2     612  orders end 1,204,551
+       0     301  orders end 602,113
+       1      88  payments.eu.charges
+       0     3.5  audit end 9,001
+       0       -  users.profiles offline
+  + 9 more · raise --top to see them
+
+^CQuit    --sort in      --top 5

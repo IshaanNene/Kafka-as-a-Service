@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 18 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 19 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -34,7 +34,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Onboarding Stepper](#onboarding-stepper) | `kaas topics create`, `kaas offsets reset` | P1 |
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | built |
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
-| [Process Viewer Sort](#process-viewer-sort) | `kaas top` | P1 |
+| [Process Viewer Sort](#process-viewer-sort) | `kaas top` | built |
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | built |
 | [Code Editor](#code-editor) | `kaas produce` | P1 |
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | P1 |
@@ -287,11 +287,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Process Viewer Sort
 
-[`process-sorter`](https://www.ascii-magic.com/ascii/process-sorter) · **P1** · An interactive process viewer with meter bars where the table slides into a new order as the sort column changes.
+[`process-sorter`](https://www.ascii-magic.com/ascii/process-sorter) · **built** · An interactive process viewer with meter bars where the table slides into a new order as the sort column changes.
 
-- `kaas top`: Partitions by bytes in/out, with meter bars
+- `kaas top`: Partitions by records and bytes in/out, with a meter per broker
 
-<img src="img/ui/process-sorter.svg" alt="ascii-magic Process Viewer Sort" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/process-sorter.svg" alt="ascii-magic Process Viewer Sort" width="100%"></td><td width="50%"><img src="img/top.svg" alt="kaas screen built from Process Viewer Sort" width="100%"></td></tr></table>
 
 ### Relay Chat Channel
 

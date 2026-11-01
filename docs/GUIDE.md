@@ -223,6 +223,27 @@ Each record is a line, the way a chat channel shows messages: its time, its part
 
 On a pipe it prints one raw value per line, like `kafka-console-consumer`. With `-o json` you get one object per line: `partition`, `offset`, `timestamp`, `key`, `value` and `headers`, with binary keys and values base64-encoded and marked as such. `kaas tail` is the same command.
 
+### `kaas top`: which partitions are working
+
+```bash
+kaas top                            # live, busiest writers first
+kaas top 'payments.*' --sort bytes  # the payments topics, by disk growth
+kaas top --once --top 10            # two readings, then print the top 10
+```
+
+This is htop for partitions. Each broker gets a meter showing its share of the records written. The `Read` gauge compares records read with records written, summed over groups: two groups keeping pace read `2.0×`. Below that, every partition has a row:
+
+- `IN/s`: records written, from its log-end offset.
+- `OUT/s`: records read, from consumer group commits.
+- `BYTES/s`: how fast its log grows on the leader.
+- `SIZE`: the log's size on the leader.
+
+The sorted column is marked `▐ ▼`, and the busiest row is yellow. `--sort` takes `in` (the default), `out`, `bytes`, `size`, or `partition`.
+
+![kaas top: a meter per broker, then partitions sorted by records in](img/top.svg)
+
+Rates are the difference between two readings, so the first live frame shows `-` until the second reading. `--once`, a pipe, and `-o json` all wait one `--interval` (2s by default) for that second reading before printing. The JSON has one object per partition: `topic`, `partition`, `leader`, `in_per_sec`, `out_per_sec`, `bytes_per_sec`, `size_bytes`, and `end_offset`. A negative value means unknown, for example when the cluster refuses `DescribeLogDirs`. `OUT/s` counts only groups that commit; `kaas consume` never commits, so its reads don't show up here.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

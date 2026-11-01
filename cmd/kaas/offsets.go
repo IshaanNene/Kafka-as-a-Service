@@ -28,6 +28,7 @@ func newOffsetsCmd(brokers, themeName *string) *cobra.Command {
 		RunE:  func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
 	cmd.AddCommand(newOffsetsResetCmd(brokers, themeName))
+	cmd.AddCommand(newOffsetsFindCmd(brokers, themeName))
 	return cmd
 }
 

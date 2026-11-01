@@ -1,0 +1,20 @@
+╭─ find · orders p0 · first record at or after 09:00:00 ───╮
+│                                                          │
+│ offset 0                                      end 12,480 │
+│                                      ▼                   │
+│  ○──○─○──○──○──○─○──○──○──○─●──○──○──◆─○──●──○──○─○──○   │
+│                                     └┘                   │
+│                                   found                  │
+│──────────────────────────────────────────────────────────│
+│ $ kaas offsets find orders --time 09:00                  │
+│ Bisecting: 12,480 offsets left to read after this        │
+│ [p0@6240] 08:41:02.118  user-17                          │
+│   ts 08:41:02  before 09:00                              │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+│                                                          │
+│ ● before  ● at or after  ◆ reading  ○ unread             │
+╰──────────────────────────────────────────────────────────╯

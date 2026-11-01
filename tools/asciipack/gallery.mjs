@@ -44,6 +44,7 @@ const SHOTS = {
   "upload-dropzone": "produce-file",
   "empty-upload-tray": "produce-file-done",
   "infra-plan-diff": "offsets-reset",
+  "bisect-hunt": "offsets-find",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

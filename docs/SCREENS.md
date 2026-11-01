@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 26 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 27 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -39,7 +39,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Code Editor](#code-editor) | `kaas produce` | built |
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | built |
 | [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | built |
-| [Bisect Hunt](#bisect-hunt) | `kaas offsets find --time` | P1 |
+| [Bisect Hunt](#bisect-hunt) | `kaas offsets find` | built |
 | [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | P1 |
 | [Packet Capture](#packet-capture) | `kaas sniff` | P1 |
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | P1 |
@@ -335,11 +335,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Bisect Hunt
 
-[`bisect-hunt`](https://www.ascii-magic.com/ascii/bisect-hunt) · **P1** · A bisect session that tests the middle commit, marks it good or bad and halves the range until the first bad commit is found.
+[`bisect-hunt`](https://www.ascii-magic.com/ascii/bisect-hunt) · **built** · A bisect session that tests the middle commit, marks it good or bad and halves the range until the first bad commit is found.
 
-- `kaas offsets find --time`: Binary search for the offset at a time or the first bad record
+- `kaas offsets find`: A real bisect per partition, one Fetch per read: the first record at or after a time (checked against the broker's time index), or the first value matching a regex (checked by reading on past it)
 
-<img src="img/ui/bisect-hunt.svg" alt="ascii-magic Bisect Hunt" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/bisect-hunt.svg" alt="ascii-magic Bisect Hunt" width="100%"></td><td width="50%"><img src="img/offsets-find.svg" alt="kaas screen built from Bisect Hunt" width="100%"></td></tr></table>
 
 ### Date Range Picker
 

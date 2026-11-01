@@ -284,6 +284,24 @@ The plan follows the infra-plan-diff layout. `~` is a committed offset that move
 
 Kafka only takes commits from a group with no members, so kaas checks first. A group that is in use stops with who its members are, and nothing is sent. A group name kaas doesn't know is planned as new, all `+`, so a typo shows up in the plan before you confirm. Without a terminal, `--yes` is required. `-o json` prints `{group, state, to, dryRun, applied, moves}`, where each move has `from` (null before a first commit), `to`, and `change` (`add`, `change`, `same` or `skip`).
 
+### `kaas offsets find`: where a moment, or a problem, starts
+
+```bash
+kaas offsets find orders --time 2026-10-31T09:00     # every partition
+kaas offsets find orders --time 2h -p 0
+kaas offsets find orders --match '"version":2'       # the first record with the new schema
+```
+
+`kaas offsets find` bisects each partition. It reads the record in the middle of what's left, keeps the half the answer is in, and repeats, so 12,480 records take about 14 reads. Each read is one Fetch from the partition's leader. Nothing is consumed or committed. The rail shows each read as it lands, green for before and red for at or after, with a bracket under what's left. The log under the rail shows every read: its offset, time, how long it took, and the record.
+
+![kaas offsets find: a bisect over orders p0 for the first record at or after a time](img/offsets-find.svg)
+
+With `--time`, kaas also asks the broker's time index the same question. They agree unless producers stamped records out of order, and then kaas tells you so. The last line is the `kaas offsets reset` command that starts a group reading from that moment.
+
+`--match` finds the first record whose value matches a regular expression, for questions like "where did the bad records start". A bisect assumes that once records match, they keep matching. So kaas reads the next three records, and if one of them doesn't match, it warns that there may be earlier matches.
+
+A pipe prints `topic partition offset timestamp` per partition, or `-` when nothing qualifies. `-o json` adds `reads` and, for `--time`, the broker's `indexOffset`.
+
 ### `kaas consume`: read a topic like a channel
 
 ```bash
@@ -470,7 +488,6 @@ Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI
 
 | Command | Screen |
 |---|---|
-| `kaas offsets find --time` | A bisect hunt for the offset at a timestamp, or the first bad record |
 | `kaas sniff` | A packet capture of Kafka protocol requests, colour-coded by API |
 | `kaas doctor` | A dot per health check, then per-topic health bars |
 | `kaas plan` / `apply` | A plan diff of topics, ACLs and quotas, then a rolling apply with an abort countdown |

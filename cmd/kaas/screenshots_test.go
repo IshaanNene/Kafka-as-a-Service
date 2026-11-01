@@ -349,6 +349,25 @@ loop:
 	ors.took, ors.applied = time.Since(start), true
 	save("offsets-reset", ors.cmdline, ors.screen("applied", kit.OK).Render(k, 90))
 
+	// Offsets find: a real bisect over 12,480 order records a second
+	// apart, for where 90 minutes ago starts.
+	fc, fcl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	fbase := now.Add(-12480 * time.Second)
+	seedTimeline(t, fc, "orders", []int32{0}, 12480, fbase, func(_ int32, i int) string {
+		return fmt.Sprintf(`{"order":%d,"total":%d.90,"currency":"EUR"}`, 104300+i, 10+i%300)
+	})
+	ff := finder{topic: "orders", at: now.Add(-90 * time.Minute).Truncate(time.Minute)}
+	ff.cmdline = "kaas offsets find orders --time " + ff.at.Format("2006-01-02T15:04")
+	fcmd := newOffsetsFindCmd(new(string), new(string))
+	fcmd.SetContext(ctx)
+	if err := ff.load(ctx, fcmd, kadm.NewClient(fcl), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := ff.run(fcmd, fcl, surface{kit: k, w: io.Discard, width: 88, height: 27}, "text"); err != nil {
+		t.Fatal(err)
+	}
+	save("offsets-find", ff.cmdline, ff.screen(ff.hunts[0]).Render(k, 88, 26))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

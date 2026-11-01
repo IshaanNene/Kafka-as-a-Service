@@ -109,6 +109,7 @@ values are never shown.`,
 	fl.Int32Var(&broker, "broker", 0, "a broker's configs, by node ID, instead of a topic's")
 	fl.BoolVar(&setOnly, "set", false, "only configs that aren't Kafka's defaults")
 	fl.StringVarP(&output, "output", "o", "text", "output format: text|json")
+	cmd.AddCommand(newConfigEditCmd(brokers, themeName))
 	return cmd
 }
 
@@ -287,38 +288,7 @@ func (v *configView) valueText(e configs.Entry) string {
 	case e.Value == "":
 		return `""`
 	}
-	return humanValue(e, v.rf)
-}
-
-// humanValue reads a set value for a person.
-func humanValue(e configs.Entry, rf int) string {
-	switch configs.KindOf(e) {
-	case configs.KindDuration:
-		d, forever, ok := configs.Duration(e)
-		switch {
-		case !ok:
-		case forever:
-			return "forever"
-		case d == 0:
-			return "0"
-		case d < time.Second:
-			return strconv.Itoa(int(d/time.Millisecond)) + "ms"
-		default:
-			return retentionText(d)
-		}
-	case configs.KindBytes:
-		if n, err := strconv.ParseInt(e.Value, 10, 64); err == nil {
-			if n < 0 {
-				return "unlimited"
-			}
-			return screens.Bytes(n)
-		}
-	case configs.KindCount:
-		if e.Key == "min.insync.replicas" && rf > 0 {
-			return e.Value + " of " + strconv.Itoa(rf)
-		}
-	}
-	return e.Value
+	return configs.Readable(e, v.rf)
 }
 
 // counts is how many values are set at each level.
@@ -395,13 +365,13 @@ func (v *configView) foot(e configs.Entry, w int) []string {
 		line += "(unset)"
 	default:
 		line += e.Value
-		if h := humanValue(e, v.rf); h != e.Value {
+		if h := configs.Readable(e, v.rf); h != e.Value {
 			line += " (" + h + ")"
 		}
 	}
 	line += " · " + v.levelPhrase(e.Level)
 	if e.HasDef {
-		line += " · without it " + humanValue(configs.Entry{Key: e.Key, Value: e.Default, Type: e.Type}, v.rf)
+		line += " · without it " + configs.Readable(configs.Entry{Key: e.Key, Value: e.Default, Type: e.Type}, v.rf)
 	}
 	if e.ReadOnly {
 		line += " · read-only"

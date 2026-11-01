@@ -1,4 +1,4 @@
-//go:build integration
+//go:build integration || chaos || soak
 
 package kafkatest
 
@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -33,7 +34,29 @@ exec /etc/kafka/docker/run
 
 // Real starts a single-node KRaft broker from an apache/kafka image and
 // returns its seed addresses. The container is removed when the test ends.
-func Real(t testing.TB) []string {
+func Real(t testing.TB) []string { return RealBroker(t).Seeds }
+
+// Broker is a running broker container a chaos test can disturb.
+type Broker struct {
+	Seeds []string
+	c     testcontainers.Container
+}
+
+// Pause freezes the broker's process, as a long GC pause, a stalled
+// disk or a partitioned network would: connections stay open and
+// requests go unanswered. Unpause lets it carry on where it was.
+func (b *Broker) Pause(t testing.TB)   { b.docker(t, "pause") }
+func (b *Broker) Unpause(t testing.TB) { b.docker(t, "unpause") }
+
+func (b *Broker) docker(t testing.TB, verb string) {
+	t.Helper()
+	if out, err := exec.Command("docker", verb, b.c.GetContainerID()).CombinedOutput(); err != nil {
+		t.Fatalf("docker %s: %v: %s", verb, err, out)
+	}
+}
+
+// RealBroker is Real with the container, for chaos tests.
+func RealBroker(t testing.TB) *Broker {
 	t.Helper()
 	img := os.Getenv("KAAS_KAFKA_IMAGE")
 	if img == "" {
@@ -73,7 +96,7 @@ func Real(t testing.TB) []string {
 	if err != nil {
 		t.Fatalf("endpoint: %v", err)
 	}
-	return []string{endpoint}
+	return &Broker{Seeds: []string{endpoint}, c: c}
 }
 
 func writeStartScript(ctx context.Context, c testcontainers.Container) error {

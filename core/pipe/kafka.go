@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kerr"
@@ -119,7 +120,8 @@ func openKafkaSource(u *url.URL, env Env) (Source, error) {
 // bound records where stop=end stops: each partition's end offset now,
 // less what the group has already committed.
 func (s *kafkaSource) bound(topics []string, group string) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	adm := kadm.NewClient(s.cl)
 	ends, err := adm.ListEndOffsets(ctx, topics...)
 	if err != nil {
@@ -134,9 +136,17 @@ func (s *kafkaSource) bound(topics []string, group string) error {
 	}
 	var committed kadm.OffsetResponses
 	if group != "" {
-		// A group that never committed is new, not an error.
-		if committed, err = adm.FetchOffsets(ctx, group); err != nil && !errors.Is(err, kerr.GroupIDNotFound) {
-			return fmt.Errorf("fetching %s's offsets: %w", group, err)
+		// A group that never committed is new, not an error. On a new
+		// cluster the coordinator may not be up yet: that passes.
+		for {
+			committed, err = adm.FetchOffsets(ctx, group)
+			if err == nil || errors.Is(err, kerr.GroupIDNotFound) {
+				break
+			}
+			if !kerr.IsRetriable(err) || ctx.Err() != nil {
+				return fmt.Errorf("fetching %s's offsets: %w", group, err)
+			}
+			time.Sleep(250 * time.Millisecond)
 		}
 	}
 	s.stop = map[string]map[int32]int64{}

@@ -3,6 +3,7 @@ package pipe
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -73,6 +74,7 @@ func readAll(t testing.TB, seeds []string, topic string) map[string]int {
 // checkCopy copies a topic to another with stop=end and checks every
 // record arrived once.
 func checkCopy(t *testing.T, seeds []string, opts ...kgo.Opt) {
+	topic(t, seeds, "src", "dst")
 	seed(t, seeds, "src", 1000)
 	env := Env{Brokers: seeds, KafkaOpts: opts}
 	in, err := OpenSource("kafka:src?stop=end&batch=128", env)
@@ -107,6 +109,7 @@ func checkCopy(t *testing.T, seeds []string, opts ...kgo.Opt) {
 // again: the second run starts at the first's last acknowledged batch,
 // so nothing is lost, and only the failed batch can repeat.
 func checkResume(t *testing.T, seeds []string) {
+	topic(t, seeds, "events")
 	seed(t, seeds, "events", 600)
 	env := Env{Brokers: seeds}
 	run := func(sink Sink) error {
@@ -151,13 +154,14 @@ func checkResume(t *testing.T, seeds []string) {
 // while records flow, and checks every record reached the sink: a
 // stopped member's uncommitted batches go to the others.
 func checkRebalance(t *testing.T, seeds []string, total int) {
-	topic := "rebalance"
-	seed(t, seeds, topic, total)
+	const name = "rebalance"
+	topic(t, seeds, name)
+	seed(t, seeds, name, total)
 	sink := &memSink{}
 	var wg sync.WaitGroup
 	env := Env{Brokers: seeds}
 	start := func(ctx context.Context) {
-		in, err := OpenSource("kafka:"+topic+"?group=rb&from=start&batch=25", env)
+		in, err := OpenSource("kafka:"+name+"?group=rb&from=start&batch=25", env)
 		if err != nil {
 			t.Error(err)
 			return
@@ -205,11 +209,52 @@ func waitFor(t *testing.T, ok func() bool) {
 	}
 }
 
+// topic creates topics with six partitions; one that exists, as kfake's
+// seeded topics do, is left as it is.
+func topic(t testing.TB, seeds []string, names ...string) {
+	t.Helper()
+	adm := kafkatest.Admin(t, seeds...)
+	if _, err := adm.CreateTopics(context.Background(), 6, 1, nil, names...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// slowDialer adds d before every write on a connection: latency injected
+// at the client, as Toxiproxy would add it in front of the broker.
+func slowDialer(d time.Duration) func(ctx context.Context, network, host string) (net.Conn, error) {
+	return func(ctx context.Context, network, host string) (net.Conn, error) {
+		c, err := (&net.Dialer{}).DialContext(ctx, network, host)
+		if err != nil {
+			return nil, err
+		}
+		return slowConn{c, d}, nil
+	}
+}
+
+type slowConn struct {
+	net.Conn
+	d time.Duration
+}
+
+func (c slowConn) Write(b []byte) (int, error) {
+	time.Sleep(c.d)
+	return c.Conn.Write(b)
+}
+
 func TestKafkaCopy(t *testing.T) { checkCopy(t, fakeCluster(t, "src", "dst")) }
 
 func TestKafkaResume(t *testing.T) { checkResume(t, fakeCluster(t, "events")) }
 
 func TestKafkaRebalance(t *testing.T) { checkRebalance(t, fakeCluster(t, "rebalance"), 3000) }
+
+func TestKafkaLatency(t *testing.T) {
+	seeds := fakeCluster(t, "src", "dst")
+	start := time.Now()
+	checkCopy(t, seeds, kgo.Dialer(slowDialer(10*time.Millisecond)))
+	if took := time.Since(start); took < 50*time.Millisecond {
+		t.Errorf("a copy with 10ms on every write took %s", took)
+	}
+}
 
 // A broker refusing a produce, as MockProducer's errorNext does in Java:
 // the write fails, the batch isn't committed, and a rerun writes it.

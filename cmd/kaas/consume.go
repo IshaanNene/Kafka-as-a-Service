@@ -163,22 +163,29 @@ type recordJSON struct {
 	Headers   []consume.Header `json:"headers"`
 }
 
-// recordJSONOf keeps text as text; a binary key or value is base64 and the
-// record says so in encoding.
+// recordJSONOf keeps text as text. When the key or the value is binary,
+// both are base64 and the record says so in encoding, so a reader such
+// as kaas pipe knows which to decode.
 func recordJSONOf(r consume.Record) recordJSON {
 	j := recordJSON{Partition: r.Partition, Offset: r.Offset, Timestamp: r.Time, Headers: r.Headers}
 	if j.Headers == nil {
 		j.Headers = []consume.Header{}
 	}
+	binary := func(b []byte) bool {
+		_, ok := consume.Text(b)
+		return b != nil && !ok
+	}
+	if binary(r.Key) || binary(r.Value) {
+		j.Encoding = "base64"
+	}
 	enc := func(b []byte) *string {
 		if b == nil {
 			return nil
 		}
-		if s, ok := consume.Text(b); ok {
-			return &s
+		s := string(b)
+		if j.Encoding != "" {
+			s = base64.StdEncoding.EncodeToString(b)
 		}
-		s := base64.StdEncoding.EncodeToString(b)
-		j.Encoding = "base64"
 		return &s
 	}
 	j.Key, j.Value = enc(r.Key), enc(r.Value)

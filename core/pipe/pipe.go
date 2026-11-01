@@ -396,17 +396,22 @@ func (p *Pipe) drain(ctx context.Context, i int) error {
 				return fmt.Errorf("%w: %w", errSource, err)
 			}
 		}
-		if b.Ack != nil {
-			if err := b.Ack(ctx); err != nil && ctx.Err() == nil {
-				return fmt.Errorf("%w: acknowledging to %s: %w", errSource, src.Spec, err)
-			}
-		}
 		n := p.written.Add(int64(len(keep)))
 		p.update(func(st *Stats) {
 			st.InFlight -= len(keep)
 			st.Written += int64(len(keep))
-			st.Acked += int64(len(b.Records))
 		})
+		if b.Ack != nil {
+			// Written is written: a run being stopped still tells the
+			// source, so a Ctrl-C doesn't make the next run repeat it.
+			actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+			err := b.Ack(actx)
+			cancel()
+			if err != nil {
+				return fmt.Errorf("%w: acknowledging to %s: %w", errSource, src.Spec, err)
+			}
+		}
+		p.update(func(st *Stats) { st.Acked += int64(len(b.Records)) })
 		if p.o.Max > 0 && n >= p.o.Max {
 			return errMax
 		}

@@ -54,6 +54,9 @@ func ParseBatches(b []byte) []Batch {
 			b = b[12+size:] // an old message set: not mapped
 			continue
 		}
+		if 12+size < 61 {
+			break // shorter than a v2 header: corrupt, and its fields would run past it
+		}
 		attrs := binary.BigEndian.Uint16(b[21:])
 		base := int64(binary.BigEndian.Uint64(b))
 		bt := Batch{

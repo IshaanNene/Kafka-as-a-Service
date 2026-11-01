@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kfake"
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/pipe"
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
@@ -214,3 +216,49 @@ type discard struct{}
 
 func (discard) Write(context.Context, []pipe.Record) error { return nil }
 func (discard) Close() error                               { return nil }
+
+// Replaying production records: a sample taken with kaas consume -o json
+// goes back into another cluster's topic through kaas pipe, keys, values,
+// binary values and headers intact, so a test environment sees real
+// traffic, not made-up data.
+func TestPipeReplaysConsumeSample(t *testing.T) {
+	prod, _ := kafkatest.Fake(t, kfake.NumBrokers(1), kfake.SeedTopics(3, "orders"))
+	staging, _ := kafkatest.Fake(t, kfake.NumBrokers(1), kfake.SeedTopics(3, "orders"))
+	pb, sb := strings.Join(prod.ListenAddrs(), ","), strings.Join(staging.ListenAddrs(), ",")
+
+	cl := kafkatest.Client(t, prod.ListenAddrs()...)
+	var want []*kgo.Record
+	for i := range 120 {
+		r := &kgo.Record{Topic: "orders", Key: []byte(fmt.Sprint("c-", i%7)), Value: []byte(fmt.Sprintf(`{"n":%d}`, i)),
+			Headers: []kgo.RecordHeader{{Key: "trace", Value: []byte(fmt.Sprint("t", i))}}}
+		if i%40 == 0 {
+			r.Value = []byte{0xff, 0x00, byte(i)} // a binary value goes as base64
+		}
+		want = append(want, r)
+	}
+	if err := cl.ProduceSync(t.Context(), want...).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	sample := filepath.Join(t.TempDir(), "sample.jsonl")
+	out, _, err := runPipe("", "consume", "orders", "-b", pb, "--from", "beginning", "--exit", "-o", "json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeScript(t, sample, 0o644, out)
+	if _, _, err := runPipe("", "pipe", "-b", sb, "--from", "file:"+sample, "--to", "kafka:orders"); err != nil {
+		t.Fatal(err)
+	}
+	got := readAll(t, staging.ListenAddrs(), "orders", 120)
+	key := func(r *kgo.Record) string {
+		return fmt.Sprintf("%s|%x|%s", r.Key, r.Value, r.Headers[0].Value)
+	}
+	seen := map[string]bool{}
+	for _, r := range got {
+		seen[key(r)] = true
+	}
+	for _, r := range want {
+		if !seen[key(r)] {
+			t.Fatalf("%s didn't replay", key(r))
+		}
+	}
+}

@@ -1,0 +1,24 @@
+╭─ Config · topic orders ───────────────────────────────── ✓ 2 set on the topic · 1 from brokers ──╮
+│ RETENTION ────────────────────────────────────────────────────────────────────────────────────── │
+│▌ retention.ms                    How long records are kept     ━━━━━●──────          1d  topic   │
+│  retention.bytes                 Bytes kept per partition be…  ━━━━━━━━━━━●   unlimited          │
+│  delete.retention.ms             How long compaction keeps d…  ━━━━●───────          1d          │
+│                                                                                                  │
+│ CLEANUP ──────────────────────────────────────────────────────────────────────────────────────── │
+│  cleanup.policy                  Delete old segments, compac…            compact,delete  topic   │
+│  min.cleanable.dirty.ratio       Share of the log uncompacte…  ━━━━━━●─────         0.5          │
+│                                                                                                  │
+│ MESSAGES ─────────────────────────────────────────────────────────────────────────────────────── │
+│  compression.type                Codec the broker stores bat…                      zstd  broker  │
+│  message.downconversion.enable   Convert batches for old con…        (━━━━●) On                  │
+│                                                                                                  │
+│ REPLICATION ──────────────────────────────────────────────────────────────────────────────────── │
+│  min.insync.replicas             Replicas that must have a w…  ━━━━━━●─────      2 of 3  topic   │
+│  unclean.leader.election.enable  Let an out-of-sync replica …        (●────) Off                 │
+│                                                                                                  │
+│                                                                                                  │
+│                                                                                                  │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│  retention.ms = 86400000 (1d) · set on the topic · default 7d                                    │
+│  How long records are kept before the log deletes them.                                          │
+╰─ ↑↓ move · s set only · q quit ──────────────────────────────────────────────────────────────────╯

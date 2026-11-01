@@ -50,6 +50,7 @@ const SHOTS = {
   "network-waterfall": "sniff-trace",
   "flame-graph": "sniff-profile",
   "heap-map": "segments",
+  "settings-toggles": "config",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

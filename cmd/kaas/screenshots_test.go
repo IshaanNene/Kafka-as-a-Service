@@ -389,6 +389,33 @@ loop:
 	}
 	save("segments", "kaas segments payments", sg.screen(nil).Render(k, 88, 28))
 
+	// Config: a topic with its retention, cleanup and durability set, and
+	// a broker override it inherits, with retention.ms selected.
+	_, cfl := kafkatest.Fake(t, kfake.SeedTopics(3, "payments"))
+	cfadm := kadm.NewClient(cfl)
+	str := func(s string) *string { return &s }
+	if _, err := cfadm.AlterTopicConfigs(ctx, []kadm.AlterConfig{
+		{Name: "retention.ms", Value: str("259200000")},
+		{Name: "cleanup.policy", Value: str("compact,delete")},
+		{Name: "min.insync.replicas", Value: str("2")},
+		{Name: "max.message.bytes", Value: str("8388608")},
+	}, "payments"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cfadm.AlterBrokerConfigs(ctx, []kadm.AlterConfig{{Name: "compression.type", Value: str("zstd")}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	gv0 := configView{topic: "payments"}
+	ccmd := newConfigCmd(new(string), new(string))
+	ccmd.SetContext(ctx)
+	if err := gv0.load(ctx, ccmd, cfl); err != nil {
+		t.Fatal(err)
+	}
+	cm := configModel{v: gv0, k: k, w: 100, h: 31}
+	cm.v.sel = cm.v.first()
+	cm.move(2)
+	save("config", "kaas config payments", cm.v.screen(100).Render(k, 100, 30))
+
 	// Consume --pick: three weeks of orders, quieter at weekends and none
 	// on one day, with the last week but two picked.
 	pc, pcl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))

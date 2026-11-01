@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 32 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 33 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -45,7 +45,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | built |
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | built |
 | [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | built |
-| [Settings Toggles](#settings-toggles) | `kaas config` | P1 |
+| [Settings Toggles](#settings-toggles) | `kaas config` | built |
 | [Modal Editor Session](#modal-editor-session) | `kaas config edit` | P1 |
 | [Test Suite Dots](#test-suite-dots) | `kaas doctor` | P1 |
 | [Coverage Report](#coverage-report) | `kaas doctor` | P1 |
@@ -389,11 +389,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Settings Toggles
 
-[`settings-toggles`](https://www.ascii-magic.com/ascii/settings-toggles) · **P1** · A settings panel where a focus marker moves down the list, flipping switches and dragging sliders.
+[`settings-toggles`](https://www.ascii-magic.com/ascii/settings-toggles) · **built** · A settings panel where a focus marker moves down the list, flipping switches and dragging sliders.
 
-- `kaas config`: Topic and broker configs, with non-defaults flagged
+- `kaas config`: A topic's or a broker's configs in sections; switches for booleans, sliders for durations, sizes, ratios and min.insync.replicas; what isn't Kafka's default drawn bright and tagged with where it's set (topic, broker, cluster, server.properties), with the value it would have without it; `s` shows only what's set; sensitive values never shown
 
-<img src="img/ui/settings-toggles.svg" alt="ascii-magic Settings Toggles" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/settings-toggles.svg" alt="ascii-magic Settings Toggles" width="100%"></td><td width="50%"><img src="img/config.svg" alt="kaas screen built from Settings Toggles" width="100%"></td></tr></table>
 
 ### Modal Editor Session
 

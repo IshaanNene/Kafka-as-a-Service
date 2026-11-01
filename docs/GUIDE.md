@@ -450,6 +450,21 @@ The panel adds the records, the bytes on disk (from the broker's log dirs, or es
 
 A log that fits in `--budget` (64MB by default) is read whole. A bigger one is sampled, one small fetch a cell: then the records are an estimate and holes can't be counted. Nothing is consumed or committed. On a pipe it prints a line per stat, and `-o json` adds every cell.
 
+### `kaas config`: what a topic or broker is set to
+
+```bash
+kaas config orders                 # every config, in sections
+kaas config orders --set           # only what isn't Kafka's default
+kaas config --broker 1             # a broker's
+kaas config orders -o json | jq '.[] | select(.source == "topic")'
+```
+
+`kaas config` lists a topic's configs under retention, cleanup, segments, messages and replication, or a broker's with `--broker`. A value that isn't Kafka's default is drawn bright and tagged with where it is set: `topic`, a `broker` override the topic inherits, a `cluster`-wide default, or the broker's server.properties (`file`). Switches show true and false. Durations sit on a slider from a second to a year, sizes from a kilobyte to a terabyte, and `min.insync.replicas` against the replication factor, so an outlier stands out.
+
+![kaas config: a payments topic with its retention, cleanup and durability set, and a broker's compression it inherits](img/config.svg)
+
+↑↓ move, and the foot shows the selected config's value, where it comes from, what it would be without it, and the broker's documentation for it. `s` shows only what is set, and q quits. On a pipe it prints a line per config with its source; `-o json` adds the default and section. Sensitive values, such as passwords, are never shown.
+
 ### `kaas produce`: write records
 
 ```bash

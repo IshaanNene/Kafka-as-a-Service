@@ -7,7 +7,7 @@
 `kaas` is a CLI and terminal UI for any Apache Kafka cluster. On a terminal, every command draws a screen built for its job. On a pipe it prints stable text, and with `-o json` it prints JSON. It is the first of three products built on one shared cluster-state engine:
 
 1. **`kaas`**, the CLI and TUI. *Available now.*
-2. **A management plane** for many clusters: GitOps plans, schemas, ACLs and quotas. *Phase 2.*
+2. **A management plane** for many clusters: GitOps plans, schemas, ACLs and quotas, in a web console. *Available now.*
 3. **Managed Kafka on Kubernetes**: create, roll and autoscale clusters. *Phase 3.*
 
 ## Documentation
@@ -62,6 +62,36 @@ Pipes deliver at least once: a source is acknowledged only after every sink wrot
 
 Any executable named `kaas-source-<name>` or `kaas-sink-<name>` that speaks JSON lines becomes an endpoint too. [Plugins →](docs/USAGE.md#plugins)
 
+## The console: every cluster, one page
+
+```bash
+kaas console --demo                       # four made-up clusters with live traffic, at http://127.0.0.1:7070
+kaas console --fleet fleet.yaml           # your clusters
+```
+
+![The kaas console: four clusters with health, throughput, lag, drift and a live feed](docs/img/console-fleet.png)
+
+`kaas console` serves a web console from the same binary. It shows every cluster in a fleet, each with:
+- health and throughput;
+- topics, with a partition map;
+- consumer lag, with time to catch up;
+- ACLs, quotas and Schema Registry subjects;
+- drift from git;
+- a live feed of what changes.
+
+It is read-only by default and listens on localhost.
+
+### GitOps: the cluster as a reviewed file
+
+```bash
+kaas plan  -f gitops/prod-eu.yaml --exit-code      # in the PR: what merging would change (exit 5 = changes)
+kaas apply -f gitops/prod-eu.yaml --plan 3f9c2a1b7d04e6aa --yes   # after merge, only the reviewed plan
+```
+
+![A GitOps plan in the console: seven changes by risk, a policy check and the apply button](docs/img/console-gitops.png)
+
+A desired-state file declares topics, configs, ACLs, quotas and CEL policies. A plan is checked by the controller before anything changes, rated safe, caution or destructive, and identified by a hash. An apply runs only the plan that was reviewed. [GitOps →](docs/USAGE.md#gitops-kaas-plan-and-kaas-apply)
+
 ## Why kaas
 
 | Kafka teams deal with | kaas does instead |
@@ -99,6 +129,8 @@ task test:soak          # KAAS_SOAK_DURATION=30m, writes soak.md
 task bench              # pipe and engine benchmarks
 task lint               # includes the core/ import boundary (ADR-0003)
 task screenshots        # regenerate docs/img from real runs against kfake
+task console            # the web console on a demo fleet, served from disk for editing
+task test:web           # the console's JavaScript tests (Node 20+)
 task dev                # kind + Strimzi + a 3-broker KRaft cluster
 ```
 
@@ -108,15 +140,21 @@ task dev                # kind + Strimzi + a 3-broker KRaft cluster
 cmd/kaas/       the CLI: one file per command
 core/           cluster-state engine and Kafka logic; no UI or transport imports
   pipe/         sources, sinks, the CEL filter and the plugin protocol
+  plan/         desired state, plans, policies and apply (GitOps)
+  acls/ quotas/ exact ACL and quota reads and writes
 connectors/     pipe endpoints that need a transport, such as HTTP
 ui/             TUI, command screens, the grid kit and themes
 test/           kfake and Testcontainers harness, soak test
-controlplane/   API services (Phase 2)
+controlplane/   the management plane (Phase 2)
+  console/      the web console: fleet runtime, JSON and SSE API, and the web app in web/
+  schemas/      Schema Registry client
 dataplane/      agent and gateway
 operator/       Kubernetes operator over Strimzi (Phase 3)
 deploy/         kind configs, Helm charts
 docs/           guides, design docs, ADRs
 ```
+
+The console's fonts (Bricolage Grotesque, Instrument Sans, Martian Mono) are under the SIL Open Font Licence, in `controlplane/console/web/fonts/`. Why the console is a web app and how it's built: [ADR-0008](docs/adr/0008-web-console.md) and [design 0002](docs/design/0002-gitops-plans-and-console.md).
 
 Screen layouts are Go ports of [ascii-magic](https://www.ascii-magic.com/ascii) UI pieces (MIT), drawn from live data (ADR-0007). A few decorative pieces are baked into frame packs by `task asciipack` (ADR-0006); their licence and notice ship in `ui/asciipack/packs/`.
 

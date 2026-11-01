@@ -73,6 +73,26 @@ Every change is shown as a plan and checked by the controller before it's applie
 | **Startup waterfall** | Where a client's first seconds go: connect, send, queue, broker wait, ack | [`kaas sniff --trace`](USAGE.md#where-a-clients-time-goes---trace) |
 | **Flame graph** | Request time by API, broker, topic and stage, with idle polls told apart from serving | [`kaas sniff --profile`](USAGE.md#where-the-time-goes---profile) |
 
+## Run a fleet from git (Phase 2)
+
+The management plane is a web console in the same binary, plus two commands for CI.
+
+![The kaas console: four clusters with health, throughput, lag, drift and a live feed](img/console-fleet.png)
+
+| Feature | What it gives you | Command |
+|---|---|---|
+| **Fleet console** | Every cluster on one page: health in words, throughput, worst lag, drift, schemas and ACLs, and a live event feed across the fleet | [`kaas console`](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+| **Cluster pages** | Brokers, topics with a partition map, consumer lag with time to catch up, the request budget and the cluster's events | [Pages](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+| **ACLs as sentences** | "allow User:billing read on topic orders", grouped by principal, with quotas by user and client | [Access](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+| **Schema Registry** | Subjects, types, versions and compatibility per cluster, with the latest schema highlighted | [Fleet file](USAGE.md#the-fleet-file) |
+| **Desired state in git** | Topics, configs, ACLs and quotas in one reviewed YAML file per cluster, pruning only what you allow | [Desired-state file](USAGE.md#the-desired-state-file) |
+| **Plans** | Every change with its risk (safe, caution, destructive), validated by the controller first; exit 5 on drift for CI | [`kaas plan`](USAGE.md#gitops-kaas-plan-and-kaas-apply) |
+| **Policies** | CEL rules such as `topic.replication >= 3` that block a plan that breaks them | [Policies](USAGE.md#the-desired-state-file) |
+| **Apply exactly what was reviewed** | A plan ID ties an apply to the reviewed plan; grants before revokes; typed confirmation | [`kaas apply`](USAGE.md#gitops-kaas-plan-and-kaas-apply) |
+| **Drift across the fleet** | The Changes page lists every cluster that differs from git, and the feed says when one starts to | [Changes](USAGE.md#kaas-console-the-fleet-in-a-browser) |
+
+The console is read-only and on localhost unless you choose otherwise. Try it with no cluster at all: `kaas console --demo`.
+
 ## Errors that tell you what to do
 
 - **Unreachable clusters** show each seed broker probed layer by layer (DNS, TCP, Kafka protocol, metadata) and which layer broke. [Troubleshooting](USAGE.md#troubleshooting)

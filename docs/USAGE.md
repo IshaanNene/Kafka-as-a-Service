@@ -7,6 +7,7 @@ Every `kaas` command: what it shows, its flags, and what it prints for scripts. 
 - **Operate:** [topics create, alter, delete](#kaas-topics-create-make-a-topic) · [offsets reset](#kaas-offsets-reset-read-again-or-skip-ahead) · [offsets find](#kaas-offsets-find-where-a-moment-or-a-problem-starts) · [config edit](#changing-configs-kaas-config-edit)
 - **Data:** [consume](#kaas-consume-read-a-topic-like-a-channel) · [produce](#kaas-produce-write-records) · [pipe](#kaas-pipe-move-records-between-kafka-files-http-and-plugins) · [plugins](#plugins)
 - **Measure and debug:** [bench](#kaas-bench-produce-measure-dont-guess) · [sniff](#kaas-sniff-watch-the-requests-clients-send)
+- **Many clusters (Phase 2):** [console](#kaas-console-the-fleet-in-a-browser) · [fleet file](#the-fleet-file) · [plan and apply](#gitops-kaas-plan-and-kaas-apply) · [desired-state file](#the-desired-state-file)
 - **Reference:** [Output and exit codes](#output-and-exit-codes) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting)
 
 ## Install
@@ -629,6 +630,188 @@ for line in sys.stdin:
 ```
 
 `kaas pipe plugins` lists the built-in schemes and every plugin it finds, with where each lives. A Go program embedding kaas can add its own endpoint kinds with `pipe.Register`, as `connectors/httpio` does for the HTTP ones.
+
+## `kaas console`: the fleet in a browser
+
+```bash
+kaas console --demo                          # four made-up clusters with live traffic
+kaas console --fleet fleet.yaml              # your fleet
+kaas console -b kafka-0:9092 --desired gitops/prod.yaml   # one cluster and its desired state
+```
+
+It prints `kaas console  http://127.0.0.1:7070  (4 clusters, read-only)`; open that address.
+
+![Fleet: every cluster's health, throughput, lag and drift, fleet throughput and a live feed](img/console-fleet.png)
+
+| Page | What it shows |
+|---|---|
+| **Fleet** | A card per cluster: health in words, throughput with a sparkline, the worst consumer lag, drift from git, schema and ACL counts. Fleet throughput over time, and a feed of events from every cluster |
+| **A cluster** | Brokers with leaders and disk, the busiest topics, lag, the request budget, and the cluster's own events |
+| **Topics** | Every topic with partitions, replication, records, rate and retention. Click one for its partition map (leaders and replicas per broker) and the groups reading it |
+| **Consumers** | Groups ranked by lag, with consume rate and time to catch up |
+| **Access** | ACLs by principal, as sentences ("allow User:billing read on topic orders"), and quotas by user and client |
+| **Schemas** | Schema Registry subjects with type, versions and compatibility, and the latest schema highlighted |
+| **GitOps** | The plan from the desired-state file: each change by risk, policy results, warnings, and Apply |
+| **Changes** | Drift across the whole fleet on one page |
+| **Activity** | Every event, filterable by cluster and severity |
+
+![The consumers tab: groups ranked by lag with rate and time to catch up](img/console-consumers.png)
+
+Press **⌘K** or **/** to jump to any cluster, topic, group or page. Light, dark and system themes are in the sidebar.
+
+![The console in its light theme](img/console-light.png)
+
+| Flag | Default | |
+|---|---|---|
+| `--fleet` | | The fleet file |
+| `--desired` | | Without `--fleet`: the desired-state file for the `-b` cluster |
+| `--name` | `local` | Without `--fleet`: what to call the `-b` cluster |
+| `--listen` | `127.0.0.1:7070` (`KAAS_CONSOLE_LISTEN`) | Address to serve on |
+| `--allow-apply` | off | Let the GitOps tab apply plans. Needs a localhost `--listen` |
+| `--demo` | off | Start in-memory clusters with traffic, ACLs, quotas, schemas and drift |
+
+**Security.** The console has no login yet:
+- It listens on localhost, and is read-only unless `--allow-apply` is given.
+- `--allow-apply` refuses any address other than localhost.
+- Listening beyond localhost prints a warning. Put the console behind an authenticating proxy in that case.
+- An apply needs the cluster's name typed, a same-origin request, and the plan ID that was on screen. If the cluster or the file changed in between, nothing is applied and the new plan is shown.
+- Pages are served with a strict content security policy.
+
+### The fleet file
+
+```yaml
+clusters:
+  - name: prod-eu
+    brokers: [kafka-0.prod-eu:9092, kafka-1.prod-eu:9092]
+    env: production              # production, staging or development: a badge on the card
+    region: eu-west-1
+    desired: gitops/prod-eu.yaml # relative to this file
+    schema_registry: https://schemas.prod-eu:8081   # credentials as https://user:pass@…
+  - name: staging
+    brokers: [kafka.staging:9092]
+    env: staging
+```
+
+Names must be unique. Unknown keys are errors.
+
+## GitOps: `kaas plan` and `kaas apply`
+
+Keep each cluster's topics, ACLs and quotas in a file in git. `kaas plan` says what it would take to make the cluster match. `kaas apply` does it.
+
+```bash
+kaas plan -f gitops/prod-eu.yaml -b kafka-0.prod-eu:9092
+```
+
+```
+Plan 05a84a7f9082d0f7 for prod-eu: 4 changes (2 safe, 1 caution, 1 destructive)
+
+  + create-topic   [safe]        payments
+      6 partitions × 3 replicas, 1 config
+  ~ set-config     [caution]     orders retention.ms  604800000 → 172800000
+      changed on the topic; less data is kept
+  + create-acl     [safe]        allow User:billing read on topic payments
+      grants User:billing read
+  - delete-acl     [destructive] allow User:legacy-etl write on topic orders
+      User:legacy-etl loses write on orders
+
+Not in the file, left alone: 3 topics, 0 ACLs, 0 quotas
+```
+
+Each change is marked:
+
+| Sign | Meaning |
+|---|---|
+| `+` | Adds |
+| `~` | Changes |
+| `-` | Removes |
+
+Each change also has a risk:
+
+| Risk | Covers |
+|---|---|
+| safe | Adds something; nothing that works now stops working |
+| caution | Changes behaviour: added partitions (keyed ordering), less retention, unset configs, lower or removed quotas |
+| destructive | Removes data or access: topic deletes and revoked ACLs |
+
+Every change is first sent to the controller as a validate-only request. One it refuses blocks the plan, as does a policy violation.
+
+| Flag | |
+|---|---|
+| `-f`, `--file` | The desired-state file (required) |
+| `-o json` | The plan as JSON, for a bot to comment on a pull request |
+| `--exit-code` | Exit 5 when there are changes, so CI can tell drift from failure |
+
+| `kaas plan` exits | When |
+|---|---|
+| `0` | The cluster matches, or there are changes and `--exit-code` isn't set |
+| `5` | There are changes, with `--exit-code` |
+| `1` | The plan is blocked by a policy, an error or the controller |
+| `2` | The file is missing or invalid |
+
+`kaas apply` makes the same plan and applies it in a safe order:
+1. Create topics.
+2. Add partitions.
+3. Change configs.
+4. Grant ACLs.
+5. Set quotas.
+6. Revoke ACLs.
+7. Delete topics.
+
+New grants land before old ones go. It stops at the first failure and prints what was done. On a terminal you confirm by typing the cluster's name. In CI, pass `--yes` and the reviewed plan's ID:
+
+```bash
+id=$(kaas plan -f gitops/prod-eu.yaml -o json | jq -r .id)     # on the pull request
+kaas apply -f gitops/prod-eu.yaml --plan "$id" --yes            # after it merges
+```
+
+If the cluster or the file changed between the two, the ID differs and nothing is applied.
+
+### The desired-state file
+
+```yaml
+cluster: prod-eu
+topics:
+  orders:
+    partitions: 12
+    replication: 3
+    configs: {retention.ms: 7d, cleanup.policy: delete, max.message.bytes: 1MiB}
+  audit:
+    partitions: 3
+    replication: 3                 # no configs key: its configs aren't managed
+acls:
+  - principal: User:billing
+    resource: topic                # topic, group, cluster, transactional-id
+    name: orders
+    pattern: literal               # or prefixed
+    operations: [read, describe]
+  - principal: User:billing
+    resource: group
+    name: billing-
+    pattern: prefixed
+    operation: read
+quotas:
+  - user: analytics
+    values: {consumer_byte_rate: 10MiB, request_percentage: "50"}
+  - default_client_id: true
+    values: {producer_byte_rate: 5MiB}
+policies:
+  - name: replicated
+    rule: topic.replication >= 3
+    message: production topics need three replicas
+  - name: bounded-retention
+    rule: "!('retention.ms' in topic.configs) || topic.configs['retention.ms'] != '-1'"
+prune:
+  topics: false                    # never delete topics not in this file
+  acls: true                       # revoke ACLs not in this file
+  quotas: true
+```
+
+- **Values.** Durations and sizes can be written as `7d` or `1MiB`.
+- **Topic configs.** A topic with `configs` has every topic-level config managed: one set on the cluster but missing here is planned for removal. Leave `configs` out to manage only partitions and replication.
+- **ACLs and quotas.** Managed only when the file has an `acls` or `quotas` key, and removed only when `prune` says so.
+- **Policies.** CEL rules every declared topic must pass. They see `topic.name`, `topic.partitions`, `topic.replication` and `topic.configs`.
+- **Changes Kafka can't make are warnings, not changes.** Partitions can't be removed, and a replication-factor change needs a reassignment.
+- **Unknown keys are errors.**
 
 ## When something is wrong
 

@@ -158,8 +158,35 @@ The trace shows each request the client makes as it starts:
 
 ---
 
+## 9. Many clusters, managed from git
+
+**The problem.** A platform team runs a dozen clusters across regions and environments. Topics, ACLs and quotas are created by hand or by tickets, so nobody can say what production *should* look like. A stale ACL from a retired job lingers for years. Each morning someone checks every cluster's dashboard in turn.
+
+**With kaas.**
+
+```bash
+kaas console --fleet fleet.yaml                       # every cluster, health and drift, on one page
+kaas plan  -f gitops/prod-eu.yaml --exit-code         # CI on each pull request
+kaas apply -f gitops/prod-eu.yaml --plan "$id" --yes  # CI after merge
+```
+
+- **Desired state in git.** Each cluster's topics, configs, ACLs and quotas live in a file in git, so a change is a pull request.
+- **Plans for review.** The plan shows reviewers each change with its risk. "orders keeps less data" is marked caution, and a revoked ACL is marked destructive.
+- **Policies enforced.** Rules like "production topics have three replicas" block a plan before it reaches a reviewer.
+- **Only what was reviewed.** An apply runs only the reviewed plan, and grants new access before revoking old access.
+- **One page for the fleet.** The console shows every cluster's health, throughput, lag and drift on one page, and its feed shows a leader moving in Singapore next to a plan applied in Frankfurt.
+
+**What changes.**
+- The file in git is the answer to "what should production look like?".
+- Drift is a red number on a card, not a surprise in an incident.
+- Access reviews read sentences, not `kafka-acls` output.
+
+---
+
 ## What kaas does not do (yet)
 
-- **Schema Registry.** kaas doesn't read or enforce Avro, Protobuf or JSON Schema contracts. A `--where 'has(value.field)'` filter can gate a pipe on shape, and kaas's own JSON formats are pinned by contract tests, but schema evolution belongs to your registry.
+- **Schema contracts in pipes.** The console shows each cluster's Schema Registry subjects and compatibility, but pipes don't decode Avro or Protobuf, and schemas aren't part of the desired-state file yet. A `--where 'has(value.field)'` filter can gate a pipe on shape.
 - **Exactly-once pipes.** Pipes are at least once. Downstream systems should be idempotent by key, as Kafka consumers generally must be.
-- **Fleet management.** One cluster at a time today. A multi-cluster management plane and managed Kafka on Kubernetes are the next phases of the project.
+- **Login.** The console has no login or roles yet, so it stays on localhost unless it sits behind an authenticating proxy. OIDC is next.
+- **TLS and SASL to brokers.** Not configurable yet, for the CLI or the fleet file.
+- **Managed Kafka on Kubernetes.** Creating, rolling and autoscaling clusters is Phase 3. Its clusters will show up in the same console.

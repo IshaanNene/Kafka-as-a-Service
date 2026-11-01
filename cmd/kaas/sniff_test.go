@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -329,5 +330,150 @@ func TestTraceModel(t *testing.T) {
 	m = tickAt(m, t0.Add(2*time.Second+ms(100)))
 	if !m.over || len(m.reqs) != 3 || !m.answered[0] || !strings.Contains(view(m), "■ traced") {
 		t.Errorf("after: over %v, %d reqs\n%s", m.over, len(m.reqs), view(m))
+	}
+}
+
+func TestSniffProfile(t *testing.T) {
+	c, _ := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	brokers := strings.Join(c.ListenAddrs(), ",")
+	listen := freePort(t)
+	var out syncBuffer
+	root := newRoot()
+	root.SetOut(&out)
+	root.SetErr(io.Discard)
+	root.SetArgs([]string{"sniff", "-b", brokers, "--listen", listen, "--profile", "--api", "produce", "-n", "3"})
+	done := make(chan error, 1)
+	go func() { done <- root.Execute() }()
+	for deadline := time.Now().Add(15 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		if conn, err := net.Dial("tcp", listen); err == nil {
+			_ = conn.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the proxy never listened")
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	cl, err := kgo.NewClient(kgo.SeedBrokers(listen))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	for range 3 {
+		if err := cl.ProduceSync(ctx, &kgo.Record{Topic: "orders", Value: []byte("x")}).FirstErr(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("the profile never ended")
+	}
+	// Folded stacks: Produce;broker N;orders;stage micros, and nothing else.
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	stages := map[string]bool{}
+	for _, l := range lines {
+		i := strings.LastIndex(l, " ") // frame names have spaces; the count is last
+		stack, n, ok := l[:max(0, i)], l[i+1:], i > 0
+		parts := strings.Split(stack, ";")
+		if !ok || len(parts) != 4 || parts[0] != "Produce" || !strings.HasPrefix(parts[1], "broker ") || parts[2] != "orders" {
+			t.Errorf("line %q", l)
+			continue
+		}
+		if _, err := strconv.Atoi(n); err != nil {
+			t.Errorf("line %q: %v", l, err)
+		}
+		stages[parts[3]] = true
+	}
+	if !stages["wait"] || !stages["send"] {
+		t.Errorf("stages %v in\n%s", stages, out.String())
+	}
+	for _, args := range [][]string{{"--trace", "--profile"}, {"--for", "0s", "--profile"}} {
+		root := newRoot()
+		root.SetOut(io.Discard)
+		root.SetErr(io.Discard)
+		root.SetArgs(append([]string{"sniff", "-b", brokers}, args...))
+		var ce *cliError
+		if _, err := root.ExecuteC(); !errors.As(err, &ce) || ce.Exit != exitUsage {
+			t.Errorf("%v: %v", args, err)
+		}
+	}
+}
+
+func TestProfileModel(t *testing.T) {
+	_, cl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))
+	p, err := sniff.Start(context.Background(), cl, "127.0.0.1:0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	th, _ := theme.Get(theme.Default)
+	c := newCapture(nil)
+	m := newProfileModel(kit.New(th, false), p, c, "every client", 0, 0)
+	m.w, m.h = 100, 26
+	view := func(m profileModel) string { return ansi.Strip(m.View().Content) }
+	if v := view(m); !strings.Contains(v, "nothing yet: point a client at") {
+		t.Fatalf("empty:\n%s", v)
+	}
+	ms := func(n int) time.Duration { return time.Duration(n) * time.Millisecond }
+	now := time.Now()
+	for i := range 4 {
+		c.add(sniff.Request{Key: 0, Broker: 1, Topics: []string{"orders"}, Records: -1, Answered: true, Start: now,
+			Stages: sniff.Stages{Send: ms(1), Wait: ms(5 + i), Ack: ms(1)}})
+	}
+	c.add(sniff.Request{Key: 1, Broker: 1, Topics: []string{"orders"}, Records: 0, Answered: true, Start: now, Stages: sniff.Stages{Wait: ms(500)}})
+	c.add(sniff.Request{Key: 1, Broker: 1, Topics: []string{"orders"}, Records: 9, Answered: true, Start: now, Stages: sniff.Stages{Wait: ms(10), Ack: ms(2)}})
+	step := func(m profileModel, msgs ...tea.Msg) profileModel {
+		for _, msg := range msgs {
+			next, _ := m.Update(msg)
+			m = next.(profileModel)
+		}
+		return m
+	}
+	key := func(code rune) tea.Msg { return tea.KeyPressMsg{Code: code} }
+	m = step(m, sniffTick(now))
+	v := view(m)
+	if !strings.Contains(v, "requests 6") || !strings.Contains(v, "polls hidden") || strings.Contains(v, "idle poll ") {
+		t.Fatalf("after 6:\n%s", v)
+	}
+	// Idle polls hidden: produce's 33ms outweighs fetch's 12ms, so it is first.
+	m = step(m, key(tea.KeyUp))
+	if strings.Join(m.sel, ";") != "Produce" {
+		t.Errorf("up from all: %v", m.sel)
+	}
+	m = step(m, key(tea.KeyRight))
+	if strings.Join(m.sel, ";") != "Fetch" {
+		t.Errorf("right: %v", m.sel)
+	}
+	m = step(m, key(tea.KeyLeft), key(tea.KeyUp), key(tea.KeyUp), key(tea.KeyUp))
+	if strings.Join(m.sel, ";") != "Produce;broker 1;orders;wait" {
+		t.Errorf("up to the stage: %v", m.sel)
+	}
+	v = view(m)
+	if !strings.Contains(v, "▶ wait") || !strings.Contains(v, "4 requests · avg 6.5ms") || !strings.Contains(v, "all → Produce → broker 1 → orders") {
+		t.Errorf("selected wait:\n%s", v)
+	}
+	// Zoom into the topic, then out.
+	m = step(m, key(tea.KeyDown), key(tea.KeyEnter))
+	if v = view(m); strings.Join(m.zoom, ";") != "Produce;broker 1;orders" || !strings.Contains(v, "zoomed into") || strings.Contains(v, "Fetch") {
+		t.Errorf("zoomed: %v\n%s", m.zoom, v)
+	}
+	m = step(m, key(tea.KeyEscape))
+	if len(m.zoom) != 2 {
+		t.Errorf("esc: %v", m.zoom)
+	}
+	// Idle polls shown: fetch now outweighs produce.
+	m = step(m, tea.KeyPressMsg{Code: 'i', Text: "i"})
+	full, _ := m.view(m.prof.Root)
+	if !m.showIdle || full.Kids[0].Name != "Fetch" || !strings.Contains(view(m), "polls shown") {
+		t.Errorf("idle shown: first %s", full.Kids[0].Name)
+	}
+	m = step(m, tea.KeyPressMsg{Code: 'r', Text: "r"})
+	if m.prof.Requests != 0 || len(m.zoom) != 0 {
+		t.Error("reset kept the profile")
 	}
 }

@@ -491,6 +491,73 @@ loop:
 	tf.Hint = ""
 	save("sniff-trace", "kaas sniff --trace --client-id billing-svc", tf.Render(k, 104, 38))
 
+	// Sniff --profile: producers on two topics and a consumer group, through
+	// the proxy, added up by API, broker, topic and stage.
+	pcap := newCapture(nil)
+	pp, err := sniff.StartWith(ctx, cl, sniff.Options{Listen: "127.0.0.1:0", Out: pcap.add, Deep: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fm := newProfileModel(k, pp, pcap, "every client", 0, 0)
+	prod, err := kgo.NewClient(kgo.SeedBrokers(pp.Addr()), kgo.ClientID("checkout-api"), kgo.ProducerLinger(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	burst := func(n int) {
+		var rs []*kgo.Record
+		for i := range n {
+			topic := "orders"
+			if i%3 == 0 {
+				topic = "payments"
+			}
+			rs = append(rs, &kgo.Record{Topic: topic, Key: []byte("cust-" + strconv.Itoa(i%17)), Value: []byte(`{"amount":12.5,"currency":"EUR"}`)})
+		}
+		if err := prod.ProduceSync(ctx, rs...).FirstErr(); err != nil {
+			t.Fatal(err)
+		}
+		next, _ = fm.Update(sniffTick(time.Now())) // drain as the live screen does
+		fm = next.(profileModel)
+	}
+	// A backlog first, so the consumer's fetches find records waiting.
+	for range 40 {
+		burst(30)
+	}
+	reader, err := kgo.NewClient(kgo.SeedBrokers(pp.Addr()), kgo.ClientID("billing-svc"),
+		kgo.ConsumerGroup("billing-profile"), kgo.ConsumeTopics("orders", "payments"),
+		kgo.FetchMaxWait(100*time.Millisecond),
+		kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rctx, rcancel := context.WithCancel(ctx)
+	rdone := make(chan struct{})
+	go func() {
+		defer close(rdone)
+		for rctx.Err() == nil {
+			reader.PollFetches(rctx)
+		}
+	}()
+	for range 60 {
+		burst(12)
+	}
+	time.Sleep(300 * time.Millisecond)
+	rcancel()
+	<-rdone
+	reader.Close()
+	prod.Close()
+	next, _ = fm.Update(sniffTick(time.Now()))
+	fm = next.(profileModel)
+	pp.Close()
+	pfull, _ := fm.view(fm.prof.Root)
+	for _, api := range pfull.Kids {
+		if api.Name == "Produce" {
+			// The hottest stage of the busiest produce path.
+			b := api.Kids[0]
+			fm.sel = []string{"Produce", b.Name, b.Kids[0].Name, b.Kids[0].Kids[0].Name}
+		}
+	}
+	save("sniff-profile", "kaas sniff --profile", fm.screen().Render(k, 100, 26))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 30 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 31 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -43,7 +43,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | built |
 | [Packet Capture](#packet-capture) | `kaas sniff` | built |
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | built |
-| [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | P1 |
+| [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | built |
 | [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | P1 |
 | [Settings Toggles](#settings-toggles) | `kaas config` | P1 |
 | [Modal Editor Session](#modal-editor-session) | `kaas config edit` | P1 |
@@ -371,11 +371,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Profiler Flame Graph
 
-[`flame-graph`](https://www.ascii-magic.com/ascii/flame-graph) · **P1** · A CPU profiler flame graph whose stacks grow and settle as samples come in while a cursor inspects the hottest frames.
+[`flame-graph`](https://www.ascii-magic.com/ascii/flame-graph) · **built** · A CPU profiler flame graph whose stacks grow and settle as samples come in while a cursor inspects the hottest frames.
 
-- `kaas sniff --profile`: Where produce and fetch latency goes, by stage
+- `kaas sniff --profile`: Every request's stages added up by API, broker and topic, each frame as wide as its share of the time, with a frame's count, average and p99; a fetch's polling (empty answers, and the wait before its first record was written) is told apart from serving and hidden until asked for; folded stacks on a pipe
 
-<img src="img/ui/flame-graph.svg" alt="ascii-magic Profiler Flame Graph" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/flame-graph.svg" alt="ascii-magic Profiler Flame Graph" width="100%"></td><td width="50%"><img src="img/sniff-profile.svg" alt="kaas screen built from Profiler Flame Graph" width="100%"></td></tr></table>
 
 ### Heap Allocator Map
 

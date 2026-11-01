@@ -417,6 +417,22 @@ kaas sniff --trace --for 30s -o json > trace.jsonl
 
 A request whose answer carries an error, such as the `MEMBER_ID_REQUIRED` a first JoinGroup gets, shows as `error` in red with the error's name. Lines mark when the client's group was joined and when its first produce was acknowledged. ↑↓ select a request to read its stages in the footer, ←→ switch between kinds (produce, fetch, metadata, groups, offsets, transactions, admin), and enter follows the newest. On a pipe each answered request is a line, and `-o json` gives each stage in milliseconds since the trace's first request.
 
+#### Where the time goes: `--profile`
+
+```bash
+kaas sniff --profile                              # until q
+kaas sniff --profile --api produce --api fetch    # only those
+kaas sniff --profile --for 1m > kafka.folded      # folded stacks, for speedscope or flamegraph.pl
+```
+
+`--profile` adds every request's stages up into a flame graph: all at the bottom, then each API, the broker it went to, its topic, and its stages on top, each frame as wide as its share of the time. ←→ move between frames side by side, ↑ goes up the stack and ↓ back down, and the footer shows the selected frame's share of the time, how many requests went through it, and their average and p99. Enter zooms into a frame, esc zooms back out, and r starts over.
+
+![kaas sniff --profile: produce and fetch time by broker, topic and stage, as a flame graph](img/sniff-profile.svg)
+
+A fetch can spend its time polling rather than serving: a consumer that has caught up asks for records that don't exist yet, and the broker holds the fetch until some are written or its wait runs out. The profile tells the two apart. A fetch answered with nothing spent all its wait as an `idle poll`. A fetch whose first record was written after the fetch reached the broker spent the time until then as a `long poll`, going by the records' timestamps. Both are hidden at first, so the graph shows the time spent serving. Press i to show them.
+
+`--profile` records until q, or for `--for` when you give it. On a pipe it prints the profile when it ends, as folded stacks (one line per stage with its time in microseconds), or as a tree with `-o json`.
+
 ### `kaas produce`: write records
 
 ```bash

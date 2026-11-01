@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/twmb/franz-go/pkg/kmsg"
 )
@@ -32,6 +33,15 @@ func batchRecords(b []byte) int {
 		b = b[12+size:]
 	}
 	return n
+}
+
+// batchTime is the first timestamp of the first record batch in b, which
+// says it 27 bytes in; v2 batches (magic 2, 16 bytes in) only.
+func batchTime(b []byte) (time.Time, bool) {
+	if len(b) < 35 || b[16] != 2 {
+		return time.Time{}, false
+	}
+	return time.UnixMilli(int64(binary.BigEndian.Uint64(b[27:]))), true
 }
 
 // at says where a ListOffsets asks for.
@@ -160,6 +170,45 @@ func (p *Proxy) describe(req kmsg.Request) string {
 		return some(ts)
 	}
 	return ""
+}
+
+// topicsOf is the topics a request names, in order, once each.
+func (p *Proxy) topicsOf(req kmsg.Request) []string {
+	var ts []string
+	seen := map[string]bool{}
+	add := func(name string, id [16]byte) {
+		if n := p.topic(name, id); !seen[n] {
+			seen[n] = true
+			ts = append(ts, n)
+		}
+	}
+	switch r := req.(type) {
+	case *kmsg.ProduceRequest:
+		for _, t := range r.Topics {
+			add(t.Topic, t.TopicID)
+		}
+	case *kmsg.FetchRequest:
+		for _, t := range r.Topics {
+			add(t.Topic, t.TopicID)
+		}
+	case *kmsg.ListOffsetsRequest:
+		for _, t := range r.Topics {
+			add(t.Topic, [16]byte{})
+		}
+	case *kmsg.OffsetCommitRequest:
+		for _, t := range r.Topics {
+			add(t.Topic, t.TopicID)
+		}
+	case *kmsg.MetadataRequest:
+		for _, t := range r.Topics {
+			if t.Topic != nil {
+				add(*t.Topic, [16]byte{})
+			} else {
+				add("", t.TopicID)
+			}
+		}
+	}
+	return ts
 }
 
 func orNew(id string) string {

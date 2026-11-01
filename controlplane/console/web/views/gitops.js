@@ -84,11 +84,11 @@ function applyBox(name, v, p) {
     return h("div", { class: "callout crit" }, icon("lock"), h("div", { class: "body" }, h("b", null, "Can't be applied. "), v.blocked));
   }
   if (!state.meta.allowApply) {
-    return h("div", { class: "callout volt" }, icon("gitops"), h("div", { class: "body" },
+    return h("div", { class: "callout accent" }, icon("gitops"), h("div", { class: "body" },
       h("b", null, "This console is read-only. "), "Merge the change to the desired-state file and let CI apply exactly this plan:",
       copyCode(`kaas apply -f ${v.desired.split("/").pop()} --plan ${p.id} --yes`)));
   }
-  return h("div", { class: "callout volt" }, icon("play"), h("div", { class: "body" },
+  return h("div", { class: "callout accent" }, icon("play"), h("div", { class: "body" },
     h("div", { class: "row wrap" },
       h("div", { style: { flex: "1", "min-width": "240px" } }, h("b", null, "Apply from here. "), "Additions run first and removals last; it stops at the first failure."),
       h("button", { class: "btn primary", disabled: v.applying, onclick: () => { state.ui.modal = { kind: "apply", cluster: name, plan: p, typed: "" }; changed(); } },

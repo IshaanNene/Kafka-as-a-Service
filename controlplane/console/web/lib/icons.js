@@ -47,7 +47,7 @@ export function logo() {
     h("rect", { x: "7", y: "9", width: "11", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
     h("rect", { x: "7", y: "14.3", width: "15", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
     h("rect", { x: "7", y: "19.6", width: "11", height: "3.4", rx: "1.7", fill: "var(--bg)" }),
-    h("circle", { cx: "23.6", cy: "16", r: "2.6", fill: "var(--volt)" }));
+    h("circle", { cx: "23.6", cy: "16", r: "2.6", fill: "var(--accent)" }));
 }
 
 // A status: icon, word, and why — never colour alone.

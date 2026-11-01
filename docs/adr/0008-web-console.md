@@ -22,6 +22,7 @@ They expect a page they can open, link to and leave on a wall screen. Hosted Kaf
 - **The server is a thin adapter** in `controlplane/console`. Plan, ACL and quota logic lives in `core/` (ADR-0003), and the HTTP schema-registry client lives in `controlplane/schemas`.
 - **A brand of its own.**
   - Dark "chitin" surfaces with one signature colour, volt (`#d4ff3a`), and violet iris for data.
+    *Superseded by the Obsidian palette:* neutral graphite surfaces, Electric Orange (`#FF8A3D`) as the one accent for actions and selection, semantic status pairs, and fixed series colours. See [design 0002](../design/0002-gitops-plans-and-console.md#the-web-app).
   - Bricolage Grotesque for display, Instrument Sans for the interface, Martian Mono for numbers. All three are OFL and shipped in the binary.
   - Status colours (ok, warning, critical) are reserved for state and always come with an icon and a word.
   - A light "paper" theme, and the system setting by default.

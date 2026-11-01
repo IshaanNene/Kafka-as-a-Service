@@ -128,7 +128,7 @@ Apply errors:
 ### The web app
 
 - **Pages.** Overview, Recommendations, Changes (every cluster's drift on one page), Activity, and per cluster: overview, topics with a partition map, consumers, access, schemas and GitOps.
-- **Design tokens.** Every colour is a CSS custom property in `app.css`, defined once for dark and once for light; components never use literal colours. Surfaces are neutral graphite. The lime accent marks primary actions, the selected page and the brand, never health. Health uses semantic pairs (success, warning, critical, information), each a foreground and a subtle background; recommendations use violet. Text keeps 4.5:1 contrast on every surface.
+- **Design tokens.** Every colour is a CSS custom property in `app.css`, defined once for dark and once for light; components never use literal colours. Surfaces are neutral graphite (Obsidian). The Electric Orange accent (`#FF8A3D`) marks primary actions, the selected page and the brand, never health. Health uses semantic pairs (success, warning, critical, information), each a foreground and a subtle background; recommendations use violet. Text keeps 4.5:1 contrast on every surface.
 - **Updates.** Data is polled every 2.5 seconds and events are streamed. A rendering batch per animation frame and a keyed morph keep the page still while numbers change underneath.
 - **Charts.**
   - Fixed series colours everywhere: produced is teal, consumed is violet and dashed, healthy capacity is green. The pair passes the colour-vision checks in both themes.

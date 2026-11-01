@@ -67,7 +67,7 @@ function sidebar() {
         c.drift ? h("span", { class: "nav-count" }, c.drift) : null))),
     h("div", { class: "sidebar-foot" },
       h("div", { class: "mode" + (state.meta?.allowApply ? " write" : "") }, h("span", { class: "dot" }),
-        state.meta?.allowApply ? "Plans can be applied" : "Read-only", state.meta?.demo ? h("span", { class: "chip volt", style: { "margin-left": "auto", height: "18px", "font-size": "10.5px" } }, "demo") : null),
+        state.meta?.allowApply ? "Plans can be applied" : "Read-only", state.meta?.demo ? h("span", { class: "chip accent", style: { "margin-left": "auto", height: "18px", "font-size": "10.5px" } }, "demo") : null),
       h("div", { class: "theme-switch", role: "group", "aria-label": "Theme" },
         [["light", "Light"], ["system", "Auto"], ["dark", "Dark"]].map(([id, label]) =>
           h("button", { key: id, "aria-pressed": state.ui.theme === id ? "true" : "false", onclick: () => setTheme(id) }, label))),

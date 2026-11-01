@@ -78,6 +78,7 @@ func TestOffsetsFindCommand(t *testing.T) {
 		f.re = regexp.MustCompile(`"version":2`)
 		cmd := newOffsetsFindCmd(new(string), new(string))
 		cmd.SetContext(context.Background())
+		cmd.SetOut(io.Discard)
 		if err := f.load(context.Background(), cmd, kadm.NewClient(cl), []int32{tc.part}); err != nil {
 			t.Fatal(err)
 		}

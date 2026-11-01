@@ -43,13 +43,14 @@ func seedClients(t *testing.T, c *kfake.Cluster, cl *kgo.Client) (produce func(i
 		t.Fatal(err)
 	}
 	t.Cleanup(con.Close)
+	// One deadline for the whole read: the first poll also joins the group,
+	// which can take a few seconds on a busy machine under -race.
+	pctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 	for read := 0; read < 10; {
-		pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		fs := con.PollFetches(pctx)
-		timedOut := pctx.Err() != nil
-		cancel()
-		if timedOut {
-			t.Fatal("consumer read nothing")
+		if pctx.Err() != nil {
+			t.Fatalf("consumer read %d of 10 records in 20s", read)
 		}
 		read += fs.NumRecords()
 	}

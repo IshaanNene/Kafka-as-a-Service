@@ -241,6 +241,51 @@ loop:
 	del.results = map[string]error{"users.profiles": nil}
 	save("topics-delete-done", "kaas topics delete users.profiles", del.card(0).Render(k, 56))
 
+	// Produce --file: real files into a cluster slowed to 15ms a produce,
+	// caught mid-upload; then the tray once every file is in.
+	uc, ucl := kafkatest.Fake(t, kfake.SeedTopics(6, "orders"))
+	uc.ControlKey(int16(kmsg.Produce), func(kmsg.Request) (kmsg.Response, error, bool) {
+		uc.KeepControl()
+		uc.SleepControl(func() { time.Sleep(15 * time.Millisecond) })
+		return nil, nil, false
+	})
+	dir := t.TempDir()
+	var paths []string
+	for _, f := range []struct {
+		name  string
+		lines int
+	}{{"orders-2026-09.jsonl", 4_000}, {"orders-2026-10.jsonl", 30_000}, {"orders-2026-11.jsonl", 22_000}, {"refunds.jsonl", 9_000}, {"chargebacks.jsonl", 3_000}} {
+		var b strings.Builder
+		for i := range f.lines {
+			fmt.Fprintf(&b, "user-%d:{\"order\":%d,\"total\":%d.90,\"currency\":\"EUR\"}\n", i%977, i, 10+i%300)
+		}
+		path := filepath.Join(dir, f.name)
+		if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, path)
+	}
+	up := newUpload(paths)
+	uprod := producer{cl: ucl, topic: "orders", partition: -1, out: io.Discard}
+	upDone := make(chan error, 1)
+	go func() { upDone <- uprod.run(ctx, up, ":", surface{}, "5L6g3nSh") }()
+	for {
+		up.mu.Lock()
+		first := up.files[0].State
+		up.mu.Unlock()
+		if first == screens.Sent {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(150 * time.Millisecond)
+	save("produce-file", "kaas produce orders -f orders-*.jsonl -f refunds.jsonl …",
+		up.screen(uprod, ":", "5L6g3nSh").Render(k, 72, 26))
+	if err := <-upDone; err != nil {
+		t.Fatal(err)
+	}
+	save("produce-file-done", "kaas produce orders -f …", up.tray("orders").Render(k, 56))
+
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.
 	bsnap, err := snapshot.Fetch(ctx, cl)

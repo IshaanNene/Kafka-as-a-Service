@@ -340,6 +340,23 @@ The status bar checks the value as you type and points at the first problem by l
 
 On a pipe, each line is one record, the way `kafka-console-producer` reads them. With `--key-separator`, the text before the separator is the key; a line without the separator is an error that names the line, so a record never silently loses its key. `--value` sends one record without reading stdin. `-H key=value` adds a header to every record, and `-p` picks the partition. Pipe output is silent unless you pass `-o json`, which prints `{topic, partition, offset, timestamp}` for each record.
 
+### `kaas produce --file`: upload files
+
+```bash
+kaas produce orders -f orders-2026-10.jsonl -f orders-2026-11.jsonl
+kaas produce orders --key-separator ':' -f refunds.txt -o json > receipts.jsonl
+```
+
+`-f` sends each line of a file as a record, with the same rules as a pipe: `--key-separator`, `-H` and `-p` apply to every line, a trailing `\r` is dropped, and a line can be up to 16 MiB. Repeat `-f` for more files. Four files send at a time, the rest wait in the queue.
+
+On a terminal, each file gets a row: how much has been read and sent, its records per second, and a bar. The bar measures bytes actually read, not a guess from line counts. When every file is in, the list turns into the tray, which shows the file count, total size and records, and the `kaas consume` to read them back. `ctrl-c` stops and leaves the list where it was. Records already sent stay sent.
+
+![kaas produce --file: five files uploading into orders, one done and four sending](img/produce-file.svg)
+
+![kaas produce --file: the tray once every file is in](img/produce-file-done.svg)
+
+A file that fails does not stop the others. The tray turns red and names the failed file and why, and `kaas` exits 1. A missing file, a directory, or `--value` with `-f` is a usage error (exit 2) before anything is sent. A pipe prints `path: N records` per file. `-o json` prints one object per record with `file` and `line` added, so each record can be traced back to its source.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:

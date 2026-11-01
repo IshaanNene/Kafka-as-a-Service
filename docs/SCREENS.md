@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 17 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 18 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -35,7 +35,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Process Tree Live](#process-tree-live) | `kaas brokers` | built |
 | [Process Task Manager](#process-task-manager) | `kaas groups`, `kaas clients` | built |
 | [Process Viewer Sort](#process-viewer-sort) | `kaas top` | P1 |
-| [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | P1 |
+| [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | built |
 | [Code Editor](#code-editor) | `kaas produce` | P1 |
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | P1 |
 | [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | P1 |
@@ -295,11 +295,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Relay Chat Channel
 
-[`relay-chat-channel`](https://www.ascii-magic.com/ascii/relay-chat-channel) · **P1** · A terminal relay chat client where people join and leave a channel, chat with timestamps and the nick list updates beside them.
+[`relay-chat-channel`](https://www.ascii-magic.com/ascii/relay-chat-channel) · **built** · A terminal relay chat client where people join and leave a channel, chat with timestamps and the nick list updates beside them.
 
 - `kaas consume` / `tail`: Records stream in like a channel: time, partition, key, value
 
-<img src="img/ui/relay-chat-channel.svg" alt="ascii-magic Relay Chat Channel" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/relay-chat-channel.svg" alt="ascii-magic Relay Chat Channel" width="100%"></td><td width="50%"><img src="img/consume.svg" alt="kaas screen built from Relay Chat Channel" width="100%"></td></tr></table>
 
 ### Code Editor
 

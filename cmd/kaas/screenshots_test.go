@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/bench"
 	brokerload "github.com/IshaanNene/Kafka-as-a-Service/core/brokers"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/consume"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
@@ -252,6 +254,34 @@ loop:
 	save("lag", "kaas lag", lagv.screen(true).Render(k, 100, 40))
 	save("lag-caught-up", "kaas lag", screens.CaughtUp{Title: "You're all caught up",
 		Detail: "5 groups at the head of 4 topics. Watching every 2s.", Action: "kaas groups for members and rates →"}.Render(k, 64))
+
+	// Consume: keyed orders with a header and a tombstone, read the way the
+	// command reads them, into the channel screen.
+	for i := range 9 {
+		r := &kgo.Record{Topic: "inventory", Key: []byte(fmt.Sprintf("sku-%d", 100+i*7)),
+			Value: []byte(fmt.Sprintf(`{"sku":"A-%d","warehouse":"ams-%d","on_hand":%d,"reserved":%d}`, 100+i*7, 1+i%3, 40-i*3, i%4))}
+		switch i {
+		case 3:
+			r.Headers = []kgo.RecordHeader{{Key: "trace-id", Value: []byte("4bf92f3577b34da6")}, {Key: "source", Value: []byte("restock")}}
+		case 6:
+			r.Value = nil
+		}
+		if err := cl.ProduceSync(ctx, r).FirstErr(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	from, _ := consume.ParseFrom("-5", time.Now())
+	cplan, err := consume.Plan(ctx, adm, "inventory", nil, from)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cv := newChannelView(surface{width: 100, height: 30, kit: k}, consume.Options{Topic: "inventory", Plan: cplan}, from, "kafka-1:9092")
+	co := consume.Options{Seeds: c.ListenAddrs(), Topic: "inventory", Plan: cplan, Exit: true}
+	if err := consume.Read(ctx, co, nil, func(r consume.Record) error { cv.add(r); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	cv.rate = 3
+	save("consume", "kaas consume inventory --from -5", cv.frame(time.Now()))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

@@ -207,6 +207,22 @@ With `-o json` you get `[{group, topic, lag}]`, worst first. That makes a deploy
 test "$(kaas lag -o json | jq '[.[].lag] | add // 0')" -eq 0
 ```
 
+### `kaas consume`: read a topic like a channel
+
+```bash
+kaas consume orders                       # new records as they arrive
+kaas consume orders --from -20            # the last 20 of each partition, then follow
+kaas consume orders --from 1h -p 2 --exit # the last hour of partition 2, then stop
+```
+
+Each record is a line, the way a chat channel shows messages: its time, its partition and offset, its key in its partition's colour, then its value, which wraps under itself. Lines that open with `-->` show where each partition starts and how far behind its end that is. A tombstone shows in red, and headers show in purple under their record. Binary values show as their size, so they never garble the terminal. The panel on the right counts records per partition.
+
+![kaas consume: records as a chat channel, with a partition list and a status bar](img/consume.svg)
+
+`kaas consume` never joins a consumer group and never commits, so reading never moves anyone's offsets. `--from` takes `end` (the default), `beginning`, `-N`, a duration like `15m`, or an RFC 3339 time. `-n` stops after a number of records, and `--exit` stops at the end each partition had when the read began.
+
+On a pipe it prints one raw value per line, like `kafka-console-consumer`. With `-o json` you get one object per line: `partition`, `offset`, `timestamp`, `key`, `value` and `headers`, with binary keys and values base64-encoded and marked as such. `kaas tail` is the same command.
+
 ### `kaas bench produce`: measure, don't guess
 
 The kaas version of `kafka-producer-perf-test`, as a matrix:
@@ -285,7 +301,6 @@ Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI
 
 | Command | Screen |
 |---|---|
-| `kaas consume` | Records streaming in like a chat channel: time, partition, key, value |
 | `kaas offsets reset` | A step-by-step wizard with a preview of every offset change before anything moves |
 | `kaas offsets find --time` | A bisect hunt for the offset at a timestamp, or the first bad record |
 | `kaas sniff` | A packet capture of Kafka protocol requests, colour-coded by API |

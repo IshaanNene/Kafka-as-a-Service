@@ -448,3 +448,45 @@ func TestShort(t *testing.T) {
 		}
 	}
 }
+
+func channelFixture() Channel {
+	at := time.Date(2026, 10, 31, 14, 2, 0, 0, time.UTC)
+	tick := func(s int) time.Time { return at.Add(time.Duration(s) * time.Second) }
+	return Channel{
+		Name: "#orders", Info: "[3 partitions]  from 5 before the end", Server: "localhost:9092",
+		Lines: []ChanLine{
+			{Kind: LineJoin, Time: tick(0), Nick: "p0", Hue: 0, Text: "reading from offset 1,203"},
+			{Kind: LineJoin, Time: tick(0), Nick: "p1", Hue: 1, Text: "reading from offset 998"},
+			{Kind: LineMsg, Time: tick(1), Meta: "p0:1203", Nick: "user-42", Hue: 0, Text: `{"order":9001,"amount":12.5,"currency":"EUR"}`},
+			{Kind: LineMsg, Time: tick(1), Meta: "p1:998", Nick: "user-7", Hue: 1, Text: `{"order":9002,"amount":3.2,"currency":"USD","items":[{"sku":"A-100","qty":2},{"sku":"B-220","qty":1}],"note":"leave at the door"}`},
+			{Kind: LineAct, Time: tick(1), Text: "headers: trace-id=4bf92f3577b34da6 · source=checkout"},
+			{Kind: LinePart, Time: tick(2), Meta: "p0:1204", Nick: "user-13", Hue: 0, Text: "tombstone"},
+			{Kind: LineMsg, Time: tick(3), Meta: "p1:999", Nick: "·", Hue: 1, Text: "<128 bytes, binary>"},
+		},
+		Nicks:  []Nick{{Name: "p0", Hue: 0, Count: "2"}, {Name: "p1", Hue: 1, Count: "2"}, {Name: "p2", Hue: 2, Count: "0"}},
+		Status: []string{"14:02:03", "orders", "read 4 · 2/s", "3 partitions", "no group, nothing committed"},
+		Input:  "ctrl-c to stop · -o json for scripts",
+	}
+}
+
+func TestChannel(t *testing.T) {
+	k, c := kits(t)
+	golden(t, "channel", channelFixture().Render(k, 100, 18))
+	golden(t, "channel_narrow", channelFixture().Render(k, 50, 24))
+	for w := 40; w <= 120; w++ {
+		for i, l := range channelFixture().Render(c, w, 20) {
+			if n := kit.Width(l); n > w {
+				t.Fatalf("width %d line %d is %d wide", w, i, n)
+			}
+			if strings.Contains(l, "…") {
+				t.Fatalf("width %d line %d truncated: %q", w, i, l)
+			}
+		}
+	}
+	long := channelFixture()
+	long.Lines = []ChanLine{{Kind: LineMsg, Nick: "k", Text: strings.Repeat("x", 2000)}}
+	out := kit.Join(long.Render(k, 80, 30))
+	if !strings.Contains(out, "more rows, -o json for all of it") {
+		t.Errorf("a huge value should be cut after a few rows:\n%s", out)
+	}
+}

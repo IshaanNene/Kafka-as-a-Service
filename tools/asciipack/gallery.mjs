@@ -35,6 +35,7 @@ const SHOTS = {
   "leaderboard": "lag",
   "line-chart-live": "lag",
   "empty-all-caught-up": "lag-caught-up",
+  "relay-chat-channel": "consume",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

@@ -377,6 +377,25 @@ The sorted column is marked `▐ ▼`, and the busiest row is yellow. `--sort` t
 
 Rates are the difference between two readings, so the first live frame shows `-` until the second reading. `--once`, a pipe, and `-o json` all wait one `--interval` (2s by default) for that second reading before printing. The JSON has one object per partition: `topic`, `partition`, `leader`, `in_per_sec`, `out_per_sec`, `bytes_per_sec`, `size_bytes`, and `end_offset`. A negative value means unknown, for example when the cluster refuses `DescribeLogDirs`. `OUT/s` counts only groups that commit; `kaas consume` never commits, so its reads don't show up here.
 
+### `kaas sniff`: watch the requests clients send
+
+```bash
+kaas sniff                                   # a proxy on localhost:19092
+kaas consume orders --brokers localhost:19092  # in another terminal: read through it
+kaas sniff --api produce --api fetch         # only some requests
+kaas sniff -n 100 -o json | jq -r .api       # the first 100, for scripts
+```
+
+`kaas sniff` runs a proxy in front of the cluster. Point a client at its `--listen` address instead of a broker, and every request it sends shows up as a line: when it came, the client's address, the broker it went to, its API in that API's colour, its size, and what it asks for, decoded (`orders p0,p2 · 24 records · acks all` for a produce, `orders p0@1200` for a fetch, `billing · generation 3` for a heartbeat). Produce is orange, fetch blue, metadata yellow, offsets cyan, groups purple, transactions green, and requests that change the cluster red.
+
+![kaas sniff: requests through the proxy, coloured by API, with the selected one's bytes](img/sniff.svg)
+
+↑ and ↓ select a request: the panel below shows its version, its size and its answer's, how long the broker took, which client sent it, and its first 32 bytes, with the API key highlighted. Enter follows the newest again. The bars count the last 200 requests by API.
+
+Each broker gets a listener of its own, on the ports after `--listen`'s. The proxy rewrites the broker addresses in the answers that carry them (Metadata, FindCoordinator, DescribeCluster, and the leader hints in newer Produce and Fetch answers) so a client's later connections come through it too. Everything else is forwarded as it came. Clients that don't use the proxy aren't touched. When the screen falls behind a busy client it counts requests as dropped from the screen; it never slows the traffic.
+
+On a pipe each request is a line, and `-o json` gives `n`, `time`, `client`, `client_id`, `broker`, `api`, `key`, `version`, `bytes`, `response_bytes`, `took_ms`, `answered` and `info`.
+
 ### `kaas produce`: write records
 
 ```bash

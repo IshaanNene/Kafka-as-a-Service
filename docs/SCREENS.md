@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 28 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 29 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -41,7 +41,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | built |
 | [Bisect Hunt](#bisect-hunt) | `kaas offsets find` | built |
 | [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | built |
-| [Packet Capture](#packet-capture) | `kaas sniff` | P1 |
+| [Packet Capture](#packet-capture) | `kaas sniff` | built |
 | [Request Waterfall](#request-waterfall) | `kaas sniff --trace` | P1 |
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | P1 |
 | [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | P1 |
@@ -353,11 +353,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Packet Capture
 
-[`packet-sniffer`](https://www.ascii-magic.com/ascii/packet-sniffer) · **P1** · A packet capture tool streaming colour-coded TCP, UDP, DNS and TLS packets with protocol counters and a hex dump of the selected packet.
+[`packet-sniffer`](https://www.ascii-magic.com/ascii/packet-sniffer) · **built** · A packet capture tool streaming colour-coded TCP, UDP, DNS and TLS packets with protocol counters and a hex dump of the selected packet.
 
-- `kaas sniff`: Kafka protocol requests, colour-coded by API key
+- `kaas sniff`: A proxy in front of the cluster that decodes every request through it, coloured by API, with the selected one's path and first bytes and the mix of recent APIs; it rewrites the broker addresses in Metadata, FindCoordinator, DescribeCluster and leader hints so clients stay on it
 
-<img src="img/ui/packet-sniffer.svg" alt="ascii-magic Packet Capture" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/packet-sniffer.svg" alt="ascii-magic Packet Capture" width="100%"></td><td width="50%"><img src="img/sniff.svg" alt="kaas screen built from Packet Capture" width="100%"></td></tr></table>
 
 ### Request Waterfall
 

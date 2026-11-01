@@ -30,6 +30,7 @@ import (
 	"github.com/IshaanNene/Kafka-as-a-Service/core/offsets"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/sniff"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/top"
 	"github.com/IshaanNene/Kafka-as-a-Service/internal/termshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/test/kafkatest"
@@ -406,6 +407,52 @@ loop:
 		run(cmd)
 	}
 	save("consume-pick", "kaas consume orders --pick", pm.screen(80).Render(k, 80))
+
+	// Sniff: a real proxy in front of the cluster, a producer and a group
+	// consumer going through it, and a produce request selected.
+	sc := newCapture(nil)
+	sp, err := sniff.Start(ctx, cl, "127.0.0.1:0", sc.add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkout, err := kgo.NewClient(kgo.SeedBrokers(sp.Addr()), kgo.ClientID("checkout-api"), kgo.ProducerLinger(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 6 {
+		var rs []*kgo.Record
+		for j := range 3 + i {
+			rs = append(rs, &kgo.Record{Topic: "orders", Key: []byte("cust-" + strconv.Itoa(j)), Value: []byte(`{"amount":12.5}`)})
+		}
+		if err := checkout.ProduceSync(ctx, rs...).FirstErr(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	checkout.Close()
+	billing, err := kgo.NewClient(kgo.SeedBrokers(sp.Addr()), kgo.ClientID("billing-svc"),
+		kgo.ConsumerGroup("billing-sniff"), kgo.ConsumeTopics("orders"), kgo.FetchMaxWait(200*time.Millisecond))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		pctx, pcancel := context.WithTimeout(ctx, time.Second)
+		billing.PollFetches(pctx)
+		_ = billing.CommitUncommittedOffsets(pctx)
+		pcancel()
+	}
+	billing.Close()
+	sm := newSniffModel(k, sp, sc, "all requests", 0)
+	next, _ := sm.Update(sniffTick(time.Now()))
+	sm = next.(sniffModel)
+	for i := len(sm.reqs) - 1; i >= 0; i-- {
+		if sm.reqs[i].Key == 0 { // the last produce
+			sm.sel = i
+			break
+		}
+	}
+	sm.rate = 18400
+	sp.Close()
+	save("sniff", "kaas sniff", sm.screen().Render(k, 100, 30))
 
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.

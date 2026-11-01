@@ -263,6 +263,27 @@ With `-o json` you get `[{group, topic, lag}]`, worst first. That makes a deploy
 test "$(kaas lag -o json | jq '[.[].lag] | add // 0')" -eq 0
 ```
 
+### `kaas offsets reset`: read again, or skip ahead
+
+```bash
+kaas offsets reset                                    # ask for each piece
+kaas offsets reset billing -t orders --to 2h          # read the last two hours again
+kaas offsets reset billing --all-topics --to latest   # skip the backlog
+kaas offsets reset billing -t orders --to -500 --dry-run
+```
+
+`--to` takes `earliest` or `latest`, an offset (`1043`), a shift from the committed offset (`+100`, `-500`), a time (`2026-10-31T09:00`, local unless it names a zone), or how long ago (`90m`, `2h`, `7d`). Time targets ask the cluster for each partition's first record at or after that moment, the way a consumer would. A target past either end of a partition's log is moved to that end, as the broker requires, and the plan marks it `clamped`.
+
+On a terminal, anything the flags leave out is asked for in a stepper. First you pick the group from a list showing state, topics and lag. A group with members can't be picked. Then you tick its topics and choose where to. The last step asks the cluster for the plan and sums it up before showing it in full.
+
+![kaas offsets reset: the stepper at where to, with time and 2h](img/offsets-reset-wizard.svg)
+
+The plan follows the infra-plan-diff layout. `~` is a committed offset that moves, old in red and new in green, with how many records the group reads again or skips. `+` is a partition the group has never committed, which gets its first offset. A partition that doesn't move is counted, not listed. Nothing is committed until you type `yes`. The commit lines that follow are the coordinator's actual answers, and a partition it refuses is named.
+
+![kaas offsets reset: the plan for billing two hours back, confirmed and committed](img/offsets-reset.svg)
+
+Kafka only takes commits from a group with no members, so kaas checks first. A group that is in use stops with who its members are, and nothing is sent. A group name kaas doesn't know is planned as new, all `+`, so a typo shows up in the plan before you confirm. Without a terminal, `--yes` is required. `-o json` prints `{group, state, to, dryRun, applied, moves}`, where each move has `from` (null before a first commit), `to`, and `change` (`add`, `change`, `same` or `skip`).
+
 ### `kaas consume`: read a topic like a channel
 
 ```bash
@@ -449,7 +470,6 @@ Each upcoming command already has its screen designed: 75 of ascii-magic's 79 UI
 
 | Command | Screen |
 |---|---|
-| `kaas offsets reset` | A step-by-step wizard with a preview of every offset change before anything moves |
 | `kaas offsets find --time` | A bisect hunt for the offset at a timestamp, or the first bad record |
 | `kaas sniff` | A packet capture of Kafka protocol requests, colour-coded by API |
 | `kaas doctor` | A dot per health check, then per-topic health bars |

@@ -65,7 +65,7 @@ func (v *watchView) update(u engine.Update, st engine.Stats, now time.Time) {
 		if !ok || t.OffsetsAt.IsZero() {
 			continue
 		}
-		end, retained, ok := offsets(t)
+		end, retained, ok := topicOffsets(t)
 		if !ok {
 			continue
 		}
@@ -85,9 +85,9 @@ func (v *watchView) update(u engine.Update, st engine.Stats, now time.Time) {
 	}
 }
 
-// offsets sums a topic's end offsets (records ever produced) and what is
+// topicOffsets sums a topic's end offsets (records ever produced) and what is
 // still retained.
-func offsets(t snapshot.Topic) (end, retained int64, ok bool) {
+func topicOffsets(t snapshot.Topic) (end, retained int64, ok bool) {
 	for _, p := range t.Partitions {
 		if p.StartOffset < 0 || p.EndOffset < 0 {
 			return 0, 0, false

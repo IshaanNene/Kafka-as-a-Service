@@ -27,6 +27,7 @@ import (
 	"github.com/IshaanNene/Kafka-as-a-Service/core/clients"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/consume"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/offsets"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/top"
@@ -285,6 +286,68 @@ loop:
 		t.Fatal(err)
 	}
 	save("produce-file-done", "kaas produce orders -f …", up.tray("orders").Render(k, 56))
+
+	// Offsets reset: six hours of records a minute apart, billing near the
+	// end of orders and never on payments; the wizard at where-to, then
+	// the plan for 2h back, committed.
+	oc, ocl := kafkatest.Fake(t, kfake.SeedTopics(4, "orders"), kfake.SeedTopics(2, "payments"))
+	ocm, err := kgo.NewClient(kgo.SeedBrokers(oc.ListenAddrs()...), kgo.RecordPartitioner(kgo.ManualPartitioner()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	var orecs []*kgo.Record
+	for _, tp := range []struct {
+		topic string
+		parts int32
+		every time.Duration
+	}{{"orders", 4, 40 * time.Second}, {"payments", 2, 3 * time.Minute}} {
+		for p := range tp.parts {
+			for at := now.Add(-6 * time.Hour); at.Before(now); at = at.Add(tp.every + time.Duration(p)*time.Second) {
+				orecs = append(orecs, &kgo.Record{Topic: tp.topic, Partition: p, Timestamp: at, Value: []byte("{}")})
+			}
+		}
+	}
+	if err := ocm.ProduceSync(ctx, orecs...).FirstErr(); err != nil {
+		t.Fatal(err)
+	}
+	ocm.Close()
+	oadm := kadm.NewClient(ocl)
+	ends, err := oadm.ListEndOffsets(ctx, "orders")
+	if err != nil {
+		t.Fatal(err)
+	}
+	commits := kadm.Offsets{}
+	for p, back := range []int64{3, 0, 41, 12} {
+		e, _ := ends.Lookup("orders", int32(p))
+		commits.Add(kadm.Offset{Topic: "orders", Partition: int32(p), At: e.Offset - back, LeaderEpoch: -1})
+	}
+	for _, g := range []string{"billing", "ledger-sync", "notifications"} {
+		if _, err := oadm.CommitOffsets(ctx, g, commits); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rwz, err := newResetWizard(ctx, oadm, k, resetAsk{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, msg := range keys("enter", "enter", "right", "right") {
+		next, _ := rwz.Update(msg)
+		rwz = next.(resetWizard)
+	}
+	save("offsets-reset-wizard", "kaas offsets reset", rwz.screen(80).Render(k, 80, 22))
+	two := offsets.Target{Kind: offsets.Time, At: now.Add(-2 * time.Hour)}
+	oplan, err := offsets.PlanReset(ctx, oadm, "billing", []string{"orders", "payments"}, two)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ors := reset{plan: oplan, cmdline: "kaas offsets reset billing -t orders -t payments --to 2h"}
+	start := time.Now()
+	if ors.results, err = offsets.Apply(ctx, oadm, oplan); err != nil {
+		t.Fatal(err)
+	}
+	ors.took, ors.applied = time.Since(start), true
+	save("offsets-reset", ors.cmdline, ors.screen("applied", kit.OK).Render(k, 90))
 
 	// Brokers: the cluster above, its leaders spread by kfake, topics led
 	// most under each broker.

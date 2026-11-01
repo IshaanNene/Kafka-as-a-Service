@@ -381,7 +381,7 @@ func (m wizardModel) screen(width int) screens.Stepper {
 			labels[i] = strconv.Itoa(r)
 		}
 		s.Body = append(s.Body, "")
-		s.Body = append(s.Body, screens.Radios(k, "Replication factor", labels, m.rf, m.focus == 1)...)
+		s.Body = append(s.Body, screens.Radios(k, "Replication factor", labels, m.rf, m.focus == 1, bw)...)
 		s.Body = append(s.Body, "")
 		n, _ := strconv.Atoi(m.parts)
 		rf := m.rfs[m.rf]

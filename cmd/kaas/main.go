@@ -114,6 +114,7 @@ func newRoot() *cobra.Command {
 	root.AddCommand(snap)
 	root.AddCommand(newTopicsCmd(&brokers, &themeName))
 	root.AddCommand(newGroupsCmd(&brokers, &themeName))
+	root.AddCommand(newOffsetsCmd(&brokers, &themeName))
 	root.AddCommand(newBrokersCmd(&brokers, &themeName))
 	root.AddCommand(newLagCmd(&brokers, &themeName))
 	root.AddCommand(newConsumeCmd(&brokers, &themeName))

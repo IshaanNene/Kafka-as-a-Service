@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 25 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 26 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -38,7 +38,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Relay Chat Channel](#relay-chat-channel) | `kaas consume` / `tail` | built |
 | [Code Editor](#code-editor) | `kaas produce` | built |
 | [Upload Dropzone](#upload-dropzone) | `kaas produce --file` | built |
-| [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | P1 |
+| [Infra Plan and Apply](#infra-plan-and-apply) | `kaas offsets reset`, `kaas plan` | built |
 | [Bisect Hunt](#bisect-hunt) | `kaas offsets find --time` | P1 |
 | [Date Range Picker](#date-range-picker) | `kaas consume --from --to` | P1 |
 | [Packet Capture](#packet-capture) | `kaas sniff` | P1 |
@@ -263,7 +263,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 [`onboarding-stepper`](https://www.ascii-magic.com/ascii/onboarding-stepper) · **built** · A setup wizard walks through four steps, filling fields, picking options and ticking the stepper rail as it goes.
 
 - `kaas topics create`: Name → partitions and replication from the cluster's defaults → configs → the controller's check → create
-- `kaas offsets reset`: Group → topic → strategy → preview of offset changes → apply
+- `kaas offsets reset`: A stepper for whatever the flags leave out (group → topics → where to → the plan's effect); then every partition's committed offset → its new one as a plan diff, a typed yes, and the coordinator's answer per topic
 
 <table><tr><th>The piece</th><th>The kaas screen</th></tr>
 <tr><td width="50%"><img src="img/ui/onboarding-stepper.svg" alt="ascii-magic Onboarding Stepper" width="100%"></td><td width="50%"><img src="img/topics-create.svg" alt="kaas screen built from Onboarding Stepper" width="100%"></td></tr></table>
@@ -325,12 +325,13 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Infra Plan and Apply
 
-[`infra-plan-diff`](https://www.ascii-magic.com/ascii/infra-plan-diff) · **P1** · An infrastructure-as-code plan that lists resources to add, change and destroy in coloured diffs, then applies them with elapsed timers.
+[`infra-plan-diff`](https://www.ascii-magic.com/ascii/infra-plan-diff) · **built** · An infrastructure-as-code plan that lists resources to add, change and destroy in coloured diffs, then applies them with elapsed timers.
 
-- `kaas offsets reset`: Group → topic → strategy → preview of offset changes → apply
+- `kaas offsets reset`: A stepper for whatever the flags leave out (group → topics → where to → the plan's effect); then every partition's committed offset → its new one as a plan diff, a typed yes, and the coordinator's answer per topic
 - `kaas plan`: Topics, ACLs and quotas to add, change or destroy
 
-<img src="img/ui/infra-plan-diff.svg" alt="ascii-magic Infra Plan and Apply" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/infra-plan-diff.svg" alt="ascii-magic Infra Plan and Apply" width="100%"></td><td width="50%"><img src="img/offsets-reset.svg" alt="kaas screen built from Infra Plan and Apply" width="100%"></td></tr></table>
 
 ### Bisect Hunt
 

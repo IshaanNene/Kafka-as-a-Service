@@ -182,21 +182,31 @@ func Input(k kit.Kit, label, value string, w int, focus bool, problem string) []
 }
 
 // Radios is the piece's option row: ● on the chosen one in blue, ○ on the
-// rest, with the label brighter while the row has focus.
-func Radios(k kit.Kit, label string, opts []string, chosen int, focus bool) []string {
+// rest, with the label brighter while the row has focus. Options that
+// don't fit in w go on to another row.
+func Radios(k kit.Kit, label string, opts []string, chosen int, focus bool, w int) []string {
 	lr := kit.Muted
 	if focus {
 		lr = kit.FG
 	}
-	var row []string
+	out := []string{k.S(lr, label)}
+	row, used := "", 0
 	for i, o := range opts {
+		cell := k.S(kit.Muted, "○ "+o)
 		if i == chosen {
-			row = append(row, k.S(kit.Accent, "● "+o))
-		} else {
-			row = append(row, k.S(kit.Muted, "○ "+o))
+			cell = k.S(kit.Accent, "● "+o)
 		}
+		gap := "    "
+		if used == 0 {
+			gap = ""
+		}
+		if used > 0 && used+len(gap)+kit.Width(cell) > w {
+			out, row, used, gap = append(out, row), "", 0, ""
+		}
+		row += gap + cell
+		used += len(gap) + kit.Width(cell)
 	}
-	return []string{k.S(lr, label), strings.Join(row, "    ")}
+	return append(out, row)
 }
 
 // Card is the piece's integration card: a name, what it does, and its

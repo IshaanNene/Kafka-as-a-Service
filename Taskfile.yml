@@ -23,6 +23,29 @@ tasks:
     cmds:
       - go test -race -tags integration ./...
 
+  test:chaos:
+    desc: Chaos tests on a real broker (needs Docker) — the broker paused mid-send, latency, rebalances
+    cmds:
+      - go test -race -tags chaos -run Chaos -v ./core/pipe
+
+  test:fuzz:
+    desc: Fuzz every parser for FUZZTIME each (default 30s)
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "30s"}}'
+    cmds:
+      - for: ["core/logmap FuzzParseBatches", "core/sniff FuzzBatchFields", "core/sniff FuzzSkipTags", "core/configs FuzzParseFile", "core/produce FuzzParseLine", "core/pipe FuzzDecodeJSONL", "core/pipe FuzzCSVValues", "core/pipe FuzzFilter"]
+        cmd: set -- {{.ITEM}}; go test ./$1 -run '^$' -fuzz "^$2\$" -fuzztime {{.FUZZTIME}}
+
+  test:soak:
+    desc: Run pipes against a real broker for KAAS_SOAK_DURATION (default 2m) and write soak.md
+    cmds:
+      - KAAS_SOAK_REPORT="$PWD/soak.md" go test -tags soak -v -timeout 4h ./test/soak
+
+  bench:
+    desc: Benchmarks for the pipe and the engine
+    cmds:
+      - go test -run '^$' -bench . -benchmem ./core/pipe ./core/engine
+
   lint:
     desc: golangci-lint, including the core/ import boundary
     cmds:
@@ -32,14 +55,6 @@ tasks:
     desc: Regenerate docs/img by driving every screen against an in-memory cluster
     cmds:
       - go test ./cmd/kaas -run TestScreenshots -count=1 -shots "$PWD/docs/img"
-
-  gallery:
-    desc: Regenerate docs/SCREENS.md, every ascii-magic UI piece beside its kaas command
-    dir: tools/asciipack
-    cmds:
-      - npm ci --silent
-      - node stills.mjs ../../docs/img/ui
-      - node gallery.mjs ../../docs
 
   asciipack:
     desc: Re-bake ascii-magic frame packs into ui/asciipack/packs (needs Node; the Go build does not)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +55,10 @@ func TestConsumeCommand(t *testing.T) {
 	}
 	if b := rows[3]; b.Encoding != "base64" || *b.Value != "/wA=" || len(b.Headers) != 1 || b.Headers[0].Value != "abc" {
 		t.Errorf("binary record: %+v", b)
+	}
+	// encoding covers the key too, so a reader knows what to decode.
+	if k, _ := base64.StdEncoding.DecodeString(*rows[3].Key); string(k) != "user-3" {
+		t.Errorf("binary record's key %q isn't base64", *rows[3].Key)
 	}
 
 	for args, wantExit := range map[string]int{

@@ -1,0 +1,5 @@
+{"partition":0,"offset":12,"timestamp":"2026-01-02T03:04:05Z","key":"c-1","value":"{\"amount\":3}","headers":[{"key":"trace","value":"ab"}]}
+{"partition":1,"offset":4,"timestamp":"2026-01-02T03:04:06.5Z","key":"/w==","value":"AAE=","encoding":"base64","headers":[]}
+{"key":null,"value":null}
+{"value":"only a value"}
+{"topic":"orders","partition":2,"offset":7,"key":"k","value":"v","future_field":"ignored"}

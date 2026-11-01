@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 3 * * 1" # a weekly soak, on Monday nights
+  workflow_dispatch:
+    inputs:
+      soak:
+        description: How long to soak, as 30m or 2h
+        default: 30m
 
 permissions:
   contents: read
@@ -18,7 +25,18 @@ jobs:
           go-version: "1.26.x"
           check-latest: true
       - run: go vet ./...
-      - run: go test -race ./...
+      - run: go test -race -coverprofile=cover.out ./...
+      - name: Coverage
+        run: |
+          go tool cover -func=cover.out | tail -1
+          {
+            echo "### Unit and kfake tests"
+            echo "Coverage: $(go tool cover -func=cover.out | tail -1 | awk '{print $3}')"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: cover.out
 
   lint:
     runs-on: ubuntu-latest
@@ -57,3 +75,91 @@ jobs:
       - run: go test -race -tags integration ./...
         env:
           KAAS_KAFKA_IMAGE: apache/kafka:${{ matrix.kafka }}
+
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - core/logmap FuzzParseBatches
+          - core/sniff FuzzBatchFields
+          - core/sniff FuzzSkipTags
+          - core/configs FuzzParseFile
+          - core/produce FuzzParseLine
+          - core/pipe FuzzDecodeJSONL
+          - core/pipe FuzzCSVValues
+          - core/pipe FuzzFilter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          check-latest: true
+      - name: Fuzz
+        run: |
+          set -- ${{ matrix.target }}
+          go test ./$1 -run '^$' -fuzz "^$2\$" -fuzztime 60s
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fuzz-crashers
+          path: "**/testdata/fuzz/**"
+
+  chaos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          check-latest: true
+      - run: go test -race -tags chaos -run Chaos -v ./core/pipe | tee chaos.txt
+        env:
+          KAAS_KAFKA_IMAGE: apache/kafka:4.2.1
+      - name: Evidence
+        if: always()
+        run: |
+          {
+            echo "### Chaos"
+            echo '```'
+            grep -E -- '--- (PASS|FAIL)|chaos_test|kafka_test' chaos.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          check-latest: true
+      - run: go test -run '^$' -bench . -benchmem -count 5 ./core/pipe ./core/engine | tee bench.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench
+          path: bench.txt
+
+  soak:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          check-latest: true
+      - run: go test -tags soak -v -timeout 4h ./test/soak
+        env:
+          KAAS_KAFKA_IMAGE: apache/kafka:4.2.1
+          KAAS_SOAK_DURATION: ${{ inputs.soak || '30m' }}
+          KAAS_SOAK_REPORT: ${{ github.workspace }}/soak.md
+      - if: always()
+        run: cat soak.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: soak
+          path: soak.md

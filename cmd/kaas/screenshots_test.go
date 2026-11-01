@@ -28,6 +28,7 @@ import (
 	"github.com/IshaanNene/Kafka-as-a-Service/core/consume"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/offsets"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/pipe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/snapshot"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/sniff"
@@ -883,6 +884,28 @@ loop:
 	}
 	rows, internal := topicRows(snap, "status", nil)
 	save("snapshot", "kaas snapshot", snapshotScreen(snap, rows, internal, "status").Render(k, 100))
+
+	// Pipe: two generated feeds fanned into a topic and a file, filtered,
+	// stopped part way so the screen shows a run in flight.
+	penv := pipe.Env{Brokers: c.ListenAddrs()}
+	pin1, _ := pipe.OpenSource("gen:orders?rate=900&seed=4", penv)
+	pin2, _ := pipe.OpenSource("gen:payments?rate=300&seed=5", penv)
+	pout1, _ := pipe.OpenSink("kafka:orders", penv)
+	pout2, _ := pipe.OpenSink("file:"+filepath.Join(t.TempDir(), "lake.jsonl"), penv)
+	pwhere, _ := pipe.NewFilter(`!has(value.status) || value.status != "cancelled"`)
+	ppl := pipe.New([]pipe.Endpoint{pin1, pin2}, []pipe.Endpoint{pout1, pout2}, pipe.Options{Where: pwhere})
+	pctx, pstop := context.WithTimeout(ctx, 2500*time.Millisecond)
+	pv := &pipeView{name: "orders-to-lake", p: ppl, where: pwhere.Expr, sinks: 2}
+	pdone := make(chan struct{})
+	go func() { ppl.Run(pctx); close(pdone) }() //nolint:errcheck // stopped by the timeout
+	time.Sleep(2 * time.Second)
+	pv.screen(ppl.Stats(), time.Now())
+	time.Sleep(300 * time.Millisecond)
+	pv.frame = 4
+	pframe := pv.screen(ppl.Stats(), time.Now()).Render(k, 100)
+	pstop()
+	<-pdone
+	save("pipe", "kaas pipe -f orders-to-lake.yaml", pframe)
 
 	// The TUI over the same cluster, with the events the engine just saw.
 	s := e.Latest()

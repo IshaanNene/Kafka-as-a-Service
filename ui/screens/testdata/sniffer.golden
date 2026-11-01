@@ -1,0 +1,26 @@
+proxy on localhost:19092 → localhost:29092 · filter: all requests            11 requests · 0 dropped
+   No.      Time  Client          Broker    API                Len   Info
+────────────────────────────────────────────────────────────────────────────────────────────────────
+     1  0.000412  127.0.0.1:53422 broker 0  ApiVersions        62 B  kgo 1.22
+     2  0.001830  127.0.0.1:53422 broker 0  Metadata           41 B  all topics
+     3  0.004211  127.0.0.1:53430 broker 1  InitProducerID     37 B  idempotent
+▶    4  0.009904  127.0.0.1:53430 broker 1  Produce         1.3 KiB  orders p0,p2 · 24 records · ac…
+     5  0.010220  127.0.0.1:53441 broker 2  FindCoordinator    44 B  group billing
+     6  0.012500  127.0.0.1:53441 broker 2  JoinGroup         160 B  billing · consumer · member new
+     7  0.230117  127.0.0.1:53441 broker 2  SyncGroup         220 B  billing · generation 1
+     8  0.240760  127.0.0.1:53450 broker 1  Fetch             120 B  orders p0@0 orders p2@0 · wait…
+     9  0.512002  127.0.0.1:53441 broker 2  OffsetCommit       98 B  billing · orders p0→24 orders …
+    10  0.733411  127.0.0.1:53441 broker 2  Heartbeat          53 B  billing · generation 1
+    11  1.020044  127.0.0.1:53460 broker 0  DeleteTopics       40 B  orders-old
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Request 4 v9: 1.3 KiB → 70 B in 4.2ms   127.0.0.1:53430 (kgo) > broker 1 > Produce
+0000  00 00 05 1b  00 00 00 09  ........      by API (last 200)
+0008  00 00 00 04  00 03 6b 67  ......kg      Fetch        ████████  120 Heartbeat    ███░░░░░   40
+0010  6f 00 00 00  ff ff 00 00  o.......      Produce      ██░░░░░░   24 OffsetCommit █░░░░░░░   10
+0018  75 30 02 07  6f 72 64 65  u0..orde      Metadata     █░░░░░░░    4 JoinGroup    █░░░░░░░    2
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+● capturing  12.4 kB/s                                             q quit · ↑↓ select · enter follow

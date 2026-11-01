@@ -46,6 +46,7 @@ const SHOTS = {
   "infra-plan-diff": "offsets-reset",
   "bisect-hunt": "offsets-find",
   "date-range-picker": "consume-pick",
+  "packet-sniffer": "sniff",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

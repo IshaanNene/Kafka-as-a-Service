@@ -465,6 +465,32 @@ kaas config orders -o json | jq '.[] | select(.source == "topic")'
 
 ↑↓ move, and the foot shows the selected config's value, where it comes from, what it would be without it, and the broker's documentation for it. `s` shows only what is set, and q quits. On a pipe it prints a line per config with its source; `-o json` adds the default and section. Sensitive values, such as passwords, are never shown.
 
+#### Changing configs: `kaas config edit`
+
+```bash
+kaas config edit orders                     # in the editor
+kaas config edit --broker 1                 # a broker's dynamic configs
+kaas config edit orders --set retention.ms=3d --unset cleanup.policy --dry-run
+kaas config edit orders --set retention.ms=3d -o json
+```
+
+`kaas config edit` opens the configs as a file, one `key = value` a line under the same sections. A line without `#` is set on the topic (or dynamically on the broker). Comment it out or delete it to go back to the default. Durations take `3d`, `12h` or `500ms`, and sizes `1GiB`, as well as Kafka's own numbers.
+
+![kaas config edit: retention cut to a day, larger records allowed and min.insync.replicas unset, checked by the cluster and waiting for y](img/config-edit.svg)
+
+The editor is modal, as vi is:
+- **Insert:** `i`, `a`, `o` and `O`; Esc goes back to normal mode.
+- **Move:** `h j k l`, `w b`, `0 $` and `gg G`.
+- **Delete and change:** `x`, `dd` and `D` delete; `cw` changes a word; `u` undoes.
+
+`:w` checks every change with the cluster without applying it, then shows them: `~` changed, `+` set, `-` unset and what it falls back to. `y` applies them and `n` keeps editing. A key the cluster doesn't list is refused with the nearest real one, and so is a read-only key. Other commands:
+- `:wq` applies and quits.
+- `:q!` leaves without applying.
+- `:e!` starts over from what the cluster has.
+- `:%s/old/new/g` replaces text.
+
+For a script, `--set key=value` and `--unset key` make the change without the editor, `--dry-run` only checks it, and `-o json` lists the changes.
+
 ### `kaas produce`: write records
 
 ```bash

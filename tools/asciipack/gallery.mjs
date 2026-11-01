@@ -51,6 +51,7 @@ const SHOTS = {
   "flame-graph": "sniff-profile",
   "heap-map": "segments",
   "settings-toggles": "config",
+  "modal-editor": "config-edit",
 };
 
 // Walk the design doc's tables. A row's piece cells are the ones naming UI

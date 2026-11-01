@@ -416,6 +416,37 @@ loop:
 	cm.move(2)
 	save("config", "kaas config payments", cm.v.screen(100).Render(k, 100, 30))
 
+	// Config edit: the same topic with retention cut to a day, larger
+	// records allowed and min.insync.replicas unset, after :w.
+	ed0 := newConfigEditor(gv0, cfl, k)
+	ed0.w, ed0.h = 88, 31
+	text := ed0.b.text()
+	for _, r := range [][2]string{
+		{"= 259200000  # 3d · default 7d", "= 1d"},
+		{"# max.message.bytes", "max.message.bytes"},
+		{"= 8388608  # 8 MiB · default 1.0 MiB", "= 16MiB"},
+	} {
+		text = strings.Replace(text, r[0], r[1], 1)
+	}
+	var kept []string
+	for _, l := range strings.Split(text, "\n") {
+		if !strings.HasPrefix(l, "min.insync.replicas") {
+			kept = append(kept, l)
+		}
+	}
+	ed0.b = newBuffer(strings.Join(kept, "\n"))
+	for i, l := range ed0.b.lines {
+		if strings.HasPrefix(l, "retention.ms") {
+			ed0.b.line, ed0.b.col = i, 25
+		}
+	}
+	ed0 = editKeys(t, ed0, ":w", "enter")
+	if len(ed0.changes) != 3 {
+		t.Fatalf("config edit: %+v, %q\n%s", ed0.changes, ed0.msg, ed0.b.text())
+	}
+	ed0.mode, ed0.command, ed0.cursor = screens.ModeCommand, ":w", true
+	save("config-edit", "kaas config edit payments", ed0.screen().Render(k, 88, 30))
+
 	// Consume --pick: three weeks of orders, quieter at weekends and none
 	// on one day, with the last week but two picked.
 	pc, pcl := kafkatest.Fake(t, kfake.SeedTopics(1, "orders"))

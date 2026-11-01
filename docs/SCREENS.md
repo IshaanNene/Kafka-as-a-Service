@@ -7,7 +7,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 - kaas screens: `task screenshots`, real runs against an in-memory Kafka cluster.
 - Each piece name links to its animated original on [ascii-magic.com](https://www.ascii-magic.com/ascii) (MIT).
 
-**Status:** built 33 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
+**Status:** built 34 · Phase 1, 2, 3 = which product phase builds it · unused = no honest Kafka fit.
 
 ## Index
 
@@ -46,7 +46,7 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 | [Profiler Flame Graph](#profiler-flame-graph) | `kaas sniff --profile` | built |
 | [Heap Allocator Map](#heap-allocator-map) | `kaas segments` | built |
 | [Settings Toggles](#settings-toggles) | `kaas config` | built |
-| [Modal Editor Session](#modal-editor-session) | `kaas config edit` | P1 |
+| [Modal Editor Session](#modal-editor-session) | `kaas config edit` | built |
 | [Test Suite Dots](#test-suite-dots) | `kaas doctor` | P1 |
 | [Coverage Report](#coverage-report) | `kaas doctor` | P1 |
 | [DNS Resolver Chain](#dns-resolver-chain) | `kaas doctor network` | P1 |
@@ -398,11 +398,12 @@ Every `kaas` command draws its own screen, and each screen is a Go port of one p
 
 ### Modal Editor Session
 
-[`modal-editor`](https://www.ascii-magic.com/ascii/modal-editor) · **P1** · A modal terminal text editor where the cursor hops, a line is deleted, a new one inserted, a search and replace runs and the file is saved.
+[`modal-editor`](https://www.ascii-magic.com/ascii/modal-editor) · **built** · A modal terminal text editor where the cursor hops, a line is deleted, a new one inserted, a search and replace runs and the file is saved.
 
-- `kaas config edit`: Edit configs in a vi-style buffer; diff before apply
+- `kaas config edit`: A topic's or a broker's configs as a `key = value` file in a vi-style buffer (normal, insert and command modes; relative line numbers; undo; `:%s`): set lines uncommented, defaults commented, values in readable units (3d, 1GiB); `:w` checks every change with the cluster (validate-only) and shows the diff before `y` applies it; unknown and read-only keys refused with a suggestion; `--set`/`--unset`/`--dry-run` for scripts
 
-<img src="img/ui/modal-editor.svg" alt="ascii-magic Modal Editor Session" width="560">
+<table><tr><th>The piece</th><th>The kaas screen</th></tr>
+<tr><td width="50%"><img src="img/ui/modal-editor.svg" alt="ascii-magic Modal Editor Session" width="100%"></td><td width="50%"><img src="img/config-edit.svg" alt="kaas screen built from Modal Editor Session" width="100%"></td></tr></table>
 
 ### Test Suite Dots
 

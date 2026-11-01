@@ -23,6 +23,7 @@ import (
 
 	"github.com/IshaanNene/Kafka-as-a-Service/core/bench"
 	brokerload "github.com/IshaanNene/Kafka-as-a-Service/core/brokers"
+	"github.com/IshaanNene/Kafka-as-a-Service/core/clients"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/consume"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/engine"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/probe"
@@ -355,6 +356,76 @@ loop:
 	tv.rows = top.Rates(tv.prev, tv.cur)
 	tv.sortRows()
 	save("top", "kaas top", tv.screen(true).Render(k, 100, 34))
+
+	// Clients: two fulfilment members and search-index from above as
+	// consumers, two transactional producers mid-transaction (the only
+	// producers kfake describes), over a 2s window.
+	var members []*kgo.Client
+	for range 2 {
+		m, err := kgo.NewClient(kgo.SeedBrokers(c.ListenAddrs()...), kgo.ClientID("fulfilment-svc"),
+			kgo.ConsumerGroup("fulfilment"), kgo.ConsumeTopics("orders"), kgo.DisableAutoCommit())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer m.Close()
+		members = append(members, m)
+	}
+	var txns []*kgo.Client
+	for _, id := range []string{"orders-api", "ledger"} {
+		p, err := kgo.NewClient(kgo.SeedBrokers(c.ListenAddrs()...), kgo.TransactionalID(id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer p.Close()
+		if err := p.BeginTransaction(); err != nil {
+			t.Fatal(err)
+		}
+		txns = append(txns, p)
+	}
+	write := func(n int) {
+		for i := range n {
+			txns[0].Produce(ctx, &kgo.Record{Topic: "orders", Key: []byte(strconv.Itoa(i % 6)), Value: []byte("an order")}, nil)
+			if i%3 == 0 {
+				txns[1].Produce(ctx, &kgo.Record{Topic: "payments", Key: []byte(strconv.Itoa(i % 3)), Value: []byte("a payment")}, nil)
+			}
+		}
+		for _, p := range txns {
+			if err := p.Flush(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	read := func() {
+		for _, m := range append(members, live) {
+			pctx, pcancel := context.WithTimeout(ctx, time.Second)
+			m.PollFetches(pctx)
+			_ = m.CommitUncommittedOffsets(pctx)
+			pcancel()
+		}
+	}
+	write(600)
+	read()
+	clv := &clientView{cl: cl, adm: adm, sortBy: "rate", interval: 2 * time.Second}
+	var clHistory []float64
+	for i := range 12 {
+		write(1200 + 300*(i%3))
+		read()
+		if err := clv.refresh(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clv.cur.At = base.Add(time.Duration(i) * 2 * time.Second)
+		if i > 0 {
+			var total float64
+			for j := range clv.rows {
+				clv.rows[j].Rate = clients.Rate(clv.prev, clv.cur, clv.rows[j].Client)
+				total += max(0, clv.rows[j].Rate)
+			}
+			clHistory = append(clHistory, total)
+			clv.sort()
+		}
+	}
+	clv.history = clHistory
+	save("clients", "kaas clients", clv.screen(true).Render(k, 100))
 
 	// Snapshot: the same path as the command, metadata then offsets.
 	snap, err := snapshot.Fetch(ctx, cl)

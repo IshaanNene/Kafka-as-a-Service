@@ -223,6 +223,30 @@ Each record is a line, the way a chat channel shows messages: its time, its part
 
 On a pipe it prints one raw value per line, like `kafka-console-consumer`. With `-o json` you get one object per line: `partition`, `offset`, `timestamp`, `key`, `value` and `headers`, with binary keys and values base64-encoded and marked as such. `kaas tail` is the same command.
 
+### `kaas clients`: who is reading and writing
+
+```bash
+kaas clients                 # live, busiest first
+kaas clients 'billing*'      # by client.id, group, transactional.id or topic
+kaas clients --once --all    # one read, idle producers included
+```
+
+This uses the same task-manager frame as `kaas groups`, with one row per client the cluster can see.
+
+- **Consumers** are consumer group members. Each row shows its `client.id`, the host the broker saw, its group, how many partitions it's assigned, and how far behind it is.
+- **Producers** are idempotent or transactional producers, from `DescribeProducers` (KIP-664). A transactional producer is shown by its `transactional.id`; any other producer by its producer ID. Its status is `writing`, `in txn`, or how long it has been idle.
+
+![kaas clients: consumer members and producers by records per second](img/clients.svg)
+
+Kafka has no API that lists connections or request rates; those live only in broker JMX metrics. So the rate here is records per second, measured between two refreshes: a member's offset commits, and a producer's sequence numbers (which count records). A member's rate comes in steps because most clients commit every 5s, so it reads `0/s` between commits and then catches up. Rates are only compared on partitions a client had in both refreshes, so a rebalance doesn't show up as a burst. A single read (`--once`, a pipe, or `-o json`) has no rates.
+
+Some clients never show:
+
+- **Producers with idempotence turned off.** It's on by default in current clients.
+- **Readers without a group,** including `kaas consume`.
+
+Kafka keeps a producer's state for `producer.id.expiration.ms` (a day by default), so producers that haven't written for 10 minutes are hidden unless you pass `--all`.
+
 ### `kaas top`: which partitions are working
 
 ```bash

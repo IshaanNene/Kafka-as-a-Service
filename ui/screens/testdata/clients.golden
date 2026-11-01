@@ -1,0 +1,19 @@
+╭─ Clients  Rate ─ Parts ─ Name ─────────────────────────────────────────────── ● live · every 2s ─╮
+│ Client        Kind      Group / topics  Host       Parts   Rate ▼          Status                │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ pid 4012      producer  orders +1       -              6  1,840/s  ■■■■■■  writing               │
+│ billing-svc   consumer  billing         /10.0.0.4      3  1,210/s  ■■■■··  caught up             │
+│ billing-svc   consumer  billing         /10.0.0.7      3    640/s  ■■■···  4,120 behind          │
+│ pid 5001      producer  payments        -              2    220/s  ■·····  in txn                │
+│ fraud-check   consumer  fraud-check     /10.0.1.2      2      0/s  ······  9,120 behind          │
+│ pid 3990      producer  audit           -              1      0/s  ······  idle 14m              │
+│ search-index  consumer  search-index    /10.0.2.9      6        -  ······  -                     │
+│                                                                                                  │
+│──────────────────────────────────────────────────────────────────────────────────────────────────│
+│ Rate      3,910/s                                    ▄▄▄▄▅▅▅▅▅▅▅▅▇▇▇▇████▇▇▇▇████   Groups     3 │
+│ Consumers 4                                          ████████████████████████████   Hosts      4 │
+│ Producers 3                                          ████████████████████████████                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+ sorted by rate · every 2s · ctrl-c to stop
+ consumers from group members, producers from KIP-664; plain producers and group-less readers don't
+ show

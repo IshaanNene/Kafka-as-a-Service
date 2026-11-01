@@ -47,7 +47,7 @@ This document maps all 79 pieces in ascii-magic's **UI** category to the command
 | `kaas groups` | process-task-manager | Groups and members with lag and rate, re-sorting live | **built** |
 | `kaas lag` | leaderboard, line-chart-live (Live Data), empty-all-caught-up | Groups ranked by lag; lag over time; "all caught up" at zero | **built** |
 | `kaas top` | process-sorter | Partitions by records and bytes in/out, with a meter per broker | **built** |
-| `kaas clients` | process-task-manager | Connected clients by request rate | P1 |
+| `kaas clients` | process-task-manager | Group members and idempotent producers by records/s (Kafka exposes no connection list or request rates) | **built** |
 | `kaas consume` / `tail` | relay-chat-channel | Records stream in like a channel: time, partition, key, value | **built** |
 | `kaas produce` | code-editor | Compose key, value and headers with JSON highlighting | P1 |
 | `kaas produce --file` | upload-dropzone, empty-upload-tray | File records upload with per-file progress | P1 |

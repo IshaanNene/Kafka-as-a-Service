@@ -11,6 +11,7 @@ import { clusterPage } from "./views/cluster.js";
 import { changesPage, applyModal } from "./views/gitops.js";
 import { activityPage } from "./views/activity.js";
 import { insightsPage } from "./views/insights.js";
+import { managePage, servicePage, manageModal } from "./views/manage.js";
 import { rate, plural } from "./lib/fmt.js";
 import { palette, openPalette } from "./views/palette.js";
 
@@ -60,6 +61,10 @@ function sidebar() {
     h("div", { class: "nav-label" }, "Govern"),
     h("nav", { class: "nav", "aria-label": "Govern" },
       link("/changes", { "aria-current": here("changes") }, icon("changes", "nav-icon"), "GitOps changes", drift ? h("span", { class: "nav-count " + (blocked ? "hot" : "info") }, drift) : null)),
+    state.meta?.manage ? [
+      h("div", { class: "nav-label" }, "Operate"),
+      h("nav", { class: "nav", "aria-label": "Operate" },
+        link("/manage", { "aria-current": r.page === "manage" || r.page === "service" ? "page" : null }, icon("cluster", "nav-icon"), "Managed clusters", managedCount()))] : null,
     h("div", { class: "nav-label clusters-nav" }, "Clusters"),
     h("nav", { class: "nav clusters-nav", "aria-label": "Clusters" }, (f?.clusters || []).map((c) =>
       link(clusterHref(c.name), { key: c.name, class: "cluster-link status-" + c.status, "aria-current": r.cluster === c.name ? "page" : null, title: `${c.name}: ${c.reason}` },
@@ -80,6 +85,16 @@ function sidebar() {
       h("div", { class: "version" }, "kaas " + (state.meta?.version || ""))));
 }
 
+// managedCount is the sidebar's badge: clusters in trouble, else ones
+// changing, else nothing.
+function managedCount() {
+  const list = state.services?.services || [];
+  const bad = list.filter((s) => s.phase === "failed" || s.phase === "degraded").length;
+  if (bad) return h("span", { class: "nav-count " + (list.some((s) => s.phase === "failed") ? "crit" : "hot"), title: plural(bad, "cluster") + " need attention" }, bad);
+  const moving = list.filter((s) => s.phase === "provisioning" || s.phase === "rolling" || s.phase === "scaling").length;
+  return moving ? h("span", { class: "nav-count info", title: plural(moving, "cluster") + " changing" }, moving) : null;
+}
+
 function crumbs() {
   const r = state.route;
   const here = (t) => h("span", { class: "here" }, t);
@@ -89,8 +104,11 @@ function crumbs() {
       r.tab !== "overview" ? [h("span", { class: "sep" }, "/"), r.topic ? link(clusterHref(r.cluster, r.tab), null, r.tab) : here(r.tab)] : null,
       r.topic ? [h("span", { class: "sep" }, "/"), here(r.topic)] : null];
   }
-  return here({ fleet: "Overview", changes: "GitOps changes", activity: "Activity", insights: "Recommendations" }[r.page]);
+  if (r.page === "service") return [link("/manage", null, "Managed clusters"), sep, here(r.service)];
+  return here(titles[r.page]);
 }
+
+const titles = { fleet: "Overview", changes: "GitOps changes", activity: "Activity", insights: "Recommendations", manage: "Managed clusters" };
 
 function topbar() {
   return h("header", { class: "topbar" },
@@ -110,6 +128,8 @@ function page() {
       case "changes": return changesPage();
       case "activity": return activityPage();
       case "insights": return insightsPage();
+      case "manage": return managePage();
+      case "service": return servicePage(r.service);
       default: return fleetPage();
     }
   } catch (e) {
@@ -133,9 +153,9 @@ function draw() {
   render(root, h("div", { class: "shell" },
     sidebar(),
     h("div", { class: "main" }, topbar(), h("main", { class: "page", id: "main" }, page())),
-    applyModal(), palette(), toasts()));
+    applyModal(), manageModal(), palette(), toasts()));
   const r = state.route;
-  document.title = (r.page === "cluster" ? r.topic || r.cluster : { fleet: "Overview", changes: "GitOps changes", activity: "Activity", insights: "Recommendations" }[r.page]) + " · kaas console";
+  document.title = (r.page === "cluster" ? r.topic || r.cluster : r.page === "service" ? r.service : titles[r.page]) + " · kaas console";
 }
 onChange(() => {
   if (!queued) {

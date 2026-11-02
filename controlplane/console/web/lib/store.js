@@ -9,6 +9,7 @@ export const state = {
   schemas: {},
   plans: {},
   topic: {}, // "cluster/topic" → TopicView
+  services: null, // ServicesView, when the console manages clusters
   events: [], // newest last, deduplicated by seq
   live: false,
   error: null, // the last failed fetch, shown in the top bar
@@ -81,6 +82,9 @@ async function refresh() {
         .catch((e) => { if (e.status === 404) state.topic[r.cluster + "/" + r.topic] = { missing: true }; else throw e; }));
     }
   }
+  // Managed clusters are few and their count shows in the sidebar, so
+  // they're fetched on every page.
+  if (state.meta?.manage) jobs.push(api("/services").then((v) => (state.services = v)));
   if (r.page === "changes" && state.meta) {
     for (const name of state.meta.clusters) {
       jobs.push(api(`/clusters/${encodeURIComponent(name)}/plan`).then((v) => (state.plans[name] = v)));

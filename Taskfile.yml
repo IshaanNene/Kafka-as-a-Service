@@ -106,6 +106,13 @@ tasks:
 
   operator:dev:
     desc: Run the kaas operator against the kind cluster from 'task dev', with the CRD and an example KafkaService
+    preconditions:
+      # With no context kubectl tries localhost:8080, and whatever answers
+      # there gives errors that don't say "no cluster".
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
+      - sh: kubectl get crd kafkanodepools.kafka.strimzi.io
+        msg: "Strimzi isn't installed in this cluster. Run 'task dev' first."
     cmds:
       - kubectl apply -f deploy/operator/crd.yaml
       - kubectl apply -f deploy/operator/example.yaml
@@ -115,6 +122,9 @@ tasks:
 
   console:kube:
     desc: The console with the managed clusters in namespace kafka of the current kubectl context
+    preconditions:
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
     cmds:
       - go run ./cmd/kaas console --kube --namespace kafka --allow-apply --web-dir controlplane/console/web
 

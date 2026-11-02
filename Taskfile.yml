@@ -104,6 +104,20 @@ tasks:
     cmds:
       - kubectl -n kafka port-forward svc/dev-kafka-bootstrap 9092:9092
 
+  operator:dev:
+    desc: Run the kaas operator against the kind cluster from 'task dev', with the CRD and an example KafkaService
+    cmds:
+      - kubectl apply -f deploy/operator/crd.yaml
+      - kubectl apply -f deploy/operator/example.yaml
+      # From outside the cluster the operator can't reach brokers to measure
+      # load, so autoscaling holds; deploy/operator/operator.yaml runs it inside.
+      - go run ./cmd/kaas operator --namespace kafka --dev-log
+
+  console:kube:
+    desc: The console with the managed clusters in namespace kafka of the current kubectl context
+    cmds:
+      - go run ./cmd/kaas console --kube --namespace kafka --allow-apply --web-dir controlplane/console/web
+
   dev:down:
     desc: Delete the kind cluster
     cmds:

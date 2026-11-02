@@ -12,14 +12,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/IshaanNene/Kafka-as-a-Service/controlplane/console"
+	"github.com/IshaanNene/Kafka-as-a-Service/controlplane/lifecycle"
 	"github.com/IshaanNene/Kafka-as-a-Service/internal/version"
 )
 
 func newConsoleCmd(brokers *string) *cobra.Command {
 	var (
 		fleetPath, listen, desired, name string
-		webDir                           string
-		allowApply, demo                 bool
+		webDir, namespace                string
+		allowApply, demo, kube           bool
 	)
 	cmd := &cobra.Command{
 		Use:   "console",
@@ -27,6 +28,11 @@ func newConsoleCmd(brokers *string) *cobra.Command {
 		Long: `Serve the KaaS web console: every cluster in a fleet with its health,
 throughput, topics, consumer lag, ACLs, quotas, schemas and GitOps drift,
 and a live feed of what changes.
+
+With --kube it also manages Kafka clusters on Kubernetes: it lists the
+KafkaServices in --namespace and, with --allow-apply, creates, rolls and
+resizes them. The kaas operator does the work; the console only writes
+the KafkaService.
 
 The fleet comes from a YAML file (--fleet), or is the one cluster -b points
 at. The console is read-only unless --allow-apply is given; the usual way to
@@ -37,7 +43,9 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
   # A fleet
   kaas console --fleet fleet.yaml
   # The cluster -b points at, with its desired state
-  kaas console -b kafka-0:9092 --desired gitops/prod.yaml`,
+  kaas console -b kafka-0:9092 --desired gitops/prod.yaml
+  # A fleet, and the managed clusters in the kafka namespace
+  kaas console --fleet fleet.yaml --kube --namespace kafka --allow-apply`,
 		Args: unknownCommand,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if demo && fleetPath != "" {
@@ -46,8 +54,12 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
 			if allowApply && !loopback(listen) {
 				return usageError(cmd, "listen", listen, "--allow-apply needs a localhost address: the console has no login yet, so anyone who could reach it could change your clusters")
 			}
+			if demo && kube {
+				return usageError(cmd, "demo", "", "can't be used with --kube")
+			}
 			ctx := cmd.Context()
 			var cfg console.Config
+			var manager lifecycle.Manager
 			switch {
 			case demo:
 				d, err := console.StartDemo(ctx)
@@ -56,6 +68,9 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
 				}
 				defer d.Close()
 				cfg = d.Config
+				ld := lifecycle.NewDemo(time.Now())
+				go ld.Run(ctx)
+				manager = ld
 			case fleetPath != "":
 				var err error
 				if cfg, err = console.LoadConfig(fleetPath); err != nil {
@@ -64,11 +79,18 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
 			default:
 				cfg.Clusters = []console.ClusterConfig{{Name: name, Brokers: splitSeeds(*brokers), Desired: desired}}
 			}
+			if kube {
+				m, err := kubeManager(namespace)
+				if err != nil {
+					return usageError(cmd, "kube", "", err.Error())
+				}
+				manager = m
+			}
 			f, err := console.NewFleet(cfg, console.Intervals{})
 			if err != nil {
 				return usageError(cmd, "fleet", fleetPath, err.Error())
 			}
-			srv, err := console.NewServer(f, console.Options{AllowApply: allowApply, Version: version.Version, Demo: demo, WebDir: webDir})
+			srv, err := console.NewServer(f, console.Options{AllowApply: allowApply, Version: version.Version, Demo: demo, WebDir: webDir, Lifecycle: manager})
 			if err != nil {
 				return err
 			}
@@ -90,6 +112,9 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
 			if allowApply {
 				mode = "plans can be applied"
 			}
+			if manager != nil {
+				mode += "; managing clusters in " + manager.Where()
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "kaas console  http://%s  (%s, %s)\n", displayAddr(ln.Addr()), plural(len(cfg.Clusters), "cluster"), mode)
 			if !loopback(listen) {
 				fmt.Fprintln(cmd.ErrOrStderr(), "warning: the console has no login yet and is listening beyond localhost; put it behind an authenticating proxy")
@@ -107,6 +132,8 @@ kaas apply. It has no login yet, so it listens on localhost by default.`,
 	f.BoolVar(&demo, "demo", false, "serve a built-in demo fleet instead of real clusters")
 	f.StringVar(&desired, "desired", "", "desired-state file for the -b cluster")
 	f.StringVar(&name, "name", "local", "name for the -b cluster")
+	f.BoolVar(&kube, "kube", false, "manage KafkaServices on Kubernetes (uses KUBECONFIG or the in-cluster account)")
+	f.StringVar(&namespace, "namespace", envOr("KAAS_NAMESPACE", "kafka"), "namespace of the KafkaServices, with --kube")
 	f.StringVar(&webDir, "web-dir", "", "serve the web app from this directory (for working on it)")
 	_ = f.MarkHidden("web-dir")
 	cmd.Annotations = map[string]string{"hint": "web UI"}

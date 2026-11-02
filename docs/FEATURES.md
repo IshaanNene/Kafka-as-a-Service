@@ -94,6 +94,17 @@ The management plane is a web console in the same binary, plus two commands for 
 
 The console is read-only and on localhost unless you choose otherwise. Try it with no cluster at all: `kaas console --demo`.
 
+## Run Kafka on Kubernetes (Phase 3)
+
+An operator in the same binary runs Kafka clusters on Strimzi, and the console manages them.
+
+| Feature | What it gives you | Command |
+|---|---|---|
+| **A cluster from a few lines** | A `KafkaService` gives the version, the disk per broker, and a broker count or an autoscaling policy; the operator renders the Strimzi Kafka, a three-controller KRaft quorum, the broker pool and Cruise Control | [`kaas operator`](USAGE.md#kaas-operator-managed-kafka-on-kubernetes) |
+| **Safe rolls** | Every controller and broker restarts one at a time, each only once its partitions are back in sync, with progress pod by pod | [Managed clusters](USAGE.md#managed-clusters-in-the-console) |
+| **Autoscaling on load** | Load is measured from partition high-water marks. Brokers are added at once; they're removed only after load stays low for a window, with partitions moved off first | [Autoscaling](USAGE.md#autoscaling) |
+| **Managed clusters in the console** | Each cluster's state, brokers, load against capacity and history, with create, roll and resize behind typed confirmation and same-origin checks | [`kaas console --kube`](USAGE.md#managed-clusters-in-the-console) |
+
 ## Errors that tell you what to do
 
 - **Unreachable clusters** show each seed broker probed layer by layer (DNS, TCP, Kafka protocol, metadata) and which layer broke. [Troubleshooting](USAGE.md#troubleshooting)

@@ -655,6 +655,7 @@ It prints `kaas console  http://127.0.0.1:7070  (5 clusters, read-only)`; open t
 | **GitOps** | The plan from the desired-state file: each change by risk, policy results, warnings, and Apply |
 | **Changes** | Drift across the whole fleet on one page |
 | **Activity** | Every event, filterable by cluster and severity |
+| **Managed clusters** | With `--kube` or `--demo`: the clusters the operator runs, and one page each to roll and resize them. See [Managed clusters](#managed-clusters-in-the-console) |
 
 ![The consumers tab: groups ranked by lag with rate and time to catch up](img/console-consumers.png)
 
@@ -674,7 +675,9 @@ Press **⌘K** or **/** to jump to any cluster, topic, group or page. Light, dar
 | `--name` | `local` | Without `--fleet`: what to call the `-b` cluster |
 | `--listen` | `127.0.0.1:7070` (`KAAS_CONSOLE_LISTEN`) | Address to serve on |
 | `--allow-apply` | off | Let the GitOps tab apply plans. Needs a localhost `--listen` |
-| `--demo` | off | Start in-memory clusters with traffic, ACLs, quotas, schemas and drift |
+| `--demo` | off | Start in-memory clusters with traffic, ACLs, quotas, schemas and drift, and four managed clusters |
+| `--kube` | off | Show the KafkaServices in `--namespace`, through `KUBECONFIG` or the in-cluster account |
+| `--namespace` | `kafka` (`KAAS_NAMESPACE`) | With `--kube`: where the KafkaServices are |
 
 **Security.** The console has no login yet:
 - It listens on localhost, and is read-only unless `--allow-apply` is given.
@@ -723,6 +726,88 @@ clusters:
 ```
 
 Names must be unique. Unknown keys are errors.
+
+## `kaas operator`: managed Kafka on Kubernetes
+
+```bash
+kubectl apply -f deploy/operator/crd.yaml -f deploy/operator/rbac.yaml -f deploy/operator/operator.yaml
+kubectl apply -f deploy/operator/example.yaml
+kubectl get ks -n kafka           # NAME  PHASE  BROKERS  READY  VERSION  AGE
+```
+
+The operator turns each `KafkaService` into Strimzi resources:
+
+- a `Kafka` with Cruise Control;
+- a pool of three KRaft controllers;
+- a broker pool;
+- a rebalance template.
+
+Strimzi runs the brokers. Strimzi 1.0 or later must be installed (`task dev` installs it on kind).
+
+```yaml
+apiVersion: kaas.io/v1alpha1
+kind: KafkaService
+metadata: {name: orders, namespace: kafka}
+spec:
+  version: 4.2.0
+  brokers: 3                 # the size when autoscale is unset
+  storage: 20Gi              # disk per broker
+  config:                    # optional: broker config over the defaults
+    log.retention.hours: "72"
+  autoscale:                 # optional
+    min: 3
+    max: 9
+    target: 20000            # records a second per broker
+    scaleDownAfter: 10m
+```
+
+Clients connect to `orders-kafka-bootstrap.kafka.svc:9092`. Names are at most 20 characters, because Strimzi's pod names repeat them.
+
+**Roll.** Set `spec.restartAt` to now, from the console or with:
+
+```bash
+kubectl patch ks orders -n kafka --type merge -p "{\"spec\":{\"restartAt\":\"$(date -u +%FT%TZ)\"}}"
+```
+
+Every controller and broker restarts one at a time, each once its partitions are back in sync. `status.roll` counts pods through it.
+
+### Autoscaling
+
+Every 30 seconds the operator reads each partition's high-water mark: one request per broker, whatever the partition count. Their sum's rate of change is the load, in records a second. The size it wants is `load ÷ target`, rounded up and kept within `min` and `max`.
+
+- **Up.** Brokers are added as soon as load calls for them. Strimzi's Cruise Control then moves partitions on to them.
+- **Down.** Brokers are removed only once every reading for `scaleDownAfter` wanted fewer, and only down to the most any of those wanted. Cruise Control moves partitions off them first.
+- **During a roll.** The size holds.
+
+`status.reason` says why the size is what it is ("4.2k rec/s at 2k per broker", "load fits 3; watching for 10m before removing brokers").
+
+The operator has to reach the brokers to measure, so run it in the cluster (`deploy/operator/operator.yaml`). Run from a laptop (`task operator:dev`), it manages and rolls clusters, but autoscaling holds.
+
+| Flag | Default | |
+|---|---|---|
+| `--namespace` | every namespace (`KAAS_NAMESPACE`) | Watch one namespace |
+| `--interval` | `30s` | How often each cluster's load is measured |
+| `--leader-elect` | off | Run several replicas, one active |
+| `--probes` | off | Serve `/healthz` and `/readyz`, e.g. on `:8081` |
+| `--dev-log` | off | Text logs instead of JSON |
+
+### Managed clusters in the console
+
+```bash
+kaas console --kube --namespace kafka --allow-apply
+```
+
+**Managed clusters** in the sidebar lists each cluster with its state, brokers, load and sizing. Each cluster's page shows:
+
+- the change under way, if any;
+- load against capacity (brokers × target);
+- every broker's state;
+- the cluster's history;
+- a size card to switch between autoscaling and a fixed count.
+
+**New cluster** creates a KafkaService. **Restart brokers** asks for the cluster's name, typed, first.
+
+The console writes only KafkaService specs; the operator does the rest. Writes need `--allow-apply`, and the console's account needs the `kaas-console` role from `deploy/operator/rbac.yaml`. Deleting a cluster is left to `kubectl delete ks`. Broker volumes are kept after a delete until their claims are removed.
 
 ## GitOps: `kaas plan` and `kaas apply`
 

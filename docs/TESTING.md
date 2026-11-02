@@ -66,6 +66,22 @@ The management plane is tested the same way, on kfake clusters:
   - a real apply.
 - **The web app.** `controlplane/console/webtest` runs with `node --test` and checks the formatting every number on screen goes through (money, percentages, data age, change), how event kinds are worded, the treemap layout and the change badge. The `web` CI job also checks every module parses.
 
+## Managed clusters (Phase 3)
+
+- **`controlplane/lifecycle`.**
+  - `TestRecommend` and `TestDecide` pin the sizing rules: up at once, down only after a full window, and only to the window's peak.
+  - `TestDecideProperties` (rapid) checks, for any history, that the size stays in bounds, never lags a rising recommendation, and never drops below a recommendation in the window.
+  - `TestDemoLifecycle` drives the demo through provisioning, a roll, and scaling up and down in simulated time.
+  - `TestDemoAutoscale` checks that the autoscaled demo cluster follows its load through several sizes.
+- **`operator`.** The reconciler runs against controller-runtime's fake API server, with a test helper playing Strimzi (ready conditions, a pod per pool replica).
+  - `TestCreate`: rendering, owner references, and a steady pass that writes nothing.
+  - `TestAutoscale`: up to five brokers on load, held through four quiet minutes, then down to the minimum, then a fixed size by hand.
+  - `TestRoll`: every pod marked for restart, then counted as Strimzi recreates it.
+  - `TestExampleManifest`: `deploy/operator/example.yaml` stays valid.
+- **`controlplane/console`.** `TestServicesAPI` covers the services API against the demo: the guards (read-only, cross-origin, form posts, unconfirmed rolls), the 400, 404 and 409 answers, and each change taking effect.
+
+Against a real Strimzi it is manual for now: `task dev`, then `task operator:dev`.
+
 ## Integration: real Kafka in containers
 
 `test/kafkatest` starts an `apache/kafka` image as a single-node KRaft broker with Testcontainers. CI runs every integration test on three Kafka versions.

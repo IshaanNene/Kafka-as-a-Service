@@ -1,0 +1,16 @@
+# A managed cluster that sizes itself: three brokers at least, nine at
+# most, each taking up to 20,000 records a second.
+apiVersion: kaas.io/v1alpha1
+kind: KafkaService
+metadata:
+  name: orders
+  namespace: kafka
+spec:
+  version: 4.2.0
+  brokers: 3
+  storage: 20Gi
+  autoscale:
+    min: 3
+    max: 9
+    target: 20000
+    scaleDownAfter: 10m

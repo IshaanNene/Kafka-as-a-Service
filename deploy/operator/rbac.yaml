@@ -1,0 +1,56 @@
+# What the kaas operator may touch: its own KafkaServices, the Strimzi
+# resources it renders, and pods (read, and annotate to restart them).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kaas-operator
+  namespace: kaas-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaas-operator
+rules:
+  - apiGroups: [kaas.io]
+    resources: [kafkaservices]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [kaas.io]
+    resources: [kafkaservices/status]
+    verbs: [get, update, patch]
+  - apiGroups: [kafka.strimzi.io]
+    resources: [kafkas, kafkanodepools, kafkarebalances]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kaas-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kaas-operator
+subjects:
+  - kind: ServiceAccount
+    name: kaas-operator
+    namespace: kaas-system
+---
+# For a console run with --kube: read KafkaServices and, with
+# --allow-apply, create them and change their specs. Bind it to whoever
+# runs the console.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaas-console
+rules:
+  - apiGroups: [kaas.io]
+    resources: [kafkaservices]
+    verbs: [get, list, watch, create, update]

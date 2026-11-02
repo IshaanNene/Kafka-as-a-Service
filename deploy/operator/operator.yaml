@@ -1,0 +1,42 @@
+# The kaas operator: two replicas, one active at a time. Apply after
+# crd.yaml and rbac.yaml, with Strimzi already installed.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kaas-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaas-operator
+  namespace: kaas-system
+  labels: {app.kubernetes.io/name: kaas-operator}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app.kubernetes.io/name: kaas-operator}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: kaas-operator}
+    spec:
+      serviceAccountName: kaas-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: operator
+          image: ghcr.io/ishaannene/kaas:latest
+          args: [operator, --leader-elect, --probes, ":8081"]
+          ports:
+            - {name: probes, containerPort: 8081}
+          readinessProbe:
+            httpGet: {path: /readyz, port: probes}
+          livenessProbe:
+            httpGet: {path: /healthz, port: probes}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

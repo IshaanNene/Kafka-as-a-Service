@@ -144,6 +144,8 @@ task lint               # includes the core/ import boundary (ADR-0003)
 task screenshots        # regenerate docs/img from real runs against kfake
 task console            # the web console on a demo fleet, served from disk for editing
 task operator:dev       # the operator against the kind cluster from task dev
+task operator:kind      # the operator inside that cluster, where it can autoscale
+task operator:load      # produce to a managed cluster to watch it scale
 task test:web           # the console's JavaScript tests (Node 20+)
 task dev                # kind + Strimzi + a 3-broker KRaft cluster
 ```

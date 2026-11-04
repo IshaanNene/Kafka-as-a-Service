@@ -80,7 +80,12 @@ The management plane is tested the same way, on kfake clusters:
   - `TestExampleManifest`: `deploy/operator/example.yaml` stays valid.
 - **`controlplane/console`.** `TestServicesAPI` covers the services API against the demo: the guards (read-only, cross-origin, form posts, unconfirmed rolls), the 400, 404 and 409 answers, and each change taking effect.
 
-Against a real Strimzi it is manual for now: `task dev`, then `task operator:dev`.
+Against a real Strimzi it is manual for now. `task dev` brings up kind with Strimzi, `task operator:kind` runs the operator in it, and `task operator:load` produces records to autoscale on. USAGE has the walkthrough. Checked this way:
+
+- create, roll, and resizing by hand in both directions, through the console;
+- autoscaling from 3 to 6 brokers under 25,000 records a second and back to 3 three minutes after the load stops, partitions moved by Cruise Control each time;
+- a steady cluster costs no writes;
+- two operator replicas, one holding the lease.
 
 ## Integration: real Kafka in containers
 

@@ -777,11 +777,22 @@ Every 30 seconds the operator reads each partition's high-water mark: one reques
 
 - **Up.** Brokers are added as soon as load calls for them. Strimzi's Cruise Control then moves partitions on to them.
 - **Down.** Brokers are removed only once every reading for `scaleDownAfter` wanted fewer, and only down to the most any of those wanted. Cruise Control moves partitions off them first.
-- **During a roll.** The size holds.
+- **While brokers restart or partitions move.** The size holds. A resize counts as done once Strimzi's auto-rebalance for it has finished, not when the new pods are ready.
 
 `status.reason` says why the size is what it is ("4.2k rec/s at 2k per broker", "load fits 3; watching for 10m before removing brokers").
 
 The operator has to reach the brokers to measure, so run it in the cluster (`deploy/operator/operator.yaml`). Run from a laptop (`task operator:dev`), it manages and rolls clusters, but autoscaling holds.
+
+To watch it on kind, run the operator in the cluster and lower the example's target to what a laptop can produce:
+
+```bash
+task dev                       # kind, Strimzi and a dev cluster
+task operator:kind             # build the image, run the operator in the cluster, apply the example
+kubectl patch ks orders -n kafka --type merge -p '{"spec":{"autoscale":{"max":6,"target":5000,"scaleDownAfter":"3m"}}}'
+task operator:load -- 25000    # 25,000 records a second: up to 5 or 6 brokers
+kubectl get ks orders -n kafka -w
+kubectl -n kafka delete pod load   # stop; 3 minutes later it goes back to 3
+```
 
 | Flag | Default | |
 |---|---|---|

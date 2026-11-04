@@ -121,6 +121,44 @@ tasks:
       # load, so autoscaling holds; deploy/operator/operator.yaml runs it inside.
       - go run ./cmd/kaas operator --namespace kafka --dev-log
 
+  operator:kind:
+    desc: Build the image and run the operator inside the kind cluster from 'task dev', where it can measure load and autoscale
+    preconditions:
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
+      - sh: kubectl get crd kafkanodepools.kafka.strimzi.io
+        msg: "Strimzi isn't installed in this cluster. Run 'task dev' first."
+    cmds:
+      - docker build -t kaas:dev .
+      - kind load docker-image kaas:dev --name {{.KIND_CLUSTER}}
+      - kubectl apply -f deploy/operator/crd.yaml -f deploy/operator/rbac.yaml -f deploy/operator/operator.yaml
+      # The local image, never pulled; the manifest's tag would be pulled
+      # from the registry on every start.
+      - >-
+        kubectl -n kaas-system patch deploy kaas-operator --type=json
+        -p '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"kaas:dev"},{"op":"replace","path":"/spec/template/spec/containers/0/imagePullPolicy","value":"IfNotPresent"}]'
+      - kubectl -n kaas-system rollout restart deploy/kaas-operator
+      - kubectl -n kaas-system rollout status deploy/kaas-operator --timeout=3m
+      - kubectl wait --for=condition=Established crd/kafkaservices.kaas.io --timeout=30s
+      - kubectl apply -f deploy/operator/example.yaml
+
+  operator:load:
+    desc: "Produce to a managed cluster to watch it autoscale: task operator:load -- <records a second> [cluster]. Stop with: kubectl -n kafka delete pod load"
+    vars:
+      RATE: '{{index (splitArgs (default "20000" .CLI_ARGS)) 0}}'
+      CLUSTER: '{{if gt (len (splitArgs (default "x" .CLI_ARGS))) 1}}{{index (splitArgs .CLI_ARGS) 1}}{{else}}orders{{end}}'
+      IMAGE: quay.io/strimzi/kafka:{{.STRIMZI_VERSION}}-kafka-4.2.0
+      BOOTSTRAP: '{{.CLUSTER}}-kafka-bootstrap.kafka.svc:9092'
+    cmds:
+      - >-
+        kubectl -n kafka run topic --image={{.IMAGE}} --restart=Never --rm -i --quiet --
+        bin/kafka-topics.sh --bootstrap-server {{.BOOTSTRAP}} --create --if-not-exists --topic load --partitions 12 --replication-factor 3
+      - >-
+        kubectl -n kafka run load --image={{.IMAGE}} --restart=Never --
+        bin/kafka-producer-perf-test.sh --topic load --num-records 1000000000 --record-size 100 --throughput {{.RATE}}
+        --producer-props bootstrap.servers={{.BOOTSTRAP}} acks=1 linger.ms=20
+      - echo "Producing {{.RATE}} records a second to {{.CLUSTER}}. Stop with 'kubectl -n kafka delete pod load'."
+
   console:kube:
     desc: The console with the managed clusters in namespace kafka of the current kubectl context
     preconditions:

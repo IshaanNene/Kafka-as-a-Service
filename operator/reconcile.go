@@ -70,9 +70,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	now := r.now()
 
 	r.size(ctx, ks, now)
-	if before.Brokers != 0 && ks.Status.Brokers != before.Brokers {
-		ks.Status.ScaledAt = &metav1.Time{Time: now}
-	}
+	resized := before.Brokers != 0 && ks.Status.Brokers != before.Brokers
 	for _, obj := range render(ks, ks.Status.Brokers) {
 		if err := r.upsert(ctx, ks, obj); err != nil {
 			return ctrl.Result{}, fmt.Errorf("%s %s: %w", obj.GetKind(), obj.GetName(), err)
@@ -85,7 +83,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := r.roll(ctx, ks, pods, now); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.observe(ctx, ks, pods, now); err != nil {
+	if err := r.observe(ctx, ks, pods, resized, now); err != nil {
 		return ctrl.Result{}, err
 	}
 	ks.Status.ObservedGeneration = ks.Generation
@@ -327,7 +325,8 @@ func (r *Reconciler) roll(ctx context.Context, ks *KafkaService, pods []corev1.P
 }
 
 // observe reads the brokers and Strimzi's view into the status.
-func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev1.Pod, now time.Time) error {
+// resized is whether this pass changed the broker count.
+func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev1.Pod, resized bool, now time.Time) error {
 	st := &ks.Status
 	st.Nodes, st.ReadyBrokers = nil, 0
 	for i := range pods {
@@ -354,8 +353,12 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 	}
 	kafkaReady, failure := strimziState(k)
 	rebalancing, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "state")
-	if st.ScaledAt != nil && rebalancing == "Idle" && rebalancedSince(k, st.ScaledAt.Time) {
-		st.ScaledAt = nil
+	transition, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "lastTransitionTime")
+	switch {
+	case resized:
+		st.ScaledAt, st.RebalancedBefore = &metav1.Time{Time: now}, transition
+	case st.ScaledAt != nil && rebalancing == "Idle" && transition != st.RebalancedBefore:
+		st.ScaledAt, st.RebalancedBefore = nil, ""
 	}
 
 	phase, msg := lifecycle.Ready, ""
@@ -390,15 +393,6 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 	}
 	meta.SetStatusCondition(&st.Conditions, cond)
 	return nil
-}
-
-// rebalancedSince is whether the Kafka's auto-rebalance last changed
-// state after t, so an Idle state is the end of a rebalance for a change
-// made at t, not the quiet before Strimzi noticed it.
-func rebalancedSince(k *unstructured.Unstructured, t time.Time) bool {
-	at, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "lastTransitionTime")
-	ts, err := time.Parse(time.RFC3339Nano, at)
-	return err == nil && ts.After(t)
 }
 
 // strimziState reads the Kafka's Ready condition: whether it's ready,

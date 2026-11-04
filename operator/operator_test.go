@@ -232,7 +232,16 @@ func TestAutoscale(t *testing.T) {
 		t.Errorf("after 6 quiet minutes the pool is at %d, want the minimum 3", replicas())
 	}
 
-	// By hand: a fixed size, autoscaling off.
+	// By hand: a fixed size, autoscaling off. Strimzi's last idle state
+	// is from later in the same second as the resize, as when a cluster
+	// is resized the moment it's first ready; it isn't a rebalance for
+	// the resize.
+	idle := w.now.Add(time.Second + 300*time.Millisecond).Format(time.RFC3339Nano)
+	k := w.object("Kafka", "events")
+	_ = unstructured.SetNestedMap(k.Object, map[string]any{"state": "Idle", "lastTransitionTime": idle}, "status", "autoRebalance")
+	if err := w.c.Update(ctx, k); err != nil {
+		t.Fatal(err)
+	}
 	if err := w.m.Scale(ctx, "events", 4); err != nil {
 		t.Fatal(err)
 	}
@@ -242,10 +251,10 @@ func TestAutoscale(t *testing.T) {
 	}
 
 	// The new broker is up, but Strimzi hasn't moved partitions on to it:
-	// its auto-rebalance last changed state before the resize.
+	// its auto-rebalance hasn't changed state since the resize.
 	w.strimzi("events")
-	k := w.object("Kafka", "events")
-	_ = unstructured.SetNestedField(k.Object, w.now.Add(-time.Hour).Format(time.RFC3339Nano), "status", "autoRebalance", "lastTransitionTime")
+	k = w.object("Kafka", "events")
+	_ = unstructured.SetNestedField(k.Object, idle, "status", "autoRebalance", "lastTransitionTime")
 	if err := w.c.Update(ctx, k); err != nil {
 		t.Fatal(err)
 	}

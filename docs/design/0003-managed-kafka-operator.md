@@ -68,10 +68,12 @@ Two pure functions in `controlplane/lifecycle` decide the size; the operator and
 
 Recommendations live in `status.marks`, trimmed to the window, so they survive a restart.
 
-Sizing is held while a roll runs. Strimzi's auto-rebalance moves partitions:
+Sizing is held while a roll runs, and until the last change has finished. Strimzi's auto-rebalance moves partitions:
 
 - on to brokers just added;
 - off brokers before they are removed. Strimzi refuses to remove a broker that still holds partitions.
+
+New brokers are ready a minute or so before Strimzi starts moving partitions on to them, so ready pods don't mean a resize is done. When the broker count changes, the operator notes the time of the Kafka's last auto-rebalance transition. The service stays `scaling` until the auto-rebalance is idle again after a different transition. Strimzi's timestamps are compared only with each other: a resize in the same second as Strimzi's first idle state would otherwise read as already rebalanced.
 
 ## The console
 

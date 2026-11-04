@@ -115,6 +115,7 @@ tasks:
         msg: "Strimzi isn't installed in this cluster. Run 'task dev' first."
     cmds:
       - kubectl apply -f deploy/operator/crd.yaml
+      - kubectl wait --for=condition=Established crd/kafkaservices.kaas.io --timeout=30s
       - kubectl apply -f deploy/operator/example.yaml
       # From outside the cluster the operator can't reach brokers to measure
       # load, so autoscaling holds; deploy/operator/operator.yaml runs it inside.

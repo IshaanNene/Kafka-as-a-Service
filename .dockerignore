@@ -1,0 +1,8 @@
+# The image builds from source: no binaries, history or editor state.
+.git
+.claude
+bin
+dist
+kaas
+**/node_modules
+docs/img

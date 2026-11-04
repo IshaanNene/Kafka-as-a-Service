@@ -1,6 +1,11 @@
 # What the kaas operator may touch: its own KafkaServices, the Strimzi
 # resources it renders, and pods (read, and annotate to restart them).
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: kaas-system
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kaas-operator

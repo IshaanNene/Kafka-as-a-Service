@@ -8,5 +8,6 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /kaas ./cmd/kaas
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /kaas /kaas
-USER nonroot:nonroot
+# Numeric, so runAsNonRoot can check it: distroless nonroot is 65532.
+USER 65532:65532
 ENTRYPOINT ["/kaas"]

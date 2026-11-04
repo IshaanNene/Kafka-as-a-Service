@@ -134,10 +134,20 @@ func (r *Reconciler) size(ctx context.Context, ks *KafkaService, now time.Time) 
 		st.Marks = append(st.Marks, Mark{At: metav1.NewTime(now), Brokers: int32(rec)})
 		st.Marks = fromMarks(lifecycle.Trim(toMarks(st.Marks), policy.ScaleDownAfter.Duration, now))
 	}
-	// Hold the size still while brokers restart or partitions move from
-	// the last change: two sources of partition movement at once is more
-	// than anyone can reason about.
-	if st.Roll == nil && st.ScaledAt == nil && len(st.Marks) > 0 {
+	// Hold the size still while brokers restart or partitions move:
+	// two sources of partition movement at once is more than anyone can
+	// reason about. Strimzi can start another rebalance after the one
+	// for the last change, so the last pass's phase counts too.
+	moving := st.ScaledAt != nil || st.Phase == string(lifecycle.Scaling)
+	switch {
+	case len(st.Marks) == 0:
+	case st.Recommended == current && (st.Roll != nil || moving):
+		st.Reason = "sized for the load"
+	case st.Roll != nil:
+		st.Reason = fmt.Sprintf("load fits %d; held while brokers restart", st.Recommended)
+	case moving:
+		st.Reason = fmt.Sprintf("load fits %d; held until partitions finish moving", st.Recommended)
+	default:
 		n, why := lifecycle.Decide(policy, int(current), toMarks(st.Marks), now)
 		st.Reason = why
 		if int32(n) != current {

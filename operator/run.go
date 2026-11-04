@@ -52,6 +52,10 @@ func Run(ctx context.Context, cfg *rest.Config, o Options) error {
 		HealthProbeBindAddress: o.Probes,
 		LeaderElection:         o.LeaderElection,
 		LeaderElectionID:       "kaas-operator.kaas.io",
+		// Hand the lease over on shutdown, so a rollout's new replica
+		// takes over at once and the old one exits cleanly. Safe because
+		// the process ends as soon as the manager stops.
+		LeaderElectionReleaseOnCancel: true,
 	}
 	if o.Namespace != "" {
 		opts.Cache = cache.Options{DefaultNamespaces: map[string]cache.Config{o.Namespace: {}}}

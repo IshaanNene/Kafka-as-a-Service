@@ -70,6 +70,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	now := r.now()
 
 	r.size(ctx, ks, now)
+	if before.Brokers != 0 && ks.Status.Brokers != before.Brokers {
+		ks.Status.ScaledAt = &metav1.Time{Time: now}
+	}
 	for _, obj := range render(ks, ks.Status.Brokers) {
 		if err := r.upsert(ctx, ks, obj); err != nil {
 			return ctrl.Result{}, fmt.Errorf("%s %s: %w", obj.GetKind(), obj.GetName(), err)
@@ -87,7 +90,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	ks.Status.ObservedGeneration = ks.Generation
 	if !reflect.DeepEqual(before, ks.Status) {
-		if err := r.Status().Update(ctx, ks); err != nil {
+		if err := r.Status().Update(ctx, ks); apierrors.IsConflict(err) {
+			// The cache was behind our own last write, or someone edited
+			// the spec; the event for that change brings a fresh pass.
+			return ctrl.Result{RequeueAfter: time.Second}, nil
+		} else if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -129,10 +136,10 @@ func (r *Reconciler) size(ctx context.Context, ks *KafkaService, now time.Time) 
 		st.Marks = append(st.Marks, Mark{At: metav1.NewTime(now), Brokers: int32(rec)})
 		st.Marks = fromMarks(lifecycle.Trim(toMarks(st.Marks), policy.ScaleDownAfter.Duration, now))
 	}
-	// Hold the size still while brokers restart: a roll and a rebalance
-	// at once is two sources of partition movement nobody can reason
-	// about.
-	if st.Roll == nil && len(st.Marks) > 0 {
+	// Hold the size still while brokers restart or partitions move from
+	// the last change: two sources of partition movement at once is more
+	// than anyone can reason about.
+	if st.Roll == nil && st.ScaledAt == nil && len(st.Marks) > 0 {
 		n, why := lifecycle.Decide(policy, int(current), toMarks(st.Marks), now)
 		st.Reason = why
 		if int32(n) != current {
@@ -347,6 +354,9 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 	}
 	kafkaReady, failure := strimziState(k)
 	rebalancing, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "state")
+	if st.ScaledAt != nil && rebalancing == "Idle" && rebalancedSince(k, st.ScaledAt.Time) {
+		st.ScaledAt = nil
+	}
 
 	phase, msg := lifecycle.Ready, ""
 	switch {
@@ -365,6 +375,8 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 		phase, msg = lifecycle.Scaling, "moving partitions ("+rebalancing+")"
 	case int32(len(st.Nodes)) != st.Brokers:
 		phase, msg = lifecycle.Scaling, fmt.Sprintf("%d brokers, going to %d", len(st.Nodes), st.Brokers)
+	case st.ScaledAt != nil:
+		phase, msg = lifecycle.Scaling, fmt.Sprintf("%d brokers; waiting for Strimzi to move partitions", st.Brokers)
 	case st.ReadyBrokers < st.Brokers:
 		phase, msg = lifecycle.Degraded, fmt.Sprintf("%d of %d brokers ready", st.ReadyBrokers, st.Brokers)
 	}
@@ -378,6 +390,15 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 	}
 	meta.SetStatusCondition(&st.Conditions, cond)
 	return nil
+}
+
+// rebalancedSince is whether the Kafka's auto-rebalance last changed
+// state after t, so an Idle state is the end of a rebalance for a change
+// made at t, not the quiet before Strimzi noticed it.
+func rebalancedSince(k *unstructured.Unstructured, t time.Time) bool {
+	at, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "lastTransitionTime")
+	ts, err := time.Parse(time.RFC3339Nano, at)
+	return err == nil && ts.After(t)
 }
 
 // strimziState reads the Kafka's Ready condition: whether it's ready,

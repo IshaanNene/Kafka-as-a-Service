@@ -78,6 +78,12 @@ type KafkaServiceStatus struct {
 	// Ready is set the first time every broker is up; until then a
 	// missing broker means provisioning, not degraded.
 	Ready bool `json:"ready,omitempty"`
+	// ScaledAt is when Brokers last changed. It's cleared once Strimzi
+	// has acted on it: its auto-rebalance has moved partitions and gone
+	// idle again since then. Until that, the pods alone don't say the
+	// change is done: Strimzi moves partitions on to new brokers after
+	// they start, and off old ones before they stop.
+	ScaledAt *metav1.Time `json:"scaledAt,omitempty"`
 
 	// RolledAt is the RestartAt last acted on. Roll is set while one runs.
 	RolledAt *metav1.Time `json:"rolledAt,omitempty"`

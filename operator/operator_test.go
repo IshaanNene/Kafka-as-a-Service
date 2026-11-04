@@ -84,16 +84,13 @@ func (w *world) strimzi(name string) {
 	k := w.object("Kafka", name)
 	_ = unstructured.SetNestedSlice(k.Object, []any{map[string]any{"type": "Ready", "status": "True"}}, "status", "conditions")
 	_ = unstructured.SetNestedSlice(k.Object, []any{map[string]any{"name": "plain", "bootstrapServers": name + "-kafka-bootstrap.kafka.svc:9092"}}, "status", "listeners")
-	if err := w.c.Update(ctx, k); err != nil {
-		w.t.Fatal(err)
-	}
 	var pods corev1.PodList
 	_ = w.c.List(ctx, &pods, client.InNamespace(ns))
 	have := map[string]bool{}
 	for _, p := range pods.Items {
 		have[p.Name] = true
 	}
-	id := 0
+	id, moved := 0, false
 	for _, pool := range []string{name + "-controllers", name + "-brokers"} {
 		replicas, _, _ := unstructured.NestedInt64(w.object("KafkaNodePool", pool).Object, "spec", "replicas")
 		for i := 0; i < int(replicas); i++ {
@@ -104,10 +101,22 @@ func (w *world) strimzi(name string) {
 				continue
 			}
 			w.pod(name, pool, pod)
+			moved = true
 		}
 	}
 	for pod := range have { // scaled down
 		_ = w.c.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: pod}})
+		moved = true
+	}
+	// Brokers came or went: Strimzi's auto-rebalance moved partitions and
+	// is idle again, a moment later.
+	if moved {
+		_ = unstructured.SetNestedMap(k.Object, map[string]any{
+			"state": "Idle", "lastTransitionTime": w.now.Add(time.Second).Format(time.RFC3339Nano),
+		}, "status", "autoRebalance")
+	}
+	if err := w.c.Update(ctx, k); err != nil {
+		w.t.Fatal(err)
 	}
 }
 
@@ -230,6 +239,27 @@ func TestAutoscale(t *testing.T) {
 	w.tick("events", time.Second)
 	if replicas() != 4 || w.service("events").Spec.Autoscale != nil {
 		t.Errorf("after Scale(4): pool %d, autoscale %v", replicas(), w.service("events").Spec.Autoscale)
+	}
+
+	// The new broker is up, but Strimzi hasn't moved partitions on to it:
+	// its auto-rebalance last changed state before the resize.
+	w.strimzi("events")
+	k := w.object("Kafka", "events")
+	_ = unstructured.SetNestedField(k.Object, w.now.Add(-time.Hour).Format(time.RFC3339Nano), "status", "autoRebalance", "lastTransitionTime")
+	if err := w.c.Update(ctx, k); err != nil {
+		t.Fatal(err)
+	}
+	w.tick("events", time.Second)
+	if s := w.service("events").Status; s.Phase != "scaling" || s.ReadyBrokers != 4 {
+		t.Errorf("4 brokers up, partitions not moved: phase %q with %d ready, want scaling", s.Phase, s.ReadyBrokers)
+	}
+	_ = unstructured.SetNestedField(k.Object, w.now.Add(time.Second).Format(time.RFC3339Nano), "status", "autoRebalance", "lastTransitionTime")
+	if err := w.c.Update(ctx, k); err != nil {
+		t.Fatal(err)
+	}
+	w.tick("events", 2*time.Second)
+	if s := w.service("events").Status; s.Phase != "ready" || s.ScaledAt != nil {
+		t.Errorf("after the rebalance: phase %q, scaledAt %v, want ready", s.Phase, s.ScaledAt)
 	}
 }
 

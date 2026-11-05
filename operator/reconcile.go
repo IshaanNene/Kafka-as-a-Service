@@ -364,10 +364,15 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 	kafkaReady, failure := strimziState(k)
 	rebalancing, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "state")
 	transition, _, _ := unstructured.NestedString(k.Object, "status", "autoRebalance", "lastTransitionTime")
+	// Strimzi lists brokers still to be rebalanced on to or off in modes.
+	// It can go idle between two rebalances for one resize, with the
+	// second still queued there, so idle alone isn't done.
+	queued, _, _ := unstructured.NestedSlice(k.Object, "status", "autoRebalance", "modes")
+	settled := rebalancing == "Idle" && len(queued) == 0
 	switch {
 	case resized:
 		st.ScaledAt, st.RebalancedBefore = &metav1.Time{Time: now}, transition
-	case st.ScaledAt != nil && rebalancing == "Idle" && transition != st.RebalancedBefore:
+	case st.ScaledAt != nil && settled && transition != st.RebalancedBefore:
 		st.ScaledAt, st.RebalancedBefore = nil, ""
 	}
 
@@ -386,6 +391,8 @@ func (r *Reconciler) observe(ctx context.Context, ks *KafkaService, pods []corev
 		}
 	case rebalancing != "" && rebalancing != "Idle":
 		phase, msg = lifecycle.Scaling, "moving partitions ("+rebalancing+")"
+	case rebalancing == "Idle" && len(queued) > 0:
+		phase, msg = lifecycle.Scaling, "partitions queued to move"
 	case int32(len(st.Nodes)) != st.Brokers:
 		phase, msg = lifecycle.Scaling, fmt.Sprintf("%d brokers, going to %d", len(st.Nodes), st.Brokers)
 	case st.ScaledAt != nil:

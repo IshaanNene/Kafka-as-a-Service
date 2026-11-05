@@ -262,6 +262,20 @@ func TestAutoscale(t *testing.T) {
 	if s := w.service("events").Status; s.Phase != "scaling" || s.ReadyBrokers != 4 {
 		t.Errorf("4 brokers up, partitions not moved: phase %q with %d ready, want scaling", s.Phase, s.ReadyBrokers)
 	}
+	// One rebalance is done and Strimzi is idle, but it has another
+	// queued for the same broker, as it does on kind.
+	_ = unstructured.SetNestedMap(k.Object, map[string]any{
+		"state": "Idle", "lastTransitionTime": w.now.Add(time.Second).Format(time.RFC3339Nano),
+		"modes": []any{map[string]any{"mode": "add-brokers", "brokers": []any{int64(6)}}},
+	}, "status", "autoRebalance")
+	if err := w.c.Update(ctx, k); err != nil {
+		t.Fatal(err)
+	}
+	w.tick("events", 2*time.Second)
+	if s := w.service("events").Status; s.Phase != "scaling" || s.ScaledAt == nil {
+		t.Errorf("idle with a rebalance queued: phase %q, scaledAt %v, want scaling", s.Phase, s.ScaledAt)
+	}
+	unstructured.RemoveNestedField(k.Object, "status", "autoRebalance", "modes")
 	_ = unstructured.SetNestedField(k.Object, w.now.Add(time.Second).Format(time.RFC3339Nano), "status", "autoRebalance", "lastTransitionTime")
 	if err := w.c.Update(ctx, k); err != nil {
 		t.Fatal(err)

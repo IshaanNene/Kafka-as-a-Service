@@ -809,13 +809,19 @@ kubectl -n kafka delete pod load   # stop; 3 minutes later it goes back to 3
 kaas console --kube --namespace kafka --allow-apply
 ```
 
-**Managed clusters** in the sidebar lists each cluster with its state, brokers, load and sizing. Each cluster's page shows:
+**Managed clusters** in the sidebar lists each cluster with its state, brokers, load and sizing.
+
+![Managed clusters: four clusters with their state, a pip per broker, a load sparkline and how each is sized](img/console-managed.png)
+
+Each cluster's page shows:
 
 - the change under way, if any;
 - load against capacity (brokers × target);
 - every broker's state;
 - the cluster's history;
 - a size card to switch between autoscaling and a fixed count.
+
+![An autoscaled cluster's page: load against capacity, the autoscaling policy and why the size is what it is, six brokers and the history](img/console-managed-cluster.png)
 
 **New cluster** creates a KafkaService. **Restart brokers** asks for the cluster's name, typed, first.
 

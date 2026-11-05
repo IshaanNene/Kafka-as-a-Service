@@ -320,9 +320,10 @@ h1.title .accent { color: var(--text); }
 .lede { margin: 8px 0 0; color: var(--text-muted); font-size: 14px; max-width: 80ch; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; margin-top: 12px; }
 .hero-actions { display: flex; gap: 8px; align-items: center; }
-/* Every fact has its divider; the list is pulled left and clipped so the
-   one starting each line, wrapped or not, falls outside. */
-.facts { display: flex; flex-wrap: wrap; row-gap: 12px; margin: 16px 0 0 -25px; overflow: hidden; }
+/* Every fact has its divider. The list is pulled left by a fact's padding
+   and divider, and its first pixel column clipped, which is where the
+   divider of the fact starting each line sits, wrapped or not. */
+.facts { display: flex; flex-wrap: wrap; row-gap: 12px; margin: 16px 0 0 -25px; clip-path: inset(0 0 0 1px); }
 .fact { display: grid; gap: 4px; padding: 0 24px; border-left: 1px solid var(--border); }
 .fact dt { font: 500 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-subtle); }
 .fact dd { margin: 0; font-size: 13px; color: var(--text); }

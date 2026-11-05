@@ -38,6 +38,28 @@ signs:
       - "${artifact}"
       - --yes
 
+# The image deploy/operator/operator.yaml runs. latest follows releases,
+# not pre-releases.
+dockers_v2:
+  - id: kaas
+    ids: [kaas]
+    dockerfile: Dockerfile.release
+    images: [ghcr.io/ishaannene/kaas]
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.source: https://github.com/IshaanNene/Kafka-as-a-Service
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: MIT
+
+docker_signs:
+  - artifacts: manifests
+    cmd: cosign
+    args: [sign, "${artifact}@${digest}", --yes]
+
 changelog:
   use: github
   filters:

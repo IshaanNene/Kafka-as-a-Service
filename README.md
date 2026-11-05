@@ -103,6 +103,8 @@ kubectl apply -f deploy/operator/example.yaml      # a cluster that sizes itself
 kaas console --kube --namespace kafka --allow-apply
 ```
 
+![A managed cluster in the console: load against what its brokers can take, its autoscaling policy, and each broker](docs/img/console-managed-cluster.png)
+
 `kaas operator` turns a short `KafkaService` (Kafka version, disk per broker, a broker count or an autoscaling policy) into a Strimzi cluster. It restarts every broker on request, one at a time, and measures load: it adds brokers as soon as load calls for them and removes them only after load has stayed low, with Cruise Control moving partitions first. The console lists these clusters and can create, roll and resize them. Each release publishes the operator image, `ghcr.io/ishaannene/kaas`, for amd64 and arm64, signed with cosign. Try the pages without Kubernetes in `kaas console --demo`. How it works: [design 0003](docs/design/0003-managed-kafka-operator.md) and [ADR-0009](docs/adr/0009-operator-over-strimzi.md).
 
 ## Why kaas

@@ -90,6 +90,32 @@ jobs:
         env:
           KAAS_KAFKA_IMAGE: apache/kafka:${{ matrix.kafka }}
 
+  # The operator against real Strimzi on kind: its bugs so far showed only
+  # there, in how Strimzi sequences pods, rebalances and status.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          check-latest: true
+      - uses: helm/kind-action@v1
+        with:
+          install_only: true
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: task dev:strimzi operator:kind
+      - run: task test:e2e
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get kafkaservices,kafkas,kafkanodepools,kafkarebalances,pods -A -o wide
+          kubectl -n kaas-system logs -l app.kubernetes.io/name=kaas-operator --tail=200 --prefix
+          kubectl -n kafka logs deploy/strimzi-cluster-operator --tail=300
+
   fuzz:
     runs-on: ubuntu-latest
     strategy:

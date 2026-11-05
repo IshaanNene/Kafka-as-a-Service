@@ -86,6 +86,14 @@ tasks:
   dev:
     desc: Local stack on kind — Strimzi operator plus a 3-broker KRaft cluster
     cmds:
+      - task: dev:strimzi
+      - kubectl apply -n kafka -f deploy/kind/kafka.yaml
+      - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m
+      - echo "Kafka ready. Run 'task dev:forward' then 'kaas snapshot -b localhost:9092'."
+
+  dev:strimzi:
+    desc: kind with Strimzi and no Kafka cluster, for the operator to create its own (task operator:kind, test:e2e)
+    cmds:
       - kind get clusters | grep -qx {{.KIND_CLUSTER}} || kind create cluster --name {{.KIND_CLUSTER}} --config deploy/kind/kind-config.yaml
       - kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
       # The release manifest binds the operator's service account in namespace
@@ -95,14 +103,78 @@ tasks:
         | sed 's/namespace: myproject/namespace: kafka/'
         | kubectl apply -n kafka -f -
       - kubectl -n kafka rollout status deploy/strimzi-cluster-operator --timeout=5m
-      - kubectl apply -n kafka -f deploy/kind/kafka.yaml
-      - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m
-      - echo "Kafka ready. Run 'task dev:forward' then 'kaas snapshot -b localhost:9092'."
 
   dev:forward:
     desc: Port-forward the dev cluster's bootstrap to localhost:9092
     cmds:
       - kubectl -n kafka port-forward svc/dev-kafka-bootstrap 9092:9092
+
+  operator:dev:
+    desc: Run the kaas operator against the kind cluster from 'task dev', with the CRD and an example KafkaService
+    preconditions:
+      # With no context kubectl tries localhost:8080, and whatever answers
+      # there gives errors that don't say "no cluster".
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
+      - sh: kubectl get crd kafkanodepools.kafka.strimzi.io
+        msg: "Strimzi isn't installed in this cluster. Run 'task dev' first."
+    cmds:
+      - kubectl apply -f deploy/operator/crd.yaml
+      - kubectl wait --for=condition=Established crd/kafkaservices.kaas.io --timeout=30s
+      - kubectl apply -f deploy/operator/example.yaml
+      # From outside the cluster the operator can't reach brokers to measure
+      # load, so autoscaling holds; deploy/operator/operator.yaml runs it inside.
+      - go run ./cmd/kaas operator --namespace kafka --dev-log
+
+  operator:kind:
+    desc: Build the image and run the operator inside the kind cluster from 'task dev' or 'task dev:strimzi', where it can measure load and autoscale
+    preconditions:
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
+      - sh: kubectl get crd kafkanodepools.kafka.strimzi.io
+        msg: "Strimzi isn't installed in this cluster. Run 'task dev' first."
+    cmds:
+      - docker build -t kaas:dev .
+      - kind load docker-image kaas:dev --name {{.KIND_CLUSTER}}
+      - kubectl apply -f deploy/operator/crd.yaml -f deploy/operator/rbac.yaml -f deploy/operator/operator.yaml
+      # The local image, never pulled; the manifest's tag would be pulled
+      # from the registry on every start.
+      - >-
+        kubectl -n kaas-system patch deploy kaas-operator --type=json
+        -p '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"kaas:dev"},{"op":"replace","path":"/spec/template/spec/containers/0/imagePullPolicy","value":"IfNotPresent"}]'
+      - kubectl -n kaas-system rollout restart deploy/kaas-operator
+      - kubectl -n kaas-system rollout status deploy/kaas-operator --timeout=3m
+      - kubectl wait --for=condition=Established crd/kafkaservices.kaas.io --timeout=30s
+
+  test:e2e:
+    desc: The operator's life against real Strimzi (create, roll, resize), on the cluster from 'task dev:strimzi operator:kind'
+    cmds:
+      - go test -tags e2e ./test/e2e -timeout 45m -v -count=1
+
+  operator:load:
+    desc: "Produce to a managed cluster to watch it autoscale: task operator:load -- <records a second> [cluster]. Stop with: kubectl -n kafka delete pod load"
+    vars:
+      RATE: '{{index (splitArgs (default "20000" .CLI_ARGS)) 0}}'
+      CLUSTER: '{{if gt (len (splitArgs (default "x" .CLI_ARGS))) 1}}{{index (splitArgs .CLI_ARGS) 1}}{{else}}orders{{end}}'
+      IMAGE: quay.io/strimzi/kafka:{{.STRIMZI_VERSION}}-kafka-4.2.0
+      BOOTSTRAP: '{{.CLUSTER}}-kafka-bootstrap.kafka.svc:9092'
+    cmds:
+      - >-
+        kubectl -n kafka run topic --image={{.IMAGE}} --restart=Never --rm -i --quiet --
+        bin/kafka-topics.sh --bootstrap-server {{.BOOTSTRAP}} --create --if-not-exists --topic load --partitions 12 --replication-factor 3
+      - >-
+        kubectl -n kafka run load --image={{.IMAGE}} --restart=Never --
+        bin/kafka-producer-perf-test.sh --topic load --num-records 1000000000 --record-size 100 --throughput {{.RATE}}
+        --producer-props bootstrap.servers={{.BOOTSTRAP}} acks=1 linger.ms=20
+      - echo "Producing {{.RATE}} records a second to {{.CLUSTER}}. Stop with 'kubectl -n kafka delete pod load'."
+
+  console:kube:
+    desc: The console with the managed clusters in namespace kafka of the current kubectl context
+    preconditions:
+      - sh: kubectl config current-context && kubectl version --request-timeout=5s
+        msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
+    cmds:
+      - go run ./cmd/kaas console --kube --namespace kafka --allow-apply --web-dir controlplane/console/web
 
   dev:down:
     desc: Delete the kind cluster

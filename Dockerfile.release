@@ -1,0 +1,9 @@
+# The release image: GoReleaser's own build of kaas for each platform, so
+# the image runs exactly the binary in the release archives. Dockerfile
+# builds from source for local use (task operator:kind).
+FROM gcr.io/distroless/static:nonroot
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/kaas /kaas
+# Numeric, so runAsNonRoot can check it: distroless nonroot is 65532.
+USER 65532:65532
+ENTRYPOINT ["/kaas"]

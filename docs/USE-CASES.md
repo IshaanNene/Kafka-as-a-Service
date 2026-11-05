@@ -189,4 +189,5 @@ kaas apply -f gitops/prod-eu.yaml --plan "$id" --yes  # CI after merge
 - **Exactly-once pipes.** Pipes are at least once. Downstream systems should be idempotent by key, as Kafka consumers generally must be.
 - **Login.** The console has no login or roles yet, so it stays on localhost unless it sits behind an authenticating proxy. OIDC is next.
 - **TLS and SASL to brokers.** Not configurable yet, for the CLI or the fleet file.
-- **Managed Kafka on Kubernetes.** Creating, rolling and autoscaling clusters is Phase 3. Its clusters will show up in the same console.
+- **Deleting managed clusters from the console.** `kubectl delete kafkaservice` does it; the console deliberately has no button for it.
+- **Changing a managed cluster's KRaft quorum or Kafka version in place.** The controller quorum is fixed at three. A version change goes through Strimzi with `kubectl edit`, not the console.

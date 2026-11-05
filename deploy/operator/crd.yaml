@@ -1,0 +1,78 @@
+# KafkaService (kaas.io/v1alpha1): a managed Kafka cluster. The kaas
+# operator turns each into Strimzi resources; see operator/api.go.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kafkaservices.kaas.io
+spec:
+  group: kaas.io
+  scope: Namespaced
+  names:
+    kind: KafkaService
+    listKind: KafkaServiceList
+    plural: kafkaservices
+    singular: kafkaservice
+    shortNames: [ks]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - {name: Phase, type: string, jsonPath: .status.phase}
+        - {name: Brokers, type: integer, jsonPath: .status.brokers}
+        - {name: Ready, type: integer, jsonPath: .status.readyBrokers}
+        - {name: Version, type: string, jsonPath: .spec.version}
+        - {name: Message, type: string, jsonPath: .status.message, priority: 1}
+        - {name: Age, type: date, jsonPath: .metadata.creationTimestamp}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [version, brokers, storage]
+              properties:
+                version:
+                  type: string
+                  pattern: '^\d+\.\d+\.\d+$'
+                  description: Kafka version, e.g. 4.2.0.
+                brokers:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+                  description: Broker count when autoscale is unset.
+                storage:
+                  type: string
+                  pattern: '^\d+(Mi|Gi|Ti)$'
+                  description: Each broker's disk, e.g. 100Gi.
+                config:
+                  type: object
+                  additionalProperties: {type: string}
+                  description: Broker configuration over the operator's defaults.
+                autoscale:
+                  type: object
+                  required: [min, max, target]
+                  x-kubernetes-validations:
+                    - rule: self.min <= self.max
+                      message: min must not be above max
+                  properties:
+                    min: {type: integer, minimum: 1, maximum: 30}
+                    max: {type: integer, minimum: 1, maximum: 30}
+                    target:
+                      type: integer
+                      minimum: 1
+                      description: Records a second per broker.
+                    scaleDownAfter:
+                      type: string
+                      default: 10m
+                      description: How long load must stay low before brokers are removed.
+                restartAt:
+                  type: string
+                  format: date-time
+                  description: Set to a time after the last roll to restart every broker.
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true

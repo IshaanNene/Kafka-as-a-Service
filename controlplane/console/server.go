@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IshaanNene/Kafka-as-a-Service/controlplane/lifecycle"
 	"github.com/IshaanNene/Kafka-as-a-Service/core/plan"
 )
 
@@ -37,6 +38,9 @@ type Options struct {
 	// WebDir serves the web app from this directory instead of the copy
 	// built into the binary, so UI changes show on reload.
 	WebDir string
+	// Lifecycle creates, rolls and resizes managed clusters; nil hides
+	// those pages.
+	Lifecycle lifecycle.Manager
 }
 
 // Server serves the console: the API under /api and the web app.
@@ -92,6 +96,7 @@ func NewServer(f *Fleet, opts Options) (*Server, error) {
 		return c.planView(s.opts.AllowApply), 200
 	}))
 	s.mux.HandleFunc("POST /api/clusters/{name}/apply", s.apply)
+	s.routeServices()
 	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, apiError{"no such API"})
 	})
@@ -132,10 +137,12 @@ type Meta struct {
 	AllowApply bool     `json:"allowApply"`
 	Demo       bool     `json:"demo"`
 	Clusters   []string `json:"clusters"`
+	// Manage is whether managed-cluster pages are shown.
+	Manage bool `json:"manage"`
 }
 
 func (s *Server) meta(w http.ResponseWriter, _ *http.Request) {
-	m := Meta{Name: s.fleet.Name, Version: s.opts.Version, AllowApply: s.opts.AllowApply, Demo: s.opts.Demo}
+	m := Meta{Name: s.fleet.Name, Version: s.opts.Version, AllowApply: s.opts.AllowApply, Demo: s.opts.Demo, Manage: s.opts.Lifecycle != nil}
 	for _, c := range s.fleet.Clusters {
 		m.Clusters = append(m.Clusters, c.Config.Name)
 	}

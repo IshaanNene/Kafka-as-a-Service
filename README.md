@@ -103,7 +103,7 @@ kubectl apply -f deploy/operator/example.yaml      # a cluster that sizes itself
 kaas console --kube --namespace kafka --allow-apply
 ```
 
-`kaas operator` turns a short `KafkaService` (Kafka version, disk per broker, a broker count or an autoscaling policy) into a Strimzi cluster. It restarts every broker on request, one at a time, and measures load: it adds brokers as soon as load calls for them and removes them only after load has stayed low, with Cruise Control moving partitions first. The console lists these clusters and can create, roll and resize them. Try the pages without Kubernetes in `kaas console --demo`. How it works: [design 0003](docs/design/0003-managed-kafka-operator.md) and [ADR-0009](docs/adr/0009-operator-over-strimzi.md).
+`kaas operator` turns a short `KafkaService` (Kafka version, disk per broker, a broker count or an autoscaling policy) into a Strimzi cluster. It restarts every broker on request, one at a time, and measures load: it adds brokers as soon as load calls for them and removes them only after load has stayed low, with Cruise Control moving partitions first. The console lists these clusters and can create, roll and resize them. Each release publishes the operator image, `ghcr.io/ishaannene/kaas`, for amd64 and arm64, signed with cosign. Try the pages without Kubernetes in `kaas console --demo`. How it works: [design 0003](docs/design/0003-managed-kafka-operator.md) and [ADR-0009](docs/adr/0009-operator-over-strimzi.md).
 
 ## Why kaas
 
@@ -126,7 +126,7 @@ kaas console --kube --namespace kafka --allow-apply
 
   [The testing guide](docs/TESTING.md) has what each tier proves.
 - **Light on the cluster.** One loop owns every request behind a token bucket. The engine diffs a 100,000-partition snapshot in about a millisecond ([design 0001](docs/design/0001-cluster-state-engine.md)).
-- **Supply chain.** Releases are signed with cosign and ship an SBOM and SLSA provenance.
+- **Supply chain.** Releases are signed with cosign and ship an SBOM and SLSA provenance. The container image is signed too.
 - **Accessible.** `NO_COLOR` keeps every layout without colour, `KAAS_REDUCED_MOTION=1` stops animation, and `--theme magic|amber|ice` switches palettes.
 
 ## Develop
@@ -146,6 +146,7 @@ task console            # the web console on a demo fleet, served from disk for 
 task operator:dev       # the operator against the kind cluster from task dev
 task operator:kind      # the operator inside that cluster, where it can autoscale
 task operator:load      # produce to a managed cluster to watch it scale
+task test:e2e           # the operator against real Strimzi, after task dev:strimzi operator:kind
 task test:web           # the console's JavaScript tests (Node 20+)
 task dev                # kind + Strimzi + a 3-broker KRaft cluster
 ```

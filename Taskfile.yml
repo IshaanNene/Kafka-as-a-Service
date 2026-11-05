@@ -86,6 +86,14 @@ tasks:
   dev:
     desc: Local stack on kind — Strimzi operator plus a 3-broker KRaft cluster
     cmds:
+      - task: dev:strimzi
+      - kubectl apply -n kafka -f deploy/kind/kafka.yaml
+      - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m
+      - echo "Kafka ready. Run 'task dev:forward' then 'kaas snapshot -b localhost:9092'."
+
+  dev:strimzi:
+    desc: kind with Strimzi and no Kafka cluster, for the operator to create its own (task operator:kind, test:e2e)
+    cmds:
       - kind get clusters | grep -qx {{.KIND_CLUSTER}} || kind create cluster --name {{.KIND_CLUSTER}} --config deploy/kind/kind-config.yaml
       - kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
       # The release manifest binds the operator's service account in namespace
@@ -95,9 +103,6 @@ tasks:
         | sed 's/namespace: myproject/namespace: kafka/'
         | kubectl apply -n kafka -f -
       - kubectl -n kafka rollout status deploy/strimzi-cluster-operator --timeout=5m
-      - kubectl apply -n kafka -f deploy/kind/kafka.yaml
-      - kubectl -n kafka wait kafka/dev --for=condition=Ready --timeout=10m
-      - echo "Kafka ready. Run 'task dev:forward' then 'kaas snapshot -b localhost:9092'."
 
   dev:forward:
     desc: Port-forward the dev cluster's bootstrap to localhost:9092
@@ -122,7 +127,7 @@ tasks:
       - go run ./cmd/kaas operator --namespace kafka --dev-log
 
   operator:kind:
-    desc: Build the image and run the operator inside the kind cluster from 'task dev', where it can measure load and autoscale
+    desc: Build the image and run the operator inside the kind cluster from 'task dev' or 'task dev:strimzi', where it can measure load and autoscale
     preconditions:
       - sh: kubectl config current-context && kubectl version --request-timeout=5s
         msg: "No Kubernetes cluster in the current kubectl context. Run 'task dev' first."
@@ -140,7 +145,11 @@ tasks:
       - kubectl -n kaas-system rollout restart deploy/kaas-operator
       - kubectl -n kaas-system rollout status deploy/kaas-operator --timeout=3m
       - kubectl wait --for=condition=Established crd/kafkaservices.kaas.io --timeout=30s
-      - kubectl apply -f deploy/operator/example.yaml
+
+  test:e2e:
+    desc: The operator's life against real Strimzi (create, roll, resize), on the cluster from 'task dev:strimzi operator:kind'
+    cmds:
+      - go test -tags e2e ./test/e2e -timeout 45m -v -count=1
 
   operator:load:
     desc: "Produce to a managed cluster to watch it autoscale: task operator:load -- <records a second> [cluster]. Stop with: kubectl -n kafka delete pod load"

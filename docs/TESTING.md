@@ -79,13 +79,14 @@ The management plane is tested the same way, on kfake clusters:
   - `TestRoll`: every pod marked for restart, then counted as Strimzi recreates it.
   - `TestExampleManifest`: `deploy/operator/example.yaml` stays valid.
 - **`controlplane/console`.** `TestServicesAPI` covers the services API against the demo: the guards (read-only, cross-origin, form posts, unconfirmed rolls), the 400, 404 and 409 answers, and each change taking effect.
+- **`test/e2e`, against real Strimzi.** `TestOperator` (build tag `e2e`) drives a managed cluster through `operator.Manager`, the console's way in, on kind with the operator running in the cluster. CI runs it on every push (the `e2e` job); locally it's `task dev:strimzi operator:kind test:e2e`.
+  - create: ready on three brokers, with the bootstrap address;
+  - steady: no Strimzi spec is rewritten across two passes;
+  - roll: every controller and broker pod is recreated after the restart time;
+  - scale to 4, then back to 3: the service reads ready only after the test has seen Strimzi's auto-rebalance run, and ends with that many broker pods;
+  - the operator logs no errors, and deleting the service takes its Strimzi resources with it.
 
-Against a real Strimzi it is manual for now. `task dev` brings up kind with Strimzi, `task operator:kind` runs the operator in it, and `task operator:load` produces records to autoscale on. USAGE has the walkthrough. Checked this way:
-
-- create, roll, and resizing by hand in both directions, through the console;
-- autoscaling from 3 to 6 brokers under 25,000 records a second and back to 3 three minutes after the load stops, partitions moved by Cruise Control each time;
-- a steady cluster costs no writes;
-- two operator replicas, one holding the lease.
+Autoscaling on load is checked by hand: it needs a producer in the cluster and a scale-down window. USAGE has the walkthrough (`task operator:load`). Checked this way: from 3 to 6 brokers under 25,000 records a second, and back to 3 three minutes after the load stopped, with Cruise Control moving partitions each time.
 
 ## Integration: real Kafka in containers
 

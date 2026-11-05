@@ -787,7 +787,8 @@ To watch it on kind, run the operator in the cluster and lower the example's tar
 
 ```bash
 task dev                       # kind, Strimzi and a dev cluster
-task operator:kind             # build the image, run the operator in the cluster, apply the example
+task operator:kind             # build the image and run the operator in the cluster
+kubectl apply -f deploy/operator/example.yaml
 kubectl patch ks orders -n kafka --type merge -p '{"spec":{"autoscale":{"max":6,"target":5000,"scaleDownAfter":"3m"}}}'
 task operator:load -- 25000    # 25,000 records a second: up to 5 or 6 brokers
 kubectl get ks orders -n kafka -w

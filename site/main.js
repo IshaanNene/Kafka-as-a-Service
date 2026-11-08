@@ -18,17 +18,9 @@
     try { localStorage.setItem('kaas-theme', root.dataset.theme); } catch (e) {}
     themeUI();
   });
-  matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
-    try { if (localStorage.getItem('kaas-theme')) return; } catch (err) {}
-    root.dataset.theme = e.matches ? 'light' : 'dark';
-    themeUI();
-  });
 
   /* ---- navigation ---- */
-  var nav = $('nav');
-  function stuck() { nav.classList.toggle('stuck', scrollY > 8); }
-  addEventListener('scroll', stuck, { passive: true }); stuck();
-
+  
   var dds = all('.dd');
   function closeDDs(except) {
     dds.forEach(function (d) {
@@ -63,7 +55,7 @@
   }
   burger.addEventListener('click', function () { setSheet(sheet.hidden); });
   sheet.addEventListener('click', function (e) { if (e.target.closest('a')) setSheet(false); });
-  addEventListener('resize', function () { if (innerWidth >= 900 && !sheet.hidden) setSheet(false); });
+  addEventListener('resize', function () { if (innerWidth > 1000 && !sheet.hidden) setSheet(false); });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if (!sheet.hidden) { setSheet(false); burger.focus(); }
@@ -102,8 +94,7 @@
   function placeBar(list) {
     var bar = list.querySelector('.tab-bar'), sel = list.querySelector('[aria-selected="true"]');
     if (!bar || !sel) return;
-    var pad = list.classList.contains('big') ? 18 : 0;
-    bar.style.width = (sel.offsetWidth - pad) + 'px';
+    bar.style.width = sel.offsetWidth + 'px';
     bar.style.transform = 'translateX(' + sel.offsetLeft + 'px)';
   }
   function select(tab, focus) {
@@ -191,12 +182,13 @@
   function moved(t, i) { return ramp(t, UP_AT + i * GAP, UP_AT + i * GAP + DUR) - ramp(t, DOWN_AT + i * GAP, DOWN_AT + i * GAP + DUR); }
 
   var EVENTS = [
+    [0, 'Serving on <b>3 brokers</b>'],
     [6.9, '<b>load needs 4 brokers</b>'],
-    [8, '<b>Autoscaled</b> 3 → 4 brokers'],
-    [16.9, '<b>Partitions moved</b> onto broker 3'],
-    [22.7, '<b>load fits 3;</b> watching for 10m'],
-    [33.3, '<b>Partitions moved</b> off broker 3'],
-    [35.3, '<b>Autoscaled</b> 4 → 3 brokers']
+    [8, 'Autoscaled 3 → 4 brokers'],
+    [16.9, 'Partitions moved. <b>Ready</b>'],
+    [22.7, 'load fits 3; watching for 10m'],
+    [33.3, 'Partitions moved off broker 3'],
+    [35.3, 'Autoscaled 4 → 3 brokers']
   ];
 
   function phase(t) {
@@ -217,16 +209,27 @@
 
   replay = (function () {
     var cv = $('scope'), ctx = cv.getContext('2d'), scrub = $('scrub'), playBtn = $('play');
-    var w = 0, h = 0, c = {}, font = 10, histCount = -1;
+    var w = 0, h = 0, c = {}, font = 10, histState = '';
     var motion = matchMedia('(prefers-reduced-motion: reduce)');
     var now = motion.matches ? T - 0.01 : 0, paused = motion.matches, static_ = motion.matches;
-    var playing = false, onScreen = true, last = 0, scrubbing = false;
-    var els = { state: $('r-state'), dot: $('r-dot'), brokers: $('r-brokers'), load: $('r-load'), need: $('r-need'), msg: $('r-msg'), side: $('side-rate') };
+    var playing = false, onScreen = true, last = 0;
+    var els = { state: $('r-state'), dot: $('r-dot'), brokers: $('r-brokers'), load: $('r-load'), need: $('r-need'), msg: $('r-msg') };
     function set(el, v) { if (el.textContent !== v) el.textContent = v; }
+
+    $('hist').innerHTML = EVENTS.map(function (e, i) {
+      return '<li><button type="button" data-t="' + e[0] + '"><span>' + i + '</span><div>' + e[1] + '</div></button></li>';
+    }).join('');
+    var rows = all('#hist li');
+    $('hist').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      seek(Math.min(T - 0.01, +b.dataset.t + 0.02));
+    });
+    function seek(t) { now = t; static_ = false; paused = true; draw(now); syncScrub(); update(); }
 
     function restyle() {
       var s = getComputedStyle(cv);
-      ['accent', 'ink', 'ink-2', 'ink-3', 'line', 'line-2', 'warn', 'bg-2'].forEach(function (k) { c[k] = s.getPropertyValue('--' + k).trim(); });
+      ['acc', 'ink', 'ink-2', 'ink-3', 'line', 'line-2', 'cell', 'panel'].forEach(function (k) { c[k] = s.getPropertyValue('--' + k).trim(); });
       draw(now);
     }
     function resize() {
@@ -235,7 +238,7 @@
       w = r.width; h = r.height;
       cv.width = Math.round(w * d); cv.height = Math.round(h * d);
       ctx.setTransform(d, 0, 0, d, 0, 0);
-      font = w < 420 ? 9.5 : 10.5;
+      font = w < 420 ? 9 : 10;
       draw(now);
     }
     function text(s, x, y, col, align) { ctx.fillStyle = col; ctx.textAlign = align || 'left'; ctx.fillText(s, x, y); }
@@ -244,122 +247,113 @@
       if (!w) return;
       ctx.clearRect(0, 0, w, h);
       ctx.font = font + 'px "Martian Mono", ui-monospace, Menlo, monospace';
-      var pad = w < 420 ? 12 : 18;
-      var busY = 26, topY = 52, bH = h * 0.64 - 40, chartT = h * 0.74, chartB = h - 10;
-      var p = presence(t), pitch = Math.min((w - pad * 2) / 4, 160), bw = pitch - (w < 420 ? 6 : 12);
-      var nEff = 3 + p, cx = w / 2, load = loadAt(t);
-      function bx(i) { return cx + (i - (nEff - 1) / 2) * pitch; }
+      var small = w < 520, pad = small ? 10 : 16, p = presence(t), load = loadAt(t);
+      var top = 14, chartH = small ? 78 : 92, rowsB = h - chartH - 24, g = 6, rh = (rowsB - top - g * 3) / 4;
+      var busX = pad + (small ? 10 : 18), labelX = busX + 12, rowL = labelX + (small ? 28 : 76), rowR = w - pad, cg = 3;
+      var cw = (rowR - rowL - cg * 7) / 8, ch = rh - 7;
+      function rowY(b) { return top + b * (rh + g); }
+      function cell(b, s) { return { x: rowL + s * (cw + cg), y: rowY(b) }; }
+      var mid = rowY(1) + rh / 2 + (rh + g) * .5;
 
-      var inner = bw - 12, cg = 3, cw = (inner - cg) / 2, hdr = font * 3.2, footer = 14;
-      var ch = Math.min(24, (bH - hdr - footer - cg * 3 - 4) / 4);
-      function slot(i, s) { return { x: bx(i) - bw / 2 + 6 + (s % 2) * (cw + cg), y: topY + hdr + Math.floor(s / 2) * (ch + cg) }; }
-
-      // producer bus
-      ctx.strokeStyle = c.line; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(pad, busY); ctx.lineTo(w - pad, busY); ctx.stroke();
-      text('producers', pad, busY - 8, c['ink-2']);
-      for (var d = 0; d < 4; d++) {
-        if (d === 3 && p <= 0) continue;
-        ctx.globalAlpha = d === 3 ? p : 1;
-        ctx.beginPath(); ctx.moveTo(bx(d), busY); ctx.lineTo(bx(d), topY); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-
-      // records in flight
-      var N = 110, period = T / 24, x0 = pad, dy = topY - busY, targets = p >= 1 ? 4 : 3;
-      ctx.fillStyle = c.accent;
-      for (var k = 0; k < N; k++) {
-        var raw = t / period + k / N, cyc = Math.floor(raw), u = raw - cyc;
-        if (hash(k, cyc) > load / 80) continue;
-        var tgt = Math.floor(hash(k + 7, cyc) * targets), tx = bx(tgt);
-        var run = tx - x0, L = run + dy, s = u * (w - pad - x0 + dy);
-        if (s > L) continue;
-        if (s < run) ctx.fillRect(x0 + s, busY - 1, 7, 2);
-        else ctx.fillRect(tx - 1, busY + (s - run), 2, 7);
-      }
-
-      // brokers
-      var util = load / (TARGET * (p >= 1 ? 4 : 3)), count = p > 0 ? 4 : 3;
-      for (var b = 0; b < count; b++) {
-        var bl = bx(b) - bw / 2;
-        ctx.globalAlpha = b === 3 ? clamp01(p) : 1;
-        ctx.fillStyle = c['bg-2']; ctx.fillRect(bl, topY, bw, bH);
-        ctx.strokeStyle = b === 3 && p < 1 ? c.accent : c['line-2'];
-        ctx.lineWidth = 1; ctx.strokeRect(bl + .5, topY + .5, bw - 1, bH - 1);
-        text(bw < 90 ? 'b' + b : 'broker ' + b, bl + 6, topY + font * 1.5, c.ink);
-        var st = 'running';
-        if (b === 3) { if (t < 11.5) st = 'starting'; else if (t >= DOWN_AT) st = 'draining'; }
-        text(st, bl + 6, topY + font * 2.75, st === 'running' ? c['ink-2'] : c.warn);
-
-        ctx.strokeStyle = c.line;
-        for (var sl = 0; sl < 8; sl++) { var q = slot(b, sl); ctx.strokeRect(q.x + .5, q.y + .5, cw - 1, ch - 1); }
-        if (b < 3) {
-          ctx.fillStyle = c['line-2'];
-          for (var r = 0; r < 6; r++) { var pos = slot(b, r); ctx.fillRect(pos.x, pos.y, cw, ch); }
-        }
-        var by = topY + bH - 8, bar = bw - 12;
-        ctx.fillStyle = c.line; ctx.fillRect(bl + 6, by, bar, 3);
-        var u2 = b === 3 ? (t >= 12.5 && t < DOWN_AT + 3 ? util : 0) : util;
-        ctx.fillStyle = u2 > 1 ? c.warn : c.accent;
-        ctx.fillRect(bl + 6, by, bar * Math.min(1, u2), 3);
+      // Producer stem, bus and branches.
+      ctx.strokeStyle = c['line-2']; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad - 6, mid + .5); ctx.lineTo(busX + .5, mid + .5);
+      ctx.moveTo(busX + .5, rowY(0) + ch / 2); ctx.lineTo(busX + .5, rowY(2) + ch / 2);
+      for (var d = 0; d < 3; d++) { ctx.moveTo(busX, rowY(d) + ch / 2 + .5); ctx.lineTo(labelX - 3, rowY(d) + ch / 2 + .5); }
+      ctx.stroke();
+      if (p > 0) {
+        ctx.globalAlpha = clamp01(p);
+        ctx.beginPath(); ctx.moveTo(busX + .5, rowY(2) + ch / 2); ctx.lineTo(busX + .5, rowY(3) + ch / 2 + .5); ctx.lineTo(labelX - 3, rowY(3) + ch / 2 + .5); ctx.stroke();
         ctx.globalAlpha = 1;
       }
 
-      // migrating partitions: drawn last so they cross over the brokers
-      for (var i = 0; i < MOVES; i++) {
-        var m = moved(t, i), from = slot(i % 3, 6 + Math.floor(i / 3)), to = slot(3, i);
-        var lift = Math.sin(m * Math.PI) * bH * 0.28;
-        ctx.fillStyle = m > 0.001 && m < 0.999 ? c.accent : c['line-2'];
-        ctx.fillRect(from.x + (to.x - from.x) * m, from.y + (to.y - from.y) * m - lift, cw, ch);
+      // Records in flight along stem, bus, branch.
+      var N = 90, period = T / 26, targets = p >= 1 ? 4 : 3;
+      ctx.fillStyle = c.acc;
+      for (var k = 0; k < N; k++) {
+        var raw = t / period + k / N, cyc = Math.floor(raw), u = raw - cyc;
+        if (hash(k, cyc) > load / 90) continue;
+        var tgt = Math.floor(hash(k + 7, cyc) * targets), ty = rowY(tgt) + ch / 2;
+        var a = busX - (pad - 6), b2 = Math.abs(ty - mid), c3 = labelX - 3 - busX, L = a + b2 + c3, s = u * L;
+        var sz = 3;
+        if (s < a) ctx.fillRect(pad - 6 + s, mid - 1, sz, sz);
+        else if (s < a + b2) ctx.fillRect(busX - 1, mid + (ty > mid ? 1 : -1) * (s - a), sz, sz);
+        else ctx.fillRect(busX + (s - a - b2), ty - 1, sz, sz);
       }
 
-      // load vs capacity
-      var cL = pad, cR = w - pad, cW = cR - cL, MAX = 90;
-      function X(s) { return cL + cW * s / T; }
-      function Y(v) { return chartB - (chartB - chartT) * v / MAX; }
-      ctx.strokeStyle = c.line; ctx.beginPath(); ctx.moveTo(cL, chartB + .5); ctx.lineTo(cR, chartB + .5); ctx.stroke();
-      text('records/s', cL, chartT - 2, c.accent);
-      text('- - capacity', cR, chartT - 2, c['ink-2'], 'right');
-      ctx.strokeStyle = c['ink-2']; ctx.setLineDash([4, 4]); ctx.beginPath();
+      // Broker rows. The fourth row's place is always reserved.
+      var util = load / (TARGET * (p >= 1 ? 4 : 3));
+      for (var br = 0; br < 4; br++) {
+        var y = rowY(br), there = br < 3 || p > 0, st = 'running';
+        if (br === 3) { if (!there) st = 'not running'; else if (t < 11.5) st = 'starting'; else if (t >= DOWN_AT) st = 'draining'; }
+        ctx.globalAlpha = br === 3 && there ? Math.max(.35, clamp01(p)) : 1;
+        text(small ? 'b' + br : 'broker ' + br, labelX, y + font + 1, br === 3 && !there ? c['ink-3'] : c.ink);
+        if (!small) text(st, labelX, y + font * 2 + 6, st === 'running' || st === 'not running' ? c['ink-3'] : c.acc);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = c.line;
+        for (var sl = 0; sl < 8; sl++) {
+          var q = cell(br, sl);
+          if (br < 3 && sl < 6) {
+            ctx.fillStyle = c.cell; ctx.fillRect(q.x, q.y, cw, ch);
+            var tick = Math.floor(t * 5), f = t * 5 - tick;
+            if (hash(br * 8 + sl, tick) < load / 420) { ctx.globalAlpha = (1 - f) * .85; ctx.fillStyle = c.acc; ctx.fillRect(q.x, q.y, cw, ch); ctx.globalAlpha = 1; }
+            if (cw > 22) text(String(br * 6 + sl), q.x + 5, q.y + font + 3, c['ink-2']);
+          } else ctx.strokeRect(q.x + .5, q.y + .5, cw - 1, ch - 1);
+        }
+        var uy = y + ch + 3, ub = rowR - rowL, u2 = br === 3 ? (t >= 12.5 && t < DOWN_AT + 3 ? util : 0) : util;
+        ctx.fillStyle = c.line; ctx.fillRect(rowL, uy, ub, 2);
+        ctx.fillStyle = c.acc; ctx.fillRect(rowL, uy, ub * Math.min(1, u2), 2);
+      }
+
+      // Migrating partitions, drawn last so they cross over the rows.
+      for (var i = 0; i < MOVES; i++) {
+        var m = moved(t, i), from = cell(i % 3, 6 + Math.floor(i / 3)), to = cell(3, i), moving = m > .001 && m < .999;
+        var mx = from.x + (to.x - from.x) * m, my = from.y + (to.y - from.y) * m;
+        ctx.fillStyle = moving ? c.acc : c.cell; ctx.fillRect(mx, my, cw, ch);
+        if (cw > 22) text(String(18 + i), mx + 5, my + font + 3, moving ? c.panel : c['ink-2']);
+      }
+
+      // Load against capacity.
+      var cL = pad, cR = w - pad, cW = cR - cL, cT = rowsB + 24, cB = h - 8, MAX = 90;
+      function X(v) { return cL + cW * v / T; }
+      function Y(v) { return cB - (cB - cT) * v / MAX; }
+      ctx.strokeStyle = c.line; ctx.beginPath(); ctx.moveTo(cL, rowsB + 8.5); ctx.lineTo(cR, rowsB + 8.5); ctx.moveTo(cL, cB + .5); ctx.lineTo(cR, cB + .5); ctx.stroke();
+      text('records/s', cL, cT - 1, c.acc);
+      text('- - capacity', cR, cT - 1, c['ink-2'], 'right');
+      ctx.strokeStyle = c['ink-2']; ctx.setLineDash([3, 3]); ctx.beginPath();
       ctx.moveTo(X(0), Y(60)); ctx.lineTo(X(11.5), Y(60)); ctx.lineTo(X(11.5), Y(80));
       ctx.lineTo(X(35.3), Y(80)); ctx.lineTo(X(35.3), Y(60)); ctx.lineTo(X(T), Y(60)); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.strokeStyle = c.accent; ctx.lineWidth = 1.75; ctx.beginPath();
+      ctx.strokeStyle = c.acc; ctx.lineWidth = 1.75; ctx.beginPath();
       var end = Math.min(t, T);
-      for (var a = 0; a <= end + 0.001; a += 0.15) { var xx = X(a), yy = Y(loadAt(a)); if (a === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy); }
+      for (var v = 0; v <= end + .001; v += .15) { if (v === 0) ctx.moveTo(X(v), Y(loadAt(v))); else ctx.lineTo(X(v), Y(loadAt(v))); }
       ctx.stroke(); ctx.lineWidth = 1;
-      ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(X(end), Y(loadAt(end)), 3, 0, 7); ctx.fill();
+      ctx.fillStyle = c.acc; ctx.fillRect(X(end) - 3, Y(loadAt(end)) - 3, 6, 6);
 
-      // readouts
+      // Readouts.
       var ph = phase(t), rate = Math.round(load * 10) * 100;
       set(els.state, ph[0]);
       var cls = 'status ' + (ph[0] === 'Ready' ? 'ok' : 'warn');
       if (els.dot.className !== cls) els.dot.className = cls;
       set(els.brokers, (t >= 11.5 && t < 35.3 ? 4 : 3) + ' of ' + (p > 0 ? 4 : 3));
       set(els.load, rate.toLocaleString('en-US'));
-      set(els.side, (rate / 1000).toFixed(1) + 'k/s');
       set(els.need, Math.max(3, Math.ceil(load / TARGET)) + ' brokers');
-      if (!(static_ && t > T - 1)) set(els.msg, ph[1]);
-      else set(els.msg, 'Scaled 3 → 4 on load, then 4 → 3 once load stayed low.');
+      set(els.msg, static_ && t > T - 1 ? 'Scaled 3 → 4 on load, then 4 → 3 once load stayed low.' : ph[1]);
 
-      // history feed: rebuilt only when the number of past events changes
-      var seen = EVENTS.filter(function (e) { return e[0] <= t; });
-      if (seen.length !== histCount) {
-        histCount = seen.length;
-        $('hist').innerHTML = (seen.length ? seen.slice().reverse() : [[0, '<b>Created</b> serving on 3 brokers']]).slice(0, 5)
-          .map(function (e) { return '<li>' + e[1] + '</li>'; }).join('');
+      var seen = EVENTS.filter(function (e) { return e[0] <= t; }).length, key = String(seen);
+      if (key !== histState) {
+        histState = key;
+        rows.forEach(function (li, n) { li.classList.toggle('seen', n < seen); li.classList.toggle('now', n === seen - 1); });
       }
-      if (!scrubbing) syncScrub();
+      syncScrub();
     }
     function syncScrub() {
-      var v = String(Math.round(now * 10));
-      if (scrub.value !== v) scrub.value = v;
+      if (document.activeElement !== scrub || playing) { var v = String(Math.round(now * 10)); if (scrub.value !== v) scrub.value = v; }
       scrub.style.setProperty('--p', (now / T * 100) + '%');
     }
-
     function frame(ms) {
       if (!playing) return;
-      var dt = last ? Math.min(0.1, (ms - last) / 1000) : 0;
+      var dt = last ? Math.min(.1, (ms - last) / 1000) : 0;
       last = ms; now = (now + dt) % T;
       draw(now);
       requestAnimationFrame(frame);
@@ -367,18 +361,14 @@
     function update() {
       $('play-ic').setAttribute('href', paused ? '#i-play' : '#i-pause');
       playBtn.setAttribute('aria-label', (paused ? 'Play' : 'Pause') + ' replay');
-      var should = !paused && !scrubbing && onScreen && !document.hidden;
+      var should = !paused && onScreen && !document.hidden;
       if (should && !playing) { playing = true; last = 0; requestAnimationFrame(frame); }
       if (!should) playing = false;
     }
     playBtn.addEventListener('click', function () { paused = !paused; static_ = false; update(); });
-    scrub.addEventListener('input', function () {
-      now = +scrub.value / 10; static_ = false; paused = true;
-      scrub.style.setProperty('--p', (now / T * 100) + '%');
-      draw(now); update();
-    });
+    scrub.addEventListener('input', function () { seek(+scrub.value / 10); });
     motion.addEventListener('change', function () {
-      if (motion.matches) { paused = true; static_ = true; now = T - 0.01; draw(now); } else { paused = false; static_ = false; }
+      if (motion.matches) { paused = true; static_ = true; now = T - .01; draw(now); } else { paused = false; static_ = false; }
       update();
     });
     document.addEventListener('visibilitychange', update);
@@ -388,6 +378,37 @@
 
     restyle(); resize(); update();
     return { restyle: restyle };
+  })();
+
+  /* ---- the rail is the log: committed offset and lag follow the reader ---- */
+  (function () {
+    var links = all('#log a'), secs = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+    var logEl = $('log'), offEl = $('lag-off'), lagEl = $('lag-n'), cur = -1;
+    secs[0] = document.querySelector('.hero');
+    function tick() {
+      var line = innerHeight * .35, i = 0;
+      secs.forEach(function (s, n) { if (s && s.getBoundingClientRect().top <= line) i = n; });
+      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 80) i = links.length - 1;
+      if (i === cur) return;
+      cur = i;
+      links.forEach(function (a, n) {
+        if (n === i) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+        a.parentNode.classList.toggle('past', n < i);
+      });
+      offEl.textContent = String(i).padStart(2, '0');
+      lagEl.textContent = String(links.length - 1 - i);
+      logEl.style.setProperty('--done', (links[i].parentNode.offsetTop) + 'px');
+    }
+    addEventListener('scroll', tick, { passive: true }); addEventListener('resize', tick); tick();
+  })();
+
+  /* ---- boundary diagram: each component explains itself ---- */
+  (function () {
+    var nodes = all('#bound .node'), note = $('bound-note');
+    nodes.forEach(function (n) {
+      function pick() { nodes.forEach(function (o) { o.classList.toggle('on', o === n); }); note.textContent = n.dataset.note; }
+      n.addEventListener('click', pick); n.addEventListener('mouseenter', pick); n.addEventListener('focus', pick);
+    });
   })();
 
   themeUI();

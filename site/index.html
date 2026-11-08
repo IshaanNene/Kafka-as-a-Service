@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,17 +8,17 @@
 <meta property="og:title" content="KaaS: the managed Kafka experience, inside your own walls">
 <meta property="og:description" content="Managed Kafka as software that runs on your own Kubernetes, network and disks. MIT-licensed.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#100f0e">
+<meta name="theme-color" content="#eae8e0">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/martian-mono.woff2" as="font" type="font/woff2" crossorigin>
 <script>
-  // Before first paint: resolve the theme, and arm scroll reveals only when JS and motion are available.
+  // Before first paint: restore a saved theme, and arm scroll reveals only when JS and motion are available.
   (function () {
     var stored = null, d = document.documentElement;
     try { stored = localStorage.getItem('kaas-theme'); } catch (e) {}
-    d.dataset.theme = stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    if (stored) d.dataset.theme = stored;
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) d.classList.add('anim');
   })();
 </script>
@@ -27,9 +27,6 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-term" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8"/></symbol>
-    <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
-    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
@@ -38,224 +35,256 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="m7 4 13 8-13 8Z"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
-    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
-    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.5L4.6 18.6A2 2 0 0 0 6.3 22h11.4a2 2 0 0 0 1.7-3.4L14 9.5V2M8.5 2h7M7 16h10"/></symbol>
-    <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v12M18 15V9a3 3 0 0 0-3-3h-3"/></symbol>
-    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z"/><circle cx="7.5" cy="7.5" r=".6"/></symbol>
     <symbol id="i-gh" viewBox="0 0 24 24"><path stroke="none" fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.6-4-1.6-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></symbol>
+    <symbol id="logo" viewBox="0 0 24 24"><rect x="2" y="5" width="11" height="3.4" fill="currentColor"/><rect x="2" y="10.3" width="15" height="3.4" fill="currentColor"/><rect x="2" y="15.6" width="11" height="3.4" fill="currentColor"/><rect x="18" y="9.6" width="4.8" height="4.8" fill="var(--acc)"/></symbol>
   </defs>
 </svg>
 
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="nav" id="nav">
-  <div class="wrap nav-in">
-    <a class="brand" href="#top" aria-label="KaaS home">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="2" y="5" width="11" height="3.4" rx="1.7" fill="currentColor"/><rect x="2" y="10.3" width="15" height="3.4" rx="1.7" fill="currentColor"/><rect x="2" y="15.6" width="11" height="3.4" rx="1.7" fill="currentColor"/><circle cx="20" cy="12" r="2.6" fill="var(--accent)"/></svg>
-      <span>kaas</span>
-    </a>
-
-    <nav class="links" aria-label="Primary">
-      <div class="dd">
-        <button class="dd-btn" type="button" aria-expanded="false" aria-controls="m-product">Product <svg class="ic chev"><use href="#i-chev"/></svg></button>
-        <div class="menu" id="m-product">
-          <a href="#products" data-product="p-cli"><svg class="ic"><use href="#i-term"/></svg><span><b>CLI and terminal UI</b><small>A screen for every job, one static binary</small></span></a>
-          <a href="#products" data-product="p-console"><svg class="ic"><use href="#i-layout"/></svg><span><b>Web console</b><small>The whole fleet, GitOps, schemas, ACLs</small></span></a>
-          <a href="#products" data-product="p-managed"><svg class="ic"><use href="#i-box"/></svg><span><b>Managed Kafka on Kubernetes</b><small>Create, roll and autoscale on Strimzi</small></span></a>
-        </div>
+  <a class="brand" href="#top" aria-label="KaaS home"><svg width="22" height="22" aria-hidden="true"><use href="#logo"/></svg><span>kaas</span></a>
+  <nav class="links" aria-label="Primary">
+    <div class="dd">
+      <button class="dd-btn" type="button" aria-expanded="false" aria-controls="m-product">Product <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <div class="menu" id="m-product">
+        <a href="#products" data-product="p-cli"><b>CLI and terminal UI</b><small>A screen for every job, one static binary</small></a>
+        <a href="#products" data-product="p-console"><b>Web console</b><small>The whole fleet, GitOps, schemas, ACLs</small></a>
+        <a href="#products" data-product="p-managed"><b>Managed Kafka on Kubernetes</b><small>Create, roll and autoscale on Strimzi</small></a>
       </div>
-      <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USAGE.md">Docs</a>
-      <div class="dd">
-        <button class="dd-btn" type="button" aria-expanded="false" aria-controls="m-res">Resources <svg class="ic chev"><use href="#i-chev"/></svg></button>
-        <div class="menu" id="m-res">
-          <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USE-CASES.md"><svg class="ic"><use href="#i-book"/></svg><span><b>Use cases</b><small>On-call, replays, capacity, safety</small></span></a>
-          <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/TESTING.md"><svg class="ic"><use href="#i-flask"/></svg><span><b>Testing guide</b><small>What each test tier proves</small></span></a>
-          <a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/design"><svg class="ic"><use href="#i-git"/></svg><span><b>Design docs and ADRs</b><small>Why it's built the way it is</small></span></a>
-          <a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases"><svg class="ic"><use href="#i-tag"/></svg><span><b>Releases</b><small>Signed binaries and images</small></span></a>
-        </div>
-      </div>
-      <a href="#pricing">Pricing</a>
-    </nav>
-
-    <div class="nav-right">
-      <a class="icon-btn hide-m" href="https://github.com/IshaanNene/Kafka-as-a-Service" aria-label="KaaS on GitHub"><svg class="ic"><use href="#i-gh"/></svg></a>
-      <button id="theme" class="icon-btn" type="button" aria-label="Switch colour theme"><svg class="ic"><use id="theme-ic" href="#i-sun"/></svg></button>
-      <a class="btn sm primary hide-s" href="#try">Try the console</a>
-      <button id="burger" class="icon-btn burger" type="button" aria-expanded="false" aria-controls="sheet" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
     </div>
+    <a href="#inside">How it runs</a>
+    <div class="dd">
+      <button class="dd-btn" type="button" aria-expanded="false" aria-controls="m-res">Resources <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <div class="menu" id="m-res">
+        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USE-CASES.md"><b>Use cases</b><small>On-call, replays, capacity, safety</small></a>
+        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/TESTING.md"><b>Testing guide</b><small>What each test tier proves</small></a>
+        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/design"><b>Design docs and ADRs</b><small>Why it's built the way it is</small></a>
+        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases"><b>Releases</b><small>Signed binaries and images</small></a>
+      </div>
+    </div>
+    <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USAGE.md">Docs</a>
+    <a href="#pricing">Pricing</a>
+  </nav>
+  <div class="nav-right">
+    <a class="icon-btn hide-m" href="https://github.com/IshaanNene/Kafka-as-a-Service" aria-label="KaaS on GitHub"><svg class="ic"><use href="#i-gh"/></svg></a>
+    <button id="theme" class="icon-btn" type="button" aria-label="Switch colour theme"><svg class="ic"><use id="theme-ic" href="#i-moon"/></svg></button>
+    <a class="btn sm primary hide-s" href="#try"><span>Try the console</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
+    <button id="burger" class="icon-btn burger" type="button" aria-expanded="false" aria-controls="sheet" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
   </div>
 </header>
 
 <div class="sheet" id="sheet" hidden>
-  <div class="sheet-group"><p class="eyebrow">Product</p>
+  <div><p class="label">Product</p>
     <a href="#products" data-product="p-cli">CLI and terminal UI</a>
     <a href="#products" data-product="p-console">Web console</a>
     <a href="#products" data-product="p-managed">Managed Kafka</a>
   </div>
-  <div class="sheet-group"><p class="eyebrow">Learn</p>
+  <div><p class="label">Learn</p>
+    <a href="#inside">How it runs</a>
     <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USAGE.md">Docs</a>
     <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USE-CASES.md">Use cases</a>
     <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/TESTING.md">Testing guide</a>
   </div>
-  <div class="sheet-group"><p class="eyebrow">Company</p>
+  <div><p class="label">Company</p>
     <a href="#pricing">Pricing</a>
     <a href="https://github.com/IshaanNene/Kafka-as-a-Service">GitHub</a>
   </div>
-  <a class="btn primary" href="#try">Try the console in 60 seconds</a>
+  <a class="btn primary" href="#try"><span>Try the console in 60 seconds</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
 </div>
+
+<div class="shell">
+<aside class="rail" aria-label="On this page">
+  <div class="rail-in">
+    <p class="label rail-t"><span>partition</span><b>kaas.site-0</b></p>
+    <ol class="log" id="log">
+      <li><a href="#top"><span>00</span>Overview</a></li>
+      <li><a href="#tradeoff"><span>01</span>The trade-off</a></li>
+      <li><a href="#inside"><span>02</span>SaaS, on-premises</a></li>
+      <li><a href="#outcomes"><span>03</span>For the business</a></li>
+      <li><a href="#products"><span>04</span>Three products</a></li>
+      <li><a href="#proof"><span>05</span>Built to be trusted</a></li>
+      <li><a href="#pricing"><span>06</span>Pricing</a></li>
+      <li><a href="#faq"><span>07</span>Questions</a></li>
+      <li><a href="#try"><span>08</span>Try it</a></li>
+    </ol>
+    <dl class="lag" aria-hidden="true">
+      <div><dt class="label">committed</dt><dd id="lag-off">00</dd></div>
+      <div><dt class="label">lag</dt><dd id="lag-n">8</dd></div>
+    </dl>
+    <div class="rail-try">
+      <p class="label">Run the demo</p>
+      <div class="cmd"><pre tabindex="0" aria-label="Demo command"><code>kaas console --demo</code></pre><button class="copy" type="button">Copy</button></div>
+    </div>
+    <ul class="rail-links">
+      <li><a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases/tag/v0.1.0">Release v0.1.0</a></li>
+      <li><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/LICENSE">MIT licence</a></li>
+      <li><a href="https://github.com/IshaanNene/Kafka-as-a-Service">Source on GitHub</a></li>
+    </ul>
+  </div>
+</aside>
 
 <main id="main">
 <span id="top"></span>
 
-<!-- HERO ===================================================== -->
-<section class="hero" aria-labelledby="h-hero">
-  <div class="wrap">
-    <a class="badge mono" href="https://github.com/IshaanNene/Kafka-as-a-Service/releases/tag/v0.1.0"><b>v0.1.0</b> Managed Kafka on Kubernetes, signed release <svg class="ic"><use href="#i-arrow"/></svg></a>
-    <h1 id="h-hero">The managed Kafka experience. <span>Inside your own walls.</span></h1>
-    <div class="hero-row">
-      <p class="lede">Kafka as a Service you run yourself: what a managed service does, delivered as software on your Kubernetes, your network and your disks.</p>
-      <div class="hero-act">
-        <div class="cta">
-          <a class="btn primary" href="#try">Try the console in 60 seconds</a>
-          <a class="btn" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=Talking%20to%20the%20KaaS%20team">Talk to us</a>
-        </div>
-        <div class="cmd"><pre tabindex="0" aria-label="Demo command"><code>kaas console --demo</code></pre><button class="copy mono" type="button">Copy</button></div>
+<!-- 00 HERO -->
+<section class="hero" aria-labelledby="h-hero" data-rec>
+  <div class="hero-head">
+    <h1 id="h-hero">The managed<br>Kafka experience.<br><mark>Inside your own walls.</mark></h1>
+    <div class="hero-side">
+      <p>Kafka as a Service you run yourself: what a managed service does, delivered as software on your Kubernetes, your network and your disks.</p>
+      <div class="cta">
+        <a class="btn primary" href="#try"><span>Try the console in 60 seconds</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
+        <a class="btn" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=Talking%20to%20the%20KaaS%20team"><span>Talk to us</span></a>
+      </div>
+      <div class="cmd"><pre tabindex="0" aria-label="Demo command"><code>kaas console --demo</code></pre><button class="copy" type="button">Copy</button></div>
+    </div>
+  </div>
+
+  <figure class="wall frame">
+    <figcaption class="wall-bar label">
+      <b>Your infrastructure</b>
+      <span>KafkaService/orders</span>
+      <span class="wall-note">scripted replay · time compressed</span>
+    </figcaption>
+    <div class="wall-grid">
+      <div class="spec" aria-hidden="true">
+        <p class="label">spec</p>
+        <dl>
+          <div><dt>version</dt><dd>4.2.0</dd></div>
+          <div><dt>min / max</dt><dd>3 / 9</dd></div>
+          <div><dt>target</dt><dd>20,000/s</dd></div>
+          <div><dt>scaleDownAfter</dt><dd>10m</dd></div>
+        </dl>
+        <p class="label">status</p>
+        <dl>
+          <div><dt>phase</dt><dd><i class="status ok" id="r-dot"></i><span id="r-state">Ready</span></dd></div>
+          <div><dt>brokers</dt><dd id="r-brokers">3 of 3</dd></div>
+          <div><dt>records/s</dt><dd id="r-load">38,000</dd></div>
+          <div><dt>load needs</dt><dd id="r-need">3 brokers</dd></div>
+        </dl>
+      </div>
+      <div class="scope-cell">
+        <canvas id="scope" role="img" aria-label="Replay of an autoscale event. Records stream into three brokers. Load rises and the system reports load needs 4 brokers. A fourth broker joins, partitions migrate onto it, and the state returns to Ready. When load falls the system waits, moves partitions off the fourth broker, and removes it."></canvas>
+        <p class="msg" aria-hidden="true"><span>&gt;</span> <span id="r-msg">Scaled 3 → 4 on load, then 4 → 3 once load stayed low.</span></p>
+      </div>
+      <div class="feed">
+        <p class="label">history</p>
+        <ol id="hist"></ol>
       </div>
     </div>
+    <div class="transport">
+      <button id="play" class="icon-btn" type="button" aria-label="Pause replay"><svg class="ic"><use id="play-ic" href="#i-pause"/></svg></button>
+      <input id="scrub" type="range" min="0" max="379" value="0" aria-label="Scrub through the autoscale replay" style="--p:0%">
+    </div>
+  </figure>
 
-    <figure class="walls">
-      <div class="walls-tab mono">Your infrastructure</div>
-      <div class="app">
-        <aside class="app-side" aria-hidden="true">
-          <p class="app-org"><b>kaas</b><span class="mono">console</span></p>
-          <p class="app-h mono">Monitor</p>
-          <ul><li>Overview</li><li>Activity</li></ul>
-          <p class="app-h mono">Govern</p>
-          <ul><li>GitOps changes</li></ul>
-          <p class="app-h mono">Operate</p>
-          <ul><li class="on">Managed clusters</li></ul>
-          <p class="app-h mono">Clusters</p>
-          <ul class="mono app-cl"><li><i class="status ok"></i>orders<span id="side-rate">38.0k/s</span></li></ul>
-        </aside>
-        <div class="app-main">
-          <div class="app-top">
-            <p class="app-crumb">Managed clusters <i>/</i> <b>orders</b></p>
-            <span class="scope-note mono">scripted replay · time compressed</span>
-          </div>
-          <div class="app-title">
-            <h2 class="app-name">orders</h2>
-            <span class="pill mono" id="r-pill"><i class="status ok" id="r-dot"></i><span id="r-state">Ready</span></span>
-          </div>
-          <dl class="meta mono" aria-hidden="true">
-            <div><dt>Kafka</dt><dd>4.2.0</dd></div>
-            <div><dt>Brokers</dt><dd id="r-brokers">3 of 3</dd></div>
-            <div><dt>Records/s</dt><dd id="r-load">38,000</dd></div>
-            <div><dt>Load needs</dt><dd id="r-need">3 brokers</dd></div>
-            <div class="hide-xs"><dt>Disk per broker</dt><dd>20Gi</dd></div>
-          </dl>
-          <div class="app-body">
-            <div class="app-stage">
-              <canvas id="scope" role="img" aria-label="Replay of an autoscale event. Records stream into three brokers. Load rises and the system reports load needs 4 brokers. A fourth broker joins, partitions migrate onto it, and the state returns to Ready. When load falls the system waits, moves partitions off the fourth broker, and removes it."></canvas>
-              <div class="transport">
-                <button id="play" class="icon-btn" type="button" aria-label="Pause replay"><svg class="ic"><use id="play-ic" href="#i-pause"/></svg></button>
-                <input id="scrub" type="range" min="0" max="379" value="0" aria-label="Scrub through the autoscale replay" style="--p:0%">
-              </div>
-              <p class="msg mono" aria-hidden="true"><span>&gt;</span> <span id="r-msg">Scaled 3 → 4 on load, then 4 → 3 once load stayed low.</span></p>
-            </div>
-            <div class="app-hist" aria-hidden="true">
-              <p class="hist-h">History</p>
-              <ol id="hist"></ol>
-            </div>
-          </div>
-        </div>
+  <ul class="built label" aria-label="Built on and tested against">
+    <li>Apache Kafka 3.9 / 4.2 / 4.4</li><li>Kubernetes</li><li>Strimzi</li><li>Sigstore cosign</li><li>SLSA provenance</li><li>MIT licence</li>
+  </ul>
+</section>
+
+<!-- 01 TRADE-OFF -->
+<section class="sec" id="tradeoff" aria-labelledby="h-trade" data-rec>
+  <header class="head r"><p class="offset label">offset 01</p>
+    <h2 id="h-trade"><mark>Two deals</mark> on the table.<br>Both cost you something.</h2></header>
+
+  <div class="trade r">
+    <figure class="plot" aria-label="A chart with two axes: how much of the operating is done for you, and how much control you keep over your data. Cloud-hosted Kafka has the operations but not the control. Do it yourself has the control but not the operations. KaaS has both.">
+      <span class="axis y label" aria-hidden="true">Operated for you →</span>
+      <span class="axis x label" aria-hidden="true">Your data, under your control →</span>
+      <div class="plot-in" aria-hidden="true">
+        <i class="void"></i>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M36 21H62M80 69V33"/></svg>
+        <span class="arrow a1"></span><span class="arrow a2"></span>
+        <span class="wire-t label t1">keep the operations</span>
+        <span class="wire-t label t2">keep the control</span>
+        <div class="pt p1"><b>Cloud-hosted Kafka</b><small>operated, but off-site</small></div>
+        <div class="pt p2"><b>Do it yourself</b><small>yours, and all on you</small></div>
+        <div class="pt p3"><b>KaaS</b><small>operated, on your disks</small></div>
       </div>
     </figure>
 
-    <div class="built">
-      <p class="mono">Built on and tested against</p>
-      <ul class="mono"><li>Apache Kafka 3.9 / 4.2 / 4.4</li><li>Kubernetes</li><li>Strimzi</li><li>Cruise Control</li><li>Sigstore cosign</li><li>SLSA provenance</li></ul>
-    </div>
-  </div>
-</section>
-
-<!-- TRADE-OFF ================================================ -->
-<section class="sec invert" id="tradeoff" aria-labelledby="h-trade">
-  <div class="wrap">
-    <p class="eyebrow r">The trade-off</p>
-    <h2 id="h-trade" class="r">You've been offered two bad deals.</h2>
-    <div class="trade r">
+    <div class="deals">
       <article>
         <h3>Cloud-hosted Kafka</h3>
         <dl>
-          <dt>Data</dt><dd>Your records leave your boundary and live in a vendor's cloud.</dd>
-          <dt>Bill</dt><dd>Usage-based. It moves with your traffic, so growth costs extra.</dd>
-          <dt>Review</dt><dd>Someone else's environment becomes part of your security review.</dd>
+          <dt class="label">Data</dt><dd>Your records leave your boundary and live in a vendor's cloud.</dd>
+          <dt class="label">Bill</dt><dd>Usage-based. It moves with your traffic, so growth costs extra.</dd>
+          <dt class="label">Review</dt><dd>Someone else's environment becomes part of your security review.</dd>
         </dl>
       </article>
       <article>
         <h3>Do it yourself</h3>
         <dl>
-          <dt>On-call</dt><dd>The 3 a.m. page is yours, and so is working out which layer broke.</dd>
-          <dt>Tools</dt><dd>JVM shell scripts that take seconds to start and print walls of text.</dd>
-          <dt>Change</dt><dd>Deletes and config changes with no preview before they run.</dd>
+          <dt class="label">On-call</dt><dd>The 3 a.m. page is yours, and so is working out which layer broke.</dd>
+          <dt class="label">Tools</dt><dd>JVM shell scripts that take seconds to start and print walls of text.</dd>
+          <dt class="label">Change</dt><dd>Deletes and config changes with no preview before they run.</dd>
         </dl>
       </article>
     </div>
-    <div class="resolve r">
-      <p>KaaS takes the operations from one and the control from the other.</p>
-      <ul>
-        <li><b>Data</b> stays on your disks.</li>
-        <li><b>Brokers</b> are added, rolled and removed by an operator.</li>
-        <li><b>Changes</b> are planned, rated and reviewed first.</li>
-        <li><b>Cost</b> never depends on data volume.</li>
-      </ul>
-    </div>
   </div>
+
+  <ul class="resolve r">
+    <li><span class="label">Data</span>Stays on your disks.</li>
+    <li><span class="label">Brokers</span>Added, rolled and removed by an operator.</li>
+    <li><span class="label">Changes</span>Planned, rated and reviewed first.</li>
+    <li><span class="label">Cost</span>Never depends on data volume.</li>
+  </ul>
 </section>
 
-<!-- ON-PREMISES ============================================== -->
-<section class="sec" id="inside" aria-labelledby="h-inside">
-  <div class="wrap">
-    <p class="eyebrow r">SaaS, on-premises</p>
-    <h2 id="h-inside" class="r">The service is software. It runs where your data already is.</h2>
-    <p class="intro r">Nothing about running KaaS requires us, an account with us, or a path from your cluster to anywhere we control.</p>
+<!-- 02 ON-PREMISES -->
+<section class="sec dk band" id="inside" aria-labelledby="h-inside" data-rec>
+  <header class="head split r">
+    <div><p class="offset label">offset 02</p>
+      <h2 id="h-inside">SaaS, <mark>on-premises.</mark><br>The service is software.</h2></div>
+    <p>Nothing about running KaaS requires us, an account with us, or a path from your cluster to anywhere we control. It runs where your data already is.</p>
+  </header>
 
-    <figure class="arch r" aria-label="Your infrastructure contains Kubernetes, the Strimzi-based operator, Kafka brokers, the console and your data. Nothing crosses the boundary.">
-      <div class="walls-tab mono">Your infrastructure</div>
-      <p class="arch-k8s mono">Kubernetes</p>
-      <div class="arch-grid">
-        <div class="node"><h3 class="mono">Operator</h3><p>Strimzi-based. Turns a <code>KafkaService</code> into a running cluster.</p></div>
-        <div class="wire" aria-hidden="true"><i></i></div>
-        <div class="node"><h3 class="mono">Kafka brokers</h3><ul class="chips mono" aria-hidden="true"><li>0</li><li>1</li><li>2</li><li>3</li></ul></div>
-        <div class="wire" aria-hidden="true"><i></i></div>
-        <div class="node data"><h3 class="mono">Your data</h3><p>On your volumes, over your network.</p></div>
-        <div class="node wide"><h3 class="mono">Console</h3><p>Fleet view, plans, schemas and ACLs. Read-only by default, listens on localhost.</p></div>
+  <figure class="bound r" id="bound">
+    <figcaption class="sr">Your infrastructure contains Kubernetes, the Strimzi-based operator, Kafka brokers, the console and your data. Nothing crosses the boundary.</figcaption>
+    <div class="line-box">
+      <p class="line-tag label">Your infrastructure</p>
+      <p class="k8s label">Kubernetes</p>
+      <div class="flow-row">
+        <button class="node on" type="button" data-note="One short resource names the Kafka version, disk per broker, and a broker count or an autoscaling policy."><span class="label">resource</span><b>KafkaService</b><small>orders · 4.2.0</small></button>
+        <i class="wire" aria-hidden="true"></i>
+        <button class="node" type="button" data-note="Strimzi-based. Turns a KafkaService into a running cluster, measures load against what brokers can take, and restarts them one at a time when asked."><span class="label">controller</span><b>Operator</b><small>Strimzi-based</small></button>
+        <i class="wire" aria-hidden="true"></i>
+        <button class="node" type="button" data-note="Apache Kafka in your cluster. Brokers are added as load calls for them, and removed only after partitions have moved off."><span class="label">workload</span><b>Kafka brokers</b><span class="bk" aria-hidden="true"><i></i><i></i><i></i><i class="hot"></i></span></button>
+        <i class="wire" aria-hidden="true"></i>
+        <button class="node data" type="button" data-note="On your volumes, over your network. There is no KaaS-hosted service for records to go to."><span class="label">storage</span><b>Your data</b><small>your volumes</small></button>
       </div>
-      <figcaption class="arch-cap mono">Nothing crosses this line.</figcaption>
-    </figure>
+      <div class="console-row">
+        <button class="node wide" type="button" data-note="Fleet view, plans, schemas and ACLs. Read-only by default, and it listens on localhost."><span class="label">interface</span><b>Console</b><small>fleet view · plans · schemas · ACLs · read-only by default</small></button>
+      </div>
+    </div>
+    <p class="bound-cap">Nothing crosses the line.</p>
+    <p class="bound-note" id="bound-note" aria-live="polite">One short resource names the Kafka version, disk per broker, and a broker count or an autoscaling policy.</p>
+  </figure>
 
-    <div class="deliver">
-      <ol class="steps r">
-        <li><b>Signed images.</b> One multi-arch image for amd64 and arm64, signed with cosign, pulled by your cluster.</li>
-        <li><b>One short manifest.</b> A <code>KafkaService</code> names the Kafka version, disk per broker, and a broker count or an autoscaling policy.</li>
-        <li><b>Updates are a release.</b> To update, move to a new signed release, when you decide to.</li>
-      </ol>
-      <div class="pane r">
-        <div class="tabs" role="tablist" aria-label="Install">
-          <button role="tab" id="t-inst" aria-controls="tp-inst" aria-selected="true" type="button">Install</button>
-          <button role="tab" id="t-man" aria-controls="tp-man" aria-selected="false" tabindex="-1" type="button">example.yaml</button>
-          <i class="tab-bar"></i>
+  <div class="deliver r">
+    <ol class="steps">
+      <li><span class="label">1</span><div><b>Signed images.</b> One multi-arch image for amd64 and arm64, signed with cosign, pulled by your cluster.</div></li>
+      <li><span class="label">2</span><div><b>One short manifest.</b> A <code>KafkaService</code> is all a cluster needs.</div></li>
+      <li><span class="label">3</span><div><b>Updates are a release.</b> To update, move to a new signed release, when you decide to.</div></li>
+    </ol>
+    <div class="pane">
+      <div class="tabs" role="tablist" aria-label="Install">
+        <button role="tab" id="t-inst" aria-controls="tp-inst" aria-selected="true" type="button">Install</button>
+        <button role="tab" id="t-man" aria-controls="tp-man" aria-selected="false" tabindex="-1" type="button">example.yaml</button>
+        <i class="tab-bar"></i>
+      </div>
+      <div class="tstack">
+        <div class="tp on" role="tabpanel" id="tp-inst" aria-labelledby="t-inst">
+          <p class="note">Three commands, from a clone of the repository, on a cluster with Strimzi installed.</p>
+          <ol class="cmds">
+            <li><div class="cmd"><pre tabindex="0" aria-label="Install the operator"><code>kubectl apply -f deploy/operator/crd.yaml -f deploy/operator/rbac.yaml -f deploy/operator/operator.yaml</code></pre><button class="copy" type="button">Copy</button></div></li>
+            <li><div class="cmd"><pre tabindex="0" aria-label="Create a cluster"><code>kubectl apply -f deploy/operator/example.yaml</code></pre><button class="copy" type="button">Copy</button></div></li>
+            <li><div class="cmd"><pre tabindex="0" aria-label="Open the console"><code>kaas console --kube --namespace kafka --allow-apply</code></pre><button class="copy" type="button">Copy</button></div></li>
+          </ol>
         </div>
-        <div class="tstack">
-          <div class="tp on" role="tabpanel" id="tp-inst" aria-labelledby="t-inst">
-            <p class="note">Three commands, from a clone of the repository, on a cluster with Strimzi installed.</p>
-            <ol class="cmds">
-              <li><div class="cmd"><pre tabindex="0" aria-label="Install the operator"><code>kubectl apply -f deploy/operator/crd.yaml -f deploy/operator/rbac.yaml -f deploy/operator/operator.yaml</code></pre><button class="copy mono" type="button">Copy</button></div></li>
-              <li><div class="cmd"><pre tabindex="0" aria-label="Create a cluster"><code>kubectl apply -f deploy/operator/example.yaml</code></pre><button class="copy mono" type="button">Copy</button></div></li>
-              <li><div class="cmd"><pre tabindex="0" aria-label="Open the console"><code>kaas console --kube --namespace kafka --allow-apply</code></pre><button class="copy mono" type="button">Copy</button></div></li>
-            </ol>
-          </div>
-          <div class="tp" role="tabpanel" id="tp-man" aria-labelledby="t-man">
+        <div class="tp" role="tabpanel" id="tp-man" aria-labelledby="t-man">
 <pre class="yaml" tabindex="0" aria-label="Example KafkaService manifest"><code><i># Three brokers at least, nine at most.</i>
 apiVersion: kaas.io/v1alpha1
 kind: KafkaService
@@ -265,259 +294,296 @@ spec:
   brokers: 3
   storage: 20Gi
   autoscale: { min: 3, max: 9, target: 20000, scaleDownAfter: 10m }</code></pre>
-          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- OUTCOMES (scrollytelling) ================================= -->
-<section class="sec raised" id="outcomes" aria-labelledby="h-out">
-  <div class="wrap">
-    <p class="eyebrow r">For the business</p>
-    <h2 id="h-out" class="r">Written for the people who sign off.</h2>
+<!-- 03 OUTCOMES -->
+<section class="sec" id="outcomes" aria-labelledby="h-out" data-rec>
+  <header class="head r"><p class="offset label">offset 03</p>
+    <h2 id="h-out">Written for <mark>the people who sign off.</mark></h2></header>
 
-    <div class="outs" id="outs">
-      <article class="out"><p class="k mono">Incidents</p><h3>The first question gets answered first.</h3><p>A probe says which layer broke (DNS, TCP, the Kafka protocol or metadata) and what to try. On-call starts at the failing layer.</p></article>
-      <div class="stage on">
-        <div class="pane"><p class="pane-t mono">kaas snapshot · connecting</p>
-          <ol class="probe mono">
-            <li><b>dns</b><span>127.0.0.1 → 127.0.0.1</span><s class="ok">OK</s><em>3µs</em></li>
-            <li><b>tcp</b><span>connected 127.0.0.1:59137</span><s class="ok">OK</s><em>173µs</em></li>
-            <li><b>api</b><span>kafka compatible · 62 APIs</span><s class="ok">OK</s><em>585µs</em></li>
-            <li><b>metadata</b><span>3 brokers · 4 topics · controller 2</span><s class="ok">OK</s><em>302µs</em></li>
-          </ol>
-          <p class="pane-f mono"><s class="ok">OK</s> Reached target cluster · 3 brokers · 4 topics · 1.6ms</p>
-        </div>
-      </div>
+  <div class="outs" id="outs">
+    <article class="out"><p class="label">Incidents</p><h3>The first question gets answered first.</h3><p>A probe says which layer broke (DNS, TCP, the Kafka protocol or metadata) and what to try. On-call starts at the failing layer.</p></article>
+    <div class="stage on"><div class="pane frame">
+      <p class="pane-t label">kaas snapshot · connecting</p>
+      <ol class="probe">
+        <li><b>dns</b><span>127.0.0.1 → 127.0.0.1</span><s class="ok">OK</s><em>3µs</em></li>
+        <li><b>tcp</b><span>connected 127.0.0.1:59137</span><s class="ok">OK</s><em>173µs</em></li>
+        <li><b>api</b><span>kafka compatible · 62 APIs</span><s class="ok">OK</s><em>585µs</em></li>
+        <li><b>metadata</b><span>3 brokers · 4 topics · controller 2</span><s class="ok">OK</s><em>302µs</em></li>
+      </ol>
+      <p class="pane-f"><s class="ok">OK</s> Reached target cluster · 3 brokers · 4 topics · 1.6ms</p>
+    </div></div>
 
-      <article class="out"><p class="k mono">Change safety</p><h3>Only the reviewed plan can run.</h3><p>Plans are checked by the controller, rated safe, caution or destructive, and identified by a hash. Apply takes that hash, so what was approved is what happens.</p></article>
-      <div class="stage">
-        <div class="pane"><p class="pane-t mono">7 changes to match prod-eu.yaml <span>plan 9eedb2a6791adb3b · checked</span></p>
-          <ul class="plan-rows">
-            <li><span class="mono"><i>CREATE TOPIC</i> refunds</span><s class="tag ok mono">safe</s></li>
-            <li><span class="mono"><i>ADD PARTITIONS</i> orders 8 → 12</span><s class="tag warn mono">caution</s></li>
-            <li><span class="mono"><i>SET CONFIG</i> payments retention.ms 30d → 14d</span><s class="tag warn mono">caution</s></li>
-            <li><span class="mono"><i>DELETE ACL</i> allow User:legacy-etl write</span><s class="tag bad mono">destructive</s></li>
-          </ul>
-          <p class="pane-f mono">$ kaas apply -f gitops/prod-eu.yaml --plan 9eedb2a6791adb3b --yes</p>
-        </div>
-      </div>
+    <article class="out"><p class="label">Change safety</p><h3>Only the reviewed plan can run.</h3><p>Plans are checked by the controller, rated safe, caution or destructive, and identified by a hash. Apply takes that hash, so what was approved is what happens.</p></article>
+    <div class="stage"><div class="pane frame">
+      <p class="pane-t label">7 changes to match prod-eu.yaml <span>plan 9eedb2a6791adb3b</span></p>
+      <ul class="plan-rows">
+        <li><span><i>CREATE TOPIC</i> refunds</span><s class="tag ok">safe</s></li>
+        <li><span><i>ADD PARTITIONS</i> orders 8 → 12</span><s class="tag warn">caution</s></li>
+        <li><span><i>SET CONFIG</i> payments retention.ms 30d → 14d</span><s class="tag warn">caution</s></li>
+        <li><span><i>DELETE ACL</i> allow User:legacy-etl write</span><s class="tag bad">destructive</s></li>
+      </ul>
+      <p class="pane-f">$ kaas apply -f gitops/prod-eu.yaml --plan 9eedb2a6791adb3b --yes</p>
+    </div></div>
 
-      <article class="out"><p class="k mono">Capacity and cost</p><h3>Pay for the brokers the load needs.</h3><p>Brokers are added as soon as load calls for them and removed only after load stays low, with partitions moved first. The console estimates monthly cost.</p></article>
-      <div class="stage">
-        <div class="pane"><p class="pane-t mono">Load and capacity <span>demo data</span></p>
-          <svg class="cap" viewBox="0 0 560 190" role="img" aria-label="Load rises above capacity, a broker is added, load falls, and capacity is reduced after a wait.">
-            <path class="grid" d="M0 45H560M0 100H560M0 155H560"/>
-            <path class="cap-c" d="M0 100H210V45H470V100H560"/>
-            <path class="cap-l" pathLength="1" d="M0 140C60 140 90 140 130 110S190 62 240 62 330 66 370 90 420 142 470 142 530 140 560 140"/>
-          </svg>
-          <ul class="kv mono"><li><span>History</span>Autoscaled 5 → 6 brokers: load needs 6 brokers</li><li><span>Now</span>load fits 5; watching for 2m before removing brokers</li><li><span>Est. run cost</span>$1,533 / month</li></ul>
-        </div>
-      </div>
+    <article class="out"><p class="label">Capacity and cost</p><h3>Pay for the brokers the load needs.</h3><p>Brokers are added as soon as load calls for them and removed only after load stays low, with partitions moved first. The console estimates monthly cost.</p></article>
+    <div class="stage"><div class="pane frame">
+      <p class="pane-t label">Load and capacity <span>illustration</span></p>
+      <svg class="cap" viewBox="0 0 560 190" role="img" aria-label="Load rises above capacity, a broker is added, load falls, and capacity is reduced after a wait.">
+        <path class="grid" d="M0 45H560M0 100H560M0 155H560"/>
+        <path class="cap-c" d="M0 100H210V45H470V100H560"/>
+        <path class="cap-l" d="M0 140C60 140 90 140 130 110S190 62 240 62 330 66 370 90 420 142 470 142 530 140 560 140"/>
+      </svg>
+      <ul class="kv">
+        <li><span>History</span>Autoscaled 5 → 6 brokers: load needs 6 brokers</li>
+        <li><span>Now</span>load fits 5; watching for 2m before removing brokers</li>
+      </ul>
+    </div></div>
 
-      <article class="out"><p class="k mono">Compliance and data control</p><h3>The evidence lives in your own systems.</h3><p>Data stays inside your environment. Configuration lives in git with review, and the console shows where a running cluster has drifted from what was merged.</p></article>
-      <div class="stage">
-        <div class="pane"><p class="pane-t mono">Change path</p>
-          <ol class="path">
-            <li><b>Pull request</b><code>kaas plan -f gitops/prod-eu.yaml --exit-code</code></li>
-            <li><b>Review in git</b><span>A person reads what merging would change.</span></li>
-            <li><b>Apply by hash</b><code>kaas apply -f gitops/prod-eu.yaml --plan &lt;hash&gt; --yes</code></li>
-            <li class="warnrow"><b>Drift</b><span class="mono">prod-eu differs from prod-eu.yaml</span></li>
-          </ol>
-        </div>
-      </div>
+    <article class="out"><p class="label">Compliance and data control</p><h3>The evidence lives in your own systems.</h3><p>Data stays inside your environment. Configuration lives in git with review, and the console shows where a running cluster has drifted from what was merged.</p></article>
+    <div class="stage"><div class="pane frame">
+      <p class="pane-t label">Change path</p>
+      <ol class="path">
+        <li><b>Pull request</b><code>kaas plan -f gitops/prod-eu.yaml --exit-code</code></li>
+        <li><b>Review in git</b><span>A person reads what merging would change.</span></li>
+        <li><b>Apply by hash</b><code>kaas apply -f gitops/prod-eu.yaml --plan &lt;hash&gt; --yes</code></li>
+        <li class="warnrow"><b>Drift</b><code>prod-eu differs from prod-eu.yaml</code></li>
+      </ol>
+    </div></div>
 
-      <article class="out"><p class="k mono">Data movement</p><h3>Retire the one-off integration services.</h3><p><code>kaas pipe</code> replaces them: filters and fan-out between Kafka, files, HTTP and plugins, in one line someone can read.</p></article>
-      <div class="stage">
-        <div class="pane"><p class="pane-t mono">kaas pipe</p>
-          <div class="flow mono" aria-hidden="true">
-            <div class="fnode">kafka:orders<small>group=fraud</small></div>
-            <div class="fline"><i></i></div>
-            <div class="fnode hot">where<small>value.amount &gt; 1000</small></div>
-            <div class="fline"><i></i></div>
-            <div class="fsinks"><div class="fnode">https://…/hook</div><div class="fnode">kafka:audit</div></div>
-          </div>
-          <p class="pane-f mono">$ kaas pipe --from 'kafka:orders?group=fraud' --where 'value.amount &gt; 1000' --to https://fraud.example.com/hook --to kafka:audit</p>
-        </div>
+    <article class="out"><p class="label">Data movement</p><h3>Retire the one-off integration services.</h3><p><code>kaas pipe</code> replaces them: filters and fan-out between Kafka, files, HTTP and plugins, in one line someone can read.</p></article>
+    <div class="stage"><div class="pane frame">
+      <p class="pane-t label">kaas pipe</p>
+      <div class="pipe" aria-hidden="true">
+        <div class="fnode">kafka:orders<small>group=fraud</small></div>
+        <i class="pw"></i>
+        <div class="fnode hot">where<small>value.amount &gt; 1000</small></div>
+        <i class="pw fork"></i>
+        <div class="fsinks"><div class="fnode">https://…/hook</div><div class="fnode">kafka:audit</div></div>
       </div>
-    </div>
+      <p class="pane-f">$ kaas pipe --from 'kafka:orders?group=fraud' --where 'value.amount &gt; 1000' --to https://fraud.example.com/hook --to kafka:audit</p>
+    </div></div>
   </div>
 </section>
 
-<!-- PRODUCTS ================================================= -->
-<section class="sec invert" id="products" aria-labelledby="h-prod">
-  <div class="wrap">
-    <p class="eyebrow r">The products</p>
-    <h2 id="h-prod" class="r">Three products, one engine.</h2>
+<!-- 04 PRODUCTS -->
+<section class="sec" id="products" aria-labelledby="h-prod" data-rec>
+  <header class="head r"><p class="offset label">offset 04</p>
+    <h2 id="h-prod">Three products, <mark>one engine.</mark></h2></header>
 
-    <div class="tabs big r" role="tablist" aria-label="Products" id="prod-tabs">
+  <div class="showcase frame r">
+    <div class="tabs words" role="tablist" aria-label="Products" id="prod-tabs">
       <button role="tab" id="t-cli" aria-controls="p-cli" aria-selected="true" type="button">CLI and terminal UI</button>
       <button role="tab" id="t-console" aria-controls="p-console" aria-selected="false" tabindex="-1" type="button">Web console</button>
       <button role="tab" id="t-managed" aria-controls="p-managed" aria-selected="false" tabindex="-1" type="button">Managed Kafka</button>
       <i class="tab-bar"></i>
     </div>
-
-    <div class="tstack products r">
+    <div class="tstack">
       <div class="tp on" role="tabpanel" id="p-cli" aria-labelledby="t-cli">
         <div class="p-copy"><h3>A single binary that starts instantly.</h3><p>Every command draws a screen built for its job. On a pipe it prints stable text, and with <code>-o json</code> it prints JSON. Works with any Apache Kafka cluster.</p></div>
-        <div class="term">
-          <div class="tabs chips-t" role="tablist" aria-label="CLI screens">
-            <button role="tab" id="c1" aria-controls="s1" aria-selected="true" type="button">kaas</button>
-            <button role="tab" id="c2" aria-controls="s2" aria-selected="false" tabindex="-1" type="button">snapshot</button>
-            <button role="tab" id="c3" aria-controls="s3" aria-selected="false" tabindex="-1" type="button">lag</button>
-            <button role="tab" id="c4" aria-controls="s4" aria-selected="false" tabindex="-1" type="button">top</button>
-            <button role="tab" id="c5" aria-controls="s5" aria-selected="false" tabindex="-1" type="button">sniff</button>
-            <button role="tab" id="c6" aria-controls="s6" aria-selected="false" tabindex="-1" type="button">pipe</button>
-          </div>
-          <div class="tstack term-s">
-            <div class="tp on" role="tabpanel" tabindex="0" id="s1" aria-labelledby="c1"><img src="assets/img/tui-topics.svg" width="956" height="636" loading="lazy" alt="The kaas terminal UI: live topics, partitions, record counts and an event feed."></div>
-            <div class="tp" role="tabpanel" tabindex="0" id="s2" aria-labelledby="c2"><img src="assets/img/snapshot.svg" width="872" height="420" loading="lazy" alt="kaas snapshot: one look at the cluster, problems first."></div>
-            <div class="tp" role="tabpanel" tabindex="0" id="s3" aria-labelledby="c3"><img src="assets/img/lag.svg" width="872" height="474" loading="lazy" alt="kaas lag: consumer groups ranked by how far behind they are."></div>
-            <div class="tp" role="tabpanel" tabindex="0" id="s4" aria-labelledby="c4"><img src="assets/img/top.svg" width="872" height="456" loading="lazy" alt="kaas top: live broker and topic activity."></div>
-            <div class="tp" role="tabpanel" tabindex="0" id="s5" aria-labelledby="c5"><img src="assets/img/sniff.svg" width="872" height="600" loading="lazy" alt="kaas sniff: Kafka protocol traffic, decoded."></div>
-            <div class="tp" role="tabpanel" tabindex="0" id="s6" aria-labelledby="c6"><img src="assets/img/pipe.svg" width="872" height="492" loading="lazy" alt="kaas pipe: two feeds into a topic and a file, filtered, with records in flight."></div>
-          </div>
+        <div class="tabs chips" role="tablist" aria-label="CLI screens">
+          <button role="tab" id="c1" aria-controls="s1" aria-selected="true" type="button">kaas</button>
+          <button role="tab" id="c2" aria-controls="s2" aria-selected="false" tabindex="-1" type="button">snapshot</button>
+          <button role="tab" id="c3" aria-controls="s3" aria-selected="false" tabindex="-1" type="button">lag</button>
+          <button role="tab" id="c4" aria-controls="s4" aria-selected="false" tabindex="-1" type="button">top</button>
+          <button role="tab" id="c5" aria-controls="s5" aria-selected="false" tabindex="-1" type="button">sniff</button>
+          <button role="tab" id="c6" aria-controls="s6" aria-selected="false" tabindex="-1" type="button">pipe</button>
+        </div>
+        <div class="tstack term-s">
+          <div class="tp on" role="tabpanel" tabindex="0" id="s1" aria-labelledby="c1"><img src="assets/img/tui-topics.svg" width="956" height="636" loading="lazy" alt="The kaas terminal UI: live topics, partitions, record counts and an event feed."></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s2" aria-labelledby="c2"><img src="assets/img/snapshot.svg" width="872" height="420" loading="lazy" alt="kaas snapshot: one look at the cluster, problems first."></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s3" aria-labelledby="c3"><img src="assets/img/lag.svg" width="872" height="474" loading="lazy" alt="kaas lag: consumer groups ranked by how far behind they are."></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s4" aria-labelledby="c4"><img src="assets/img/top.svg" width="872" height="456" loading="lazy" alt="kaas top: live broker and topic activity."></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s5" aria-labelledby="c5"><img src="assets/img/sniff.svg" width="872" height="600" loading="lazy" alt="kaas sniff: Kafka protocol traffic, decoded."></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s6" aria-labelledby="c6"><img src="assets/img/pipe.svg" width="872" height="492" loading="lazy" alt="kaas pipe: two feeds into a topic and a file, filtered, with records in flight."></div>
         </div>
       </div>
 
       <div class="tp" role="tabpanel" id="p-console" aria-labelledby="t-console">
         <div class="p-copy"><h3>The whole fleet on one page.</h3><p>GitOps plans, schemas, ACLs, quotas and drift from git for every cluster you run, served from the same binary.</p></div>
-        <div class="shots">
-          <a class="shot main" href="assets/img/console-fleet-2000.webp"><img src="assets/img/console-fleet-1000.webp" srcset="assets/img/console-fleet-1000.webp 1000w, assets/img/console-fleet-2000.webp 2000w" sizes="(min-width: 960px) 62vw, 92vw" width="2000" height="1250" loading="lazy" alt="Console overview: availability, traffic, data freshness and estimated cost across five demo clusters."></a>
-          <a class="shot" href="assets/img/console-gitops-2000.webp"><img src="assets/img/console-gitops-1000.webp" srcset="assets/img/console-gitops-1000.webp 1000w, assets/img/console-gitops-2000.webp 2000w" sizes="(min-width: 960px) 30vw, 92vw" width="2000" height="1639" loading="lazy" alt="A GitOps plan: seven changes rated safe, caution or destructive under one plan hash."></a>
+        <div class="tabs chips" role="tablist" aria-label="Console screens">
+          <button role="tab" id="k1" aria-controls="v1" aria-selected="true" type="button">fleet</button>
+          <button role="tab" id="k2" aria-controls="v2" aria-selected="false" tabindex="-1" type="button">gitops</button>
+        </div>
+        <div class="tstack shots">
+          <div class="tp on" role="tabpanel" id="v1" aria-labelledby="k1"><a class="shot" href="assets/img/console-fleet-2000.webp"><img src="assets/img/console-fleet-1000.webp" srcset="assets/img/console-fleet-1000.webp 1000w, assets/img/console-fleet-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="2056" loading="lazy" alt="Console overview: availability, traffic, data freshness and estimated cost across five demo clusters."></a></div>
+          <div class="tp" role="tabpanel" id="v2" aria-labelledby="k2"><a class="shot" href="assets/img/console-gitops-2000.webp"><img src="assets/img/console-gitops-1000.webp" srcset="assets/img/console-gitops-1000.webp 1000w, assets/img/console-gitops-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1639" loading="lazy" alt="A GitOps plan: seven changes rated safe, caution or destructive under one plan hash."></a></div>
         </div>
       </div>
 
       <div class="tp" role="tabpanel" id="p-managed" aria-labelledby="t-managed">
         <div class="p-copy"><h3>Create, roll and autoscale from one resource.</h3><p>Use <code>kubectl</code> or the console. The operator measures load against what your brokers can take and restarts them one at a time when asked.</p></div>
-        <a class="shot" href="assets/img/console-managed-cluster-2000.webp"><img src="assets/img/console-managed-cluster-1000.webp" srcset="assets/img/console-managed-cluster-1000.webp 1000w, assets/img/console-managed-cluster-2000.webp 2000w" sizes="(min-width: 1280px) 1200px, 92vw" width="2000" height="1444" loading="lazy" alt="A managed cluster: load against capacity, the autoscaling policy, each broker and the scaling history."></a>
+        <div class="shots"><a class="shot" href="assets/img/console-managed-cluster-2000.webp"><img src="assets/img/console-managed-cluster-1000.webp" srcset="assets/img/console-managed-cluster-1000.webp 1000w, assets/img/console-managed-cluster-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1444" loading="lazy" alt="A managed cluster: load against capacity, the autoscaling policy, each broker and the scaling history."></a></div>
       </div>
     </div>
-    <p class="note mono r">Real screens, showing the made-up clusters of <code>kaas console --demo</code>. Acme Commerce doesn't exist.</p>
+    <p class="shots-note label">Real screens, showing the made-up clusters of kaas console --demo. Acme Commerce doesn't exist.</p>
   </div>
+
+  <figure class="engine r" aria-label="The CLI and terminal UI, the web console and the operator all share one core engine.">
+    <ul class="surfaces" aria-hidden="true"><li>kaas CLI / TUI</li><li>kaas console</li><li>operator</li></ul>
+    <div class="trunks" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="core">
+      <p><b>core/</b> Cluster-state engine and Kafka logic, with no UI or transport imports.</p>
+      <ul class="label" aria-hidden="true"><li>snapshot</li><li>plan</li><li>probe</li><li>pipe</li><li>topics</li><li>groups</li><li>offsets</li><li>acls</li><li>quotas</li><li>sniff</li></ul>
+    </div>
+  </figure>
 </section>
 
-<!-- PROOF ==================================================== -->
-<section class="sec" id="proof" aria-labelledby="h-proof">
-  <div class="wrap">
-    <p class="eyebrow r">Proof</p>
-    <h2 id="h-proof" class="r">Built to be trusted.</h2>
-    <div class="proof">
-      <div class="headline r">
-        <p class="fig mono">~1<small>ms</small></p>
-        <p>to diff a 100,000-partition snapshot.</p>
-      </div>
-      <table class="facts r">
-        <caption class="sr">Verifiable facts and the command that proves each one</caption>
-        <tbody>
-          <tr><th scope="row">Tested on Apache Kafka 3.9, 4.2 and 4.4 in containers</th><td class="mono">task test:integration</td></tr>
-          <tr><th scope="row">Chaos: broker frozen mid-send, added latency, forced rebalances</th><td class="mono">task test:chaos</td></tr>
-          <tr><th scope="row">Every parser fuzzed</th><td class="mono">task test:fuzz</td></tr>
-          <tr><th scope="row">Weekly multi-hour soak</th><td class="mono">task test:soak</td></tr>
-          <tr><th scope="row">Operator tested end to end against real Strimzi in CI</th><td class="mono">task test:e2e</td></tr>
-          <tr><th scope="row">Releases signed with cosign, with SBOM and SLSA provenance; multi-arch signed image</th><td class="mono">cosign verify</td></tr>
-        </tbody>
-      </table>
-    </div>
+<!-- 05 PROOF -->
+<section class="sec" id="proof" aria-labelledby="h-proof" data-rec>
+  <header class="head r"><p class="offset label">offset 05</p>
+    <h2 id="h-proof"><mark>Built to be trusted.</mark><br>Each claim has a command.</h2></header>
 
-    <div class="check r" id="check">
-      <p class="check-line">Don't trust us. Check.</p>
-      <div class="cmd"><pre tabindex="0" aria-label="Cosign verification command"><code>cosign verify ghcr.io/ishaannene/kaas:0.1.0 \
+  <div class="tgrid frame r">
+    <i class="cross" aria-hidden="true"></i>
+    <section class="tc">
+      <h3>Tested on real Kafka</h3>
+      <p>Apache Kafka 3.9, 4.2 and 4.4, in containers.</p>
+      <ul class="vers" aria-hidden="true"><li>3.9</li><li>4.2</li><li>4.4</li></ul>
+      <code>task test:integration</code>
+    </section>
+    <section class="tc">
+      <h3>Chaos on purpose</h3>
+      <ul class="chaos">
+        <li><svg viewBox="0 0 120 16" aria-hidden="true"><path d="M0 8H46"/><path class="h" d="M46 2V14M52 2V14"/><path class="d" d="M58 8H120"/></svg><span>Broker frozen mid-send</span></li>
+        <li><svg viewBox="0 0 120 16" aria-hidden="true"><path d="M0 8H30"/><path class="h" d="M30 8C44 8 40 2 54 2S64 14 78 14 86 8 90 8"/><path d="M90 8H120"/></svg><span>Added latency</span></li>
+        <li><svg viewBox="0 0 120 16" aria-hidden="true"><path d="M0 4H54V12H120"/><path class="h" d="M0 12H54V4H120"/></svg><span>Forced rebalances</span></li>
+      </ul>
+      <code>task test:chaos</code>
+    </section>
+    <section class="tc">
+      <h3>Fuzzed and soaked</h3>
+      <p>Every parser fuzzed. A multi-hour soak runs weekly.</p>
+      <code>task test:fuzz</code><code>task test:soak</code>
+    </section>
+    <section class="tc">
+      <h3>Operator against real Strimzi</h3>
+      <p>End-to-end in CI, not against a mock.</p>
+      <code>task test:e2e</code>
+    </section>
+  </div>
+
+  <p class="bigfact r"><span>100,000</span> partitions diffed in about <mark>a millisecond.</mark></p>
+
+  <div class="check dk r" id="check">
+    <figure class="chain" aria-label="Each release is a multi-arch image with a cosign signature, an SBOM and SLSA provenance.">
+      <svg viewBox="0 0 440 320" aria-hidden="true">
+        <g class="iso">
+          <path class="pl" transform="translate(120 250)" d="M0 -46 110 6 0 58 -110 6Z"/>
+          <path class="ld" d="M230 256H288"/><rect class="dot" x="286" y="253" width="6" height="6"/>
+          <text x="300" y="256">image</text>
+          <text class="s" x="300" y="271">amd64 + arm64</text>
+          <path class="pl" transform="translate(120 186)" d="M0 -46 110 6 0 58 -110 6Z"/>
+          <path class="ld" d="M230 192H288"/><rect class="dot" x="286" y="189" width="6" height="6"/>
+          <text x="300" y="196">SBOM</text>
+          <path class="pl" transform="translate(120 122)" d="M0 -46 110 6 0 58 -110 6Z"/>
+          <path class="ld" d="M230 128H288"/><rect class="dot" x="286" y="125" width="6" height="6"/>
+          <text x="300" y="132">SLSA provenance</text>
+          <path class="pl hot" transform="translate(120 58)" d="M0 -46 110 6 0 58 -110 6Z"/>
+          <path class="ld" d="M230 64H288"/><rect class="dot hot" x="286" y="61" width="6" height="6"/>
+          <text x="300" y="68">cosign signature</text>
+        </g>
+      </svg>
+    </figure>
+    <div class="verify">
+      <p class="check-line">Don't trust us. <mark>Check.</mark></p>
+      <div class="cmd block"><pre tabindex="0" aria-label="Cosign verification command"><code>cosign verify ghcr.io/ishaannene/kaas:0.1.0 \
   --certificate-identity-regexp '^https://github\.com/IshaanNene/Kafka-as-a-Service/\.github/workflows/release\.yml@refs/tags/v' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com</code></pre><button class="copy mono" type="button">Copy</button></div>
-      <ol class="output mono" aria-label="Output of that command against release 0.1.0">
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com</code></pre><button class="copy" type="button">Copy</button></div>
+      <ol class="output" aria-label="Output of that command against release 0.1.0">
         <li>Verification for ghcr.io/ishaannene/kaas:0.1.0 --</li>
         <li><s class="ok">✓</s> The cosign claims were validated</li>
         <li><s class="ok">✓</s> Existence of the claims in the transparency log was verified offline</li>
         <li><s class="ok">✓</s> The code-signing certificate was verified using trusted certificate authority certificates</li>
-        <li>Certificate issuer URL: https://token.actions.githubusercontent.com</li>
       </ol>
     </div>
   </div>
 </section>
 
-<!-- PRICING ================================================== -->
-<section class="sec invert" id="pricing" aria-labelledby="h-price">
-  <div class="wrap">
-    <p class="eyebrow r">Pricing</p>
-    <h2 id="h-price" class="r">The software is free. You pay for assurance.</h2>
-    <p class="intro r">MIT-licensed and free forever. Support is priced per managed broker, so the bill is predictable and is never based on data volume.</p>
+<!-- 06 PRICING -->
+<section class="sec" id="pricing" aria-labelledby="h-price" data-rec>
+  <header class="head split r">
+    <div><p class="offset label">offset 06</p>
+      <h2 id="h-price">The software is free.<br><mark>You pay for assurance.</mark></h2></div>
+    <p>MIT-licensed and free forever. Support is priced per managed broker, so the bill is predictable and is never based on data volume.</p>
+  </header>
 
-    <div class="plans r">
-      <article class="plan">
-        <h3>Community</h3><p class="price mono">$0</p>
-        <ul><li>All software</li><li>Unlimited clusters</li><li>Community support</li></ul>
-        <a class="btn" href="#try">Get the software</a>
-      </article>
-      <article class="plan feature invert">
-        <h3>Business</h3><p class="price mono">$99 <small>per broker per month</small></p>
-        <ul><li>Business-hours support</li><li>Upgrade guidance</li><li>Onboarding session</li></ul>
-        <div class="calc">
-          <label for="brokers">Managed brokers</label>
-          <output id="broker-count" class="mono" for="brokers">6</output>
-          <input id="brokers" type="range" min="1" max="50" value="6" aria-valuetext="6 brokers">
-          <p class="total mono"><span>Monthly total</span><output id="total" for="brokers">$594</output></p>
-        </div>
-        <a class="btn primary" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=KaaS%20Business%20plan">Talk to us</a>
-      </article>
-      <article class="plan">
-        <h3>Enterprise</h3><p class="price mono">Custom</p>
-        <ul><li>24/7 support with response-time SLA</li><li>Architecture review</li><li>Migration help</li><li>Named engineer</li></ul>
-        <a class="btn" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=KaaS%20Enterprise%20plan">Talk to us</a>
-      </article>
-    </div>
-
-    <div class="faq r">
-      <h3>Questions a reviewer will ask</h3>
-      <div>
-        <details><summary>Is it really free?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>Yes. All of the software is MIT-licensed, with unlimited clusters, at $0. Paid plans buy support and assurance.</p></details>
-        <details><summary>Does data ever leave our network?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>No. Brokers, console and data all run inside your environment, and there's no KaaS-hosted service for them to send it to. Your cluster fetches signed images when you install or update; your data doesn't travel the other way.</p></details>
-        <details><summary>What happens if we stop paying?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>The software keeps running. It's MIT. Support ends and nothing else changes.</p></details>
-        <details><summary>What does it depend on?<svg class="ic chev"><use href="#i-chev"/></svg></summary><p>Kubernetes and Strimzi.</p></details>
+  <div class="rate frame r">
+    <article class="plan">
+      <h3>Community</h3><p class="price">$0</p><p class="unit label">forever</p>
+      <ul><li>All software</li><li>Unlimited clusters</li><li>Community support</li></ul>
+      <a class="btn" href="#try"><span>Get the software</span></a>
+    </article>
+    <article class="plan feat">
+      <h3>Business</h3><p class="price">$99</p><p class="unit label">per broker per month</p>
+      <ul><li>Business-hours support</li><li>Upgrade guidance</li><li>Onboarding session</li></ul>
+      <a class="btn primary" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=KaaS%20Business%20plan"><span>Talk to us</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
+    </article>
+    <article class="plan">
+      <h3>Enterprise</h3><p class="price">Custom</p><p class="unit label">contact us</p>
+      <ul><li>24/7 support with response-time SLA</li><li>Architecture review</li><li>Migration help</li><li>Named engineer</li></ul>
+      <a class="btn" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=KaaS%20Enterprise%20plan"><span>Talk to us</span></a>
+    </article>
+    <div class="invoice">
+      <div class="inv-l">
+        <label for="brokers">Managed brokers</label>
+        <input id="brokers" type="range" min="1" max="50" value="6" aria-valuetext="6 brokers">
       </div>
+      <p class="inv-r" aria-live="off"><span class="sum"><output id="broker-count" for="brokers">6</output> × $99</span><span class="eq">=</span><output id="total" for="brokers">$594</output><span class="label per">per month, on Business</span></p>
+    </div>
+  </div>
+
+  <div class="faq r" id="faq">
+    <h3 class="qa">Questions a reviewer<br>will ask</h3>
+    <div>
+      <details open><summary>Is it really free?<i aria-hidden="true"></i></summary><p>Yes. All of the software is MIT-licensed, with unlimited clusters, at $0. Paid plans buy support and assurance.</p></details>
+      <details><summary>Does data ever leave our network?<i aria-hidden="true"></i></summary><p>No. Brokers, console and data all run inside your environment, and there's no KaaS-hosted service for them to send it to. Your cluster fetches signed images when you install or update; your data doesn't travel the other way.</p></details>
+      <details><summary>What happens if we stop paying?<i aria-hidden="true"></i></summary><p>The software keeps running. It's MIT. Support ends and nothing else changes.</p></details>
+      <details><summary>What does it depend on?<i aria-hidden="true"></i></summary><p>Kubernetes and Strimzi.</p></details>
     </div>
   </div>
 </section>
 
-<!-- FINAL ==================================================== -->
-<section class="final" id="try" aria-labelledby="h-final">
-  <div class="wrap">
-    <h2 id="h-final">Your Kafka. Your infrastructure. Finally managed.</h2>
-    <div class="final-row">
-      <ol class="cmds">
-        <li><div class="cmd"><pre tabindex="0" aria-label="Install kaas"><code>go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest</code></pre><button class="copy mono" type="button">Copy</button></div></li>
-        <li><div class="cmd"><pre tabindex="0" aria-label="Start the demo console"><code>kaas console --demo</code></pre><button class="copy mono" type="button">Copy</button></div></li>
-      </ol>
-      <a class="btn dark" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=Talking%20to%20the%20KaaS%20team">Talk to us</a>
-    </div>
-    <p class="final-note">Serves five made-up clusters with live traffic at <code>http://127.0.0.1:7070</code>. Signed binaries are on the <a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases">releases page</a>.</p>
+<!-- 07 FINAL -->
+<section class="final dk" id="try" aria-labelledby="h-final" data-rec>
+  <h2 id="h-final">Your Kafka.<br>Your infrastructure.<br><mark>Finally managed.</mark></h2>
+  <div class="final-r">
+    <ol class="cmds">
+      <li><div class="cmd"><pre tabindex="0" aria-label="Install kaas"><code>go install github.com/IshaanNene/Kafka-as-a-Service/cmd/kaas@latest</code></pre><button class="copy" type="button">Copy</button></div></li>
+      <li><div class="cmd"><pre tabindex="0" aria-label="Start the demo console"><code>kaas console --demo</code></pre><button class="copy" type="button">Copy</button></div></li>
+    </ol>
+    <p>Serves five made-up clusters with live traffic at <code>http://127.0.0.1:7070</code>. Signed binaries are on the <a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases">releases page</a>.</p>
+    <a class="btn hot" href="https://github.com/IshaanNene/Kafka-as-a-Service/issues/new?title=Talking%20to%20the%20KaaS%20team"><span>Talk to us</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
   </div>
 </section>
-</main>
 
-<footer class="foot">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div class="foot-brand">
-        <p class="brand"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="2" y="5" width="11" height="3.4" rx="1.7" fill="currentColor"/><rect x="2" y="10.3" width="15" height="3.4" rx="1.7" fill="currentColor"/><rect x="2" y="15.6" width="11" height="3.4" rx="1.7" fill="currentColor"/><circle cx="20" cy="12" r="2.6" fill="var(--accent)"/></svg><span>kaas</span></p>
-        <p>The managed Kafka experience. Inside your own walls.</p>
-      </div>
-      <nav aria-label="Product"><h2>Product</h2>
-        <a href="#products" data-product="p-cli">CLI and TUI</a><a href="#products" data-product="p-console">Web console</a><a href="#products" data-product="p-managed">Managed Kafka</a><a href="#pricing">Pricing</a></nav>
-      <nav aria-label="Documentation"><h2>Docs</h2>
-        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USAGE.md">Usage guide</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/FEATURES.md">Feature guide</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USE-CASES.md">Use cases</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/TESTING.md">Testing guide</a></nav>
-      <nav aria-label="Resources"><h2>Resources</h2>
-        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/design">Design docs</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/adr">ADRs</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases">Releases</a></nav>
-      <nav aria-label="Community"><h2>Community</h2>
-        <a href="https://github.com/IshaanNene/Kafka-as-a-Service">GitHub</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/issues">Issues</a></nav>
-      <nav aria-label="Legal"><h2>Legal</h2>
-        <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/LICENSE">MIT licence</a><a href="assets/fonts/OFL.txt">Font licence</a></nav>
-    </div>
-    <p class="foot-legal">Apache Kafka is a trademark of the Apache Software Foundation. KaaS is not affiliated with or endorsed by the ASF.</p>
+<footer class="foot frame">
+  <div class="foot-top">
+    <p class="brand"><svg width="22" height="22" aria-hidden="true"><use href="#logo"/></svg><span>kaas</span></p>
+    <p>The managed Kafka experience. Inside your own walls.</p>
+    <a class="icon-btn" href="https://github.com/IshaanNene/Kafka-as-a-Service" aria-label="KaaS on GitHub"><svg class="ic"><use href="#i-gh"/></svg></a>
+  </div>
+  <div class="foot-grid">
+    <nav aria-label="Product"><h2 class="label">Product</h2>
+      <a href="#products" data-product="p-cli">CLI and TUI</a><a href="#products" data-product="p-console">Web console</a><a href="#products" data-product="p-managed">Managed Kafka</a><a href="#pricing">Pricing</a></nav>
+    <nav aria-label="Documentation"><h2 class="label">Docs</h2>
+      <a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USAGE.md">Usage guide</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/FEATURES.md">Feature guide</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/USE-CASES.md">Use cases</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/docs/TESTING.md">Testing guide</a></nav>
+    <nav aria-label="Resources"><h2 class="label">Resources</h2>
+      <a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/design">Design docs</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/tree/main/docs/adr">ADRs</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/releases">Releases</a></nav>
+    <nav aria-label="Community"><h2 class="label">Community</h2>
+      <a href="https://github.com/IshaanNene/Kafka-as-a-Service">GitHub</a><a href="https://github.com/IshaanNene/Kafka-as-a-Service/issues">Issues</a></nav>
+  </div>
+  <div class="foot-legal">
+    <p>Apache Kafka is a trademark of the Apache Software Foundation. KaaS is not affiliated with or endorsed by the ASF.</p>
+    <p class="label"><a href="https://github.com/IshaanNene/Kafka-as-a-Service/blob/main/LICENSE">MIT licence</a> · <a href="assets/fonts/OFL.txt">Font licence</a></p>
   </div>
 </footer>
+</main>
+</div>
 <div id="live" class="sr" role="status" aria-live="polite"></div>
 <script src="main.js" defer></script>
 </body>

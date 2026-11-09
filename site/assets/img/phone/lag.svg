@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="300" viewBox="0 0 440 300" role="img" aria-label="kaas lag">
+<defs><clipPath id="c"><rect width="430" height="300"/></clipPath></defs>
+<rect width="100%" height="100%" rx="10" fill="#0d1117" stroke="#484f58"/>
+<circle cx="22" cy="18" r="6" fill="#ff5f57"/><circle cx="42" cy="18" r="6" fill="#febc2e"/><circle cx="62" cy="18" r="6" fill="#28c840"/>
+<g clip-path="url(#c)" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
+<text x="41.2" y="75.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">#</text>
+<text x="74.8" y="75.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">group</text>
+<text x="125.2" y="75.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="142.0" y="75.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">topic</text>
+<text x="343.6" y="75.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">lag</text>
+<text x="379.2" y="75.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">trend</text>
+<text x="41.2" y="111.0" fill="#f2cc60" textLength="8.4" lengthAdjust="spacingAndGlyphs">1</text>
+<text x="58.0" y="111.0" fill="#f2cc60" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="74.8" y="111.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">billing</text>
+<text x="142.0" y="111.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="158.8" y="111.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
+<text x="310.0" y="111.0" fill="#f2cc60" textLength="58.8" lengthAdjust="spacingAndGlyphs">163,560</text>
+<text x="379.2" y="111.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">▼</text>
+<text x="396.0" y="111.0" fill="#7ee787" textLength="25.2" lengthAdjust="spacingAndGlyphs">900</text>
+<text x="41.2" y="129.0" fill="#c9d1d9" textLength="8.4" lengthAdjust="spacingAndGlyphs">2</text>
+<text x="58.0" y="129.0" fill="#c9d1d9" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="74.8" y="129.0" fill="#e6edf3" textLength="100.8" lengthAdjust="spacingAndGlyphs">search-index</text>
+<text x="184.0" y="129.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="200.8" y="129.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
+<text x="318.4" y="129.0" fill="#e6edf3" textLength="50.4" lengthAdjust="spacingAndGlyphs">57,757</text>
+<text x="379.2" y="129.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">▼</text>
+<text x="396.0" y="129.0" fill="#7ee787" textLength="25.2" lengthAdjust="spacingAndGlyphs">25k</text>
+<text x="41.2" y="147.0" fill="#e3a26b" textLength="8.4" lengthAdjust="spacingAndGlyphs">3</text>
+<text x="58.0" y="147.0" fill="#e3a26b" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="74.8" y="147.0" fill="#e6edf3" textLength="92.4" lengthAdjust="spacingAndGlyphs">fraud-check</text>
+<text x="175.6" y="147.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="192.4" y="147.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
+<text x="326.8" y="147.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">7,032</text>
+<text x="370.8" y="147.0" fill="#ff7b72" textLength="8.4" lengthAdjust="spacingAndGlyphs">▲</text>
+<text x="387.6" y="147.0" fill="#ff7b72" textLength="33.6" lengthAdjust="spacingAndGlyphs">1.8k</text>
+<text x="41.2" y="165.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">4</text>
+<text x="74.8" y="165.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">billing</text>
+<text x="142.0" y="165.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="158.8" y="165.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
+<text x="326.8" y="165.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">3,940</text>
+<text x="379.2" y="165.0" fill="#ff7b72" textLength="8.4" lengthAdjust="spacingAndGlyphs">▲</text>
+<text x="396.0" y="165.0" fill="#ff7b72" textLength="25.2" lengthAdjust="spacingAndGlyphs">720</text>
+<text x="41.2" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">5</text>
+<text x="74.8" y="183.0" fill="#8b949e" textLength="84.0" lengthAdjust="spacingAndGlyphs">audit-sink</text>
+<text x="167.2" y="183.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="184.0" y="183.0" fill="#8b949e" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
+<text x="360.4" y="183.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="412.8" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="41.2" y="201.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">6</text>
+<text x="74.8" y="201.0" fill="#8b949e" textLength="117.6" lengthAdjust="spacingAndGlyphs">inventory-sync</text>
+<text x="200.8" y="201.0" fill="#484f58" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="217.6" y="201.0" fill="#8b949e" textLength="75.6" lengthAdjust="spacingAndGlyphs">inventory</text>
+<text x="360.4" y="201.0" fill="#7ee787" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="412.8" y="201.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="32.8" y="237.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">total</text>
+<text x="83.2" y="237.0" fill="#e6edf3" textLength="25.2" lengthAdjust="spacingAndGlyphs">lag</text>
+<text x="362.4" y="237.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">232,289</text>
+<text x="32.8" y="255.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">min</text>
+<text x="66.4" y="255.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">213,149</text>
+<text x="133.6" y="255.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="150.4" y="255.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">avg</text>
+<text x="184.0" y="255.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">261,613</text>
+<text x="251.2" y="255.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="268.0" y="255.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">max</text>
+<text x="301.6" y="255.0" fill="#e6edf3" textLength="58.8" lengthAdjust="spacingAndGlyphs">311,578</text>
+</g></svg>

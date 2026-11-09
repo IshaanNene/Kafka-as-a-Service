@@ -8,17 +8,23 @@
 <meta property="og:title" content="KaaS: the managed Kafka experience, inside your own walls">
 <meta property="og:description" content="Managed Kafka as software that runs on your own Kubernetes, network and disks. MIT-licensed.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://raw.githubusercontent.com/IshaanNene/Kafka-as-a-Service/main/site/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="KaaS: the managed Kafka experience, inside your own walls.">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#eae8e0">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/martian-mono.woff2" as="font" type="font/woff2" crossorigin>
 <script>
-  // Before first paint: restore a saved theme, and arm scroll reveals only when JS and motion are available.
+  // Before first paint: use the saved theme or the system's, and arm scroll reveals only when JS and motion are available.
   (function () {
     var stored = null, d = document.documentElement;
     try { stored = localStorage.getItem('kaas-theme'); } catch (e) {}
-    if (stored) d.dataset.theme = stored;
+    d.dataset.theme = stored || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.querySelector('meta[name="theme-color"]').content = d.dataset.theme === 'dark' ? '#141310' : '#eae8e0';
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) d.classList.add('anim');
   })();
 </script>
@@ -72,6 +78,7 @@
     <a class="btn sm primary hide-s" href="#try"><span>Try the console</span><i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i></a>
     <button id="burger" class="icon-btn burger" type="button" aria-expanded="false" aria-controls="sheet" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
   </div>
+  <div class="logbar" aria-hidden="true"><span id="bar-off">00</span><b id="bar-name">Overview</b><span class="segs" id="bar-segs"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>lag <b id="bar-lag">8</b></span></div>
 </header>
 
 <div class="sheet" id="sheet" hidden>
@@ -260,7 +267,7 @@
       </div>
     </div>
     <p class="bound-cap">Nothing crosses the line.</p>
-    <p class="bound-note" id="bound-note" aria-live="polite">One short resource names the Kafka version, disk per broker, and a broker count or an autoscaling policy.</p>
+    <p class="bound-note" id="bound-note">One short resource names the Kafka version, disk per broker, and a broker count or an autoscaling policy.</p>
   </figure>
 
   <div class="deliver r">
@@ -336,7 +343,7 @@ spec:
       <svg class="cap" viewBox="0 0 560 190" role="img" aria-label="Load rises above capacity, a broker is added, load falls, and capacity is reduced after a wait.">
         <path class="grid" d="M0 45H560M0 100H560M0 155H560"/>
         <path class="cap-c" d="M0 100H210V45H470V100H560"/>
-        <path class="cap-l" d="M0 140C60 140 90 140 130 110S190 62 240 62 330 66 370 90 420 142 470 142 530 140 560 140"/>
+        <path class="cap-l" pathLength="1" d="M0 140C60 140 90 140 130 110S190 62 240 62 330 66 370 90 420 142 470 142 530 140 560 140"/>
       </svg>
       <ul class="kv">
         <li><span>History</span>Autoscaled 5 → 6 brokers: load needs 6 brokers</li>
@@ -394,12 +401,12 @@ spec:
           <button role="tab" id="c6" aria-controls="s6" aria-selected="false" tabindex="-1" type="button">pipe</button>
         </div>
         <div class="tstack term-s">
-          <div class="tp on" role="tabpanel" tabindex="0" id="s1" aria-labelledby="c1"><img src="assets/img/tui-topics.svg" width="956" height="636" loading="lazy" alt="The kaas terminal UI: live topics, partitions, record counts and an event feed."></div>
-          <div class="tp" role="tabpanel" tabindex="0" id="s2" aria-labelledby="c2"><img src="assets/img/snapshot.svg" width="872" height="420" loading="lazy" alt="kaas snapshot: one look at the cluster, problems first."></div>
-          <div class="tp" role="tabpanel" tabindex="0" id="s3" aria-labelledby="c3"><img src="assets/img/lag.svg" width="872" height="474" loading="lazy" alt="kaas lag: consumer groups ranked by how far behind they are."></div>
-          <div class="tp" role="tabpanel" tabindex="0" id="s4" aria-labelledby="c4"><img src="assets/img/top.svg" width="872" height="456" loading="lazy" alt="kaas top: live broker and topic activity."></div>
-          <div class="tp" role="tabpanel" tabindex="0" id="s5" aria-labelledby="c5"><img src="assets/img/sniff.svg" width="872" height="600" loading="lazy" alt="kaas sniff: Kafka protocol traffic, decoded."></div>
-          <div class="tp" role="tabpanel" tabindex="0" id="s6" aria-labelledby="c6"><img src="assets/img/pipe.svg" width="872" height="492" loading="lazy" alt="kaas pipe: two feeds into a topic and a file, filtered, with records in flight."></div>
+          <div class="tp on" role="tabpanel" tabindex="0" id="s1" aria-labelledby="c1"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/tui-topics.svg" width="450" height="330"><img src="assets/img/tui-topics.svg" width="956" height="636" loading="lazy" alt="The kaas terminal UI: live topics, partitions, record counts and an event feed."></picture></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s2" aria-labelledby="c2"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/snapshot.svg" width="480" height="350"><img src="assets/img/snapshot.svg" width="872" height="420" loading="lazy" alt="kaas snapshot: one look at the cluster, problems first."></picture></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s3" aria-labelledby="c3"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/lag.svg" width="440" height="300"><img src="assets/img/lag.svg" width="872" height="474" loading="lazy" alt="kaas lag: consumer groups ranked by how far behind they are."></picture></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s4" aria-labelledby="c4"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/top.svg" width="480" height="310"><img src="assets/img/top.svg" width="872" height="456" loading="lazy" alt="kaas top: live broker and topic activity."></picture></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s5" aria-labelledby="c5"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/sniff.svg" width="500" height="306"><img src="assets/img/sniff.svg" width="872" height="600" loading="lazy" alt="kaas sniff: Kafka protocol traffic, decoded."></picture></div>
+          <div class="tp" role="tabpanel" tabindex="0" id="s6" aria-labelledby="c6"><picture><source media="(max-width: 760px)" srcset="assets/img/phone/pipe.svg" width="430" height="620"><img src="assets/img/pipe.svg" width="872" height="492" loading="lazy" alt="kaas pipe: two feeds into a topic and a file, filtered, with records in flight."></picture></div>
         </div>
       </div>
 
@@ -410,14 +417,14 @@ spec:
           <button role="tab" id="k2" aria-controls="v2" aria-selected="false" tabindex="-1" type="button">gitops</button>
         </div>
         <div class="tstack shots">
-          <div class="tp on" role="tabpanel" id="v1" aria-labelledby="k1"><a class="shot" href="assets/img/console-fleet-2000.webp"><img src="assets/img/console-fleet-1000.webp" srcset="assets/img/console-fleet-1000.webp 1000w, assets/img/console-fleet-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="2056" loading="lazy" alt="Console overview: availability, traffic, data freshness and estimated cost across five demo clusters."></a></div>
-          <div class="tp" role="tabpanel" id="v2" aria-labelledby="k2"><a class="shot" href="assets/img/console-gitops-2000.webp"><img src="assets/img/console-gitops-1000.webp" srcset="assets/img/console-gitops-1000.webp 1000w, assets/img/console-gitops-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1639" loading="lazy" alt="A GitOps plan: seven changes rated safe, caution or destructive under one plan hash."></a></div>
+          <div class="tp on" role="tabpanel" id="v1" aria-labelledby="k1"><a class="shot for-dark" href="assets/img/console-fleet-2000.webp"><img src="assets/img/console-fleet-1000.webp" srcset="assets/img/console-fleet-1000.webp 1000w, assets/img/console-fleet-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="2056" loading="lazy" alt="Console overview: availability, traffic, data freshness and estimated cost across five demo clusters."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a><a class="shot for-light" href="assets/img/console-fleet-light-2000.webp"><img src="assets/img/console-fleet-light-1000.webp" srcset="assets/img/console-fleet-light-1000.webp 1000w, assets/img/console-fleet-light-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="2056" loading="lazy" alt="Console overview: availability, traffic, data freshness and estimated cost across five demo clusters."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a></div>
+          <div class="tp" role="tabpanel" id="v2" aria-labelledby="k2"><a class="shot for-dark" href="assets/img/console-gitops-2000.webp"><img src="assets/img/console-gitops-1000.webp" srcset="assets/img/console-gitops-1000.webp 1000w, assets/img/console-gitops-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1639" loading="lazy" alt="A GitOps plan: seven changes rated safe, caution or destructive under one plan hash."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a><a class="shot for-light" href="assets/img/console-gitops-light-2000.webp"><img src="assets/img/console-gitops-light-1000.webp" srcset="assets/img/console-gitops-light-1000.webp 1000w, assets/img/console-gitops-light-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1639" loading="lazy" alt="A GitOps plan: seven changes rated safe, caution or destructive under one plan hash."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a></div>
         </div>
       </div>
 
       <div class="tp" role="tabpanel" id="p-managed" aria-labelledby="t-managed">
         <div class="p-copy"><h3>Create, roll and autoscale from one resource.</h3><p>Use <code>kubectl</code> or the console. The operator measures load against what your brokers can take and restarts them one at a time when asked.</p></div>
-        <div class="shots"><a class="shot" href="assets/img/console-managed-cluster-2000.webp"><img src="assets/img/console-managed-cluster-1000.webp" srcset="assets/img/console-managed-cluster-1000.webp 1000w, assets/img/console-managed-cluster-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1444" loading="lazy" alt="A managed cluster: load against capacity, the autoscaling policy, each broker and the scaling history."></a></div>
+        <div class="shots"><a class="shot for-dark" href="assets/img/console-managed-cluster-2000.webp"><img src="assets/img/console-managed-cluster-1000.webp" srcset="assets/img/console-managed-cluster-1000.webp 1000w, assets/img/console-managed-cluster-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1444" loading="lazy" alt="A managed cluster: load against capacity, the autoscaling policy, each broker and the scaling history."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a><a class="shot for-light" href="assets/img/console-managed-cluster-light-2000.webp"><img src="assets/img/console-managed-cluster-light-1000.webp" srcset="assets/img/console-managed-cluster-light-1000.webp 1000w, assets/img/console-managed-cluster-light-2000.webp 2000w" sizes="(min-width: 1180px) 1000px, 92vw" width="2000" height="1444" loading="lazy" alt="A managed cluster: load against capacity, the autoscaling policy, each broker and the scaling history."><span class="shot-more label" aria-hidden="true">Open full screenshot</span></a></div>
       </div>
     </div>
     <p class="shots-note label">Real screens, showing the made-up clusters of kaas console --demo. Acme Commerce doesn't exist.</p>

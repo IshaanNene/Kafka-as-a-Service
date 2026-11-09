@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="450" height="330" viewBox="0 0 450 330" role="img" aria-label="kaas">
+<defs><clipPath id="c"><rect width="440" height="330"/></clipPath></defs>
+<rect width="100%" height="100%" rx="10" fill="#0d1117" stroke="#484f58"/>
+<circle cx="22" cy="18" r="6" fill="#ff5f57"/><circle cx="42" cy="18" r="6" fill="#febc2e"/><circle cx="62" cy="18" r="6" fill="#28c840"/>
+<g clip-path="url(#c)" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
+<text x="16.0" y="57.0" fill="#79c0ff" font-weight="bold" textLength="8.4" lengthAdjust="spacingAndGlyphs">K</text>
+<text x="32.8" y="57.0" fill="#79c0ff" font-weight="bold" textLength="8.4" lengthAdjust="spacingAndGlyphs">A</text>
+<text x="49.6" y="57.0" fill="#79c0ff" font-weight="bold" textLength="8.4" lengthAdjust="spacingAndGlyphs">A</text>
+<text x="66.4" y="57.0" fill="#79c0ff" font-weight="bold" textLength="8.4" lengthAdjust="spacingAndGlyphs">S</text>
+<text x="91.6" y="57.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="116.8" y="57.0" fill="#d2a8ff" textLength="50.4" lengthAdjust="spacingAndGlyphs">topics</text>
+<text x="32.8" y="93.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">TOPIC</text>
+<text x="190.2" y="93.0" fill="#8b949e" textLength="42.0" lengthAdjust="spacingAndGlyphs">PARTS</text>
+<text x="257.4" y="93.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">URP</text>
+<text x="316.2" y="93.0" fill="#8b949e" textLength="58.8" lengthAdjust="spacingAndGlyphs">RECORDS</text>
+<text x="398.0" y="93.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">AGE</text>
+<text x="16.0" y="111.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">▸</text>
+<text x="32.8" y="111.0" fill="#e6edf3" textLength="42.0" lengthAdjust="spacingAndGlyphs">audit</text>
+<text x="223.8" y="111.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">4</text>
+<text x="274.2" y="111.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="366.6" y="111.0" fill="#e6edf3" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="406.4" y="111.0" fill="#e6edf3" textLength="16.8" lengthAdjust="spacingAndGlyphs">6s</text>
+<text x="32.8" y="129.0" fill="#e6edf3" textLength="92.4" lengthAdjust="spacingAndGlyphs">clickstream</text>
+<text x="215.4" y="129.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">12</text>
+<text x="274.2" y="129.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="366.6" y="129.0" fill="#56d4dd" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="398.0" y="129.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">14s</text>
+<text x="32.8" y="147.0" fill="#e6edf3" textLength="75.6" lengthAdjust="spacingAndGlyphs">inventory</text>
+<text x="223.8" y="147.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">2</text>
+<text x="274.2" y="147.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="366.6" y="147.0" fill="#56d4dd" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="398.0" y="147.0" fill="#8b949e" textLength="25.2" lengthAdjust="spacingAndGlyphs">14s</text>
+<text x="32.8" y="165.0" fill="#e6edf3" textLength="50.4" lengthAdjust="spacingAndGlyphs">orders</text>
+<text x="223.8" y="165.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">6</text>
+<text x="274.2" y="165.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="324.6" y="165.0" fill="#56d4dd" textLength="50.4" lengthAdjust="spacingAndGlyphs">251.0k</text>
+<text x="406.4" y="165.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">0s</text>
+<text x="32.8" y="183.0" fill="#e6edf3" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
+<text x="223.8" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">5</text>
+<text x="274.2" y="183.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="358.2" y="183.0" fill="#56d4dd" textLength="16.8" lengthAdjust="spacingAndGlyphs">47</text>
+<text x="406.4" y="183.0" fill="#8b949e" textLength="16.8" lengthAdjust="spacingAndGlyphs">0s</text>
+<text x="32.8" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">E</text>
+<text x="49.6" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">V</text>
+<text x="66.4" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">E</text>
+<text x="83.2" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">N</text>
+<text x="100.0" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">T</text>
+<text x="116.8" y="235.0" fill="#8b949e" textLength="8.4" lengthAdjust="spacingAndGlyphs">S</text>
+<text x="32.8" y="253.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">19:10:40</text>
+<text x="116.8" y="253.0" fill="#56d4dd" textLength="92.4" lengthAdjust="spacingAndGlyphs">LeaderMoved</text>
+<text x="217.6" y="253.0" fill="#56d4dd" textLength="67.2" lengthAdjust="spacingAndGlyphs">orders/3</text>
+<text x="293.2" y="253.0" fill="#56d4dd" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="310.0" y="253.0" fill="#56d4dd" textLength="8.4" lengthAdjust="spacingAndGlyphs">→</text>
+<text x="326.8" y="253.0" fill="#56d4dd" textLength="8.4" lengthAdjust="spacingAndGlyphs">1</text>
+<text x="32.8" y="271.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">19:10:40</text>
+<text x="116.8" y="271.0" fill="#7ee787" textLength="100.8" lengthAdjust="spacingAndGlyphs">TopicCreated</text>
+<text x="226.0" y="271.0" fill="#7ee787" textLength="42.0" lengthAdjust="spacingAndGlyphs">audit</text>
+<text x="276.4" y="271.0" fill="#7ee787" textLength="16.8" lengthAdjust="spacingAndGlyphs">(4</text>
+<text x="301.6" y="271.0" fill="#7ee787" textLength="92.4" lengthAdjust="spacingAndGlyphs">partitions)</text>
+<text x="32.8" y="289.0" fill="#8b949e" textLength="67.2" lengthAdjust="spacingAndGlyphs">19:10:40</text>
+<text x="116.8" y="289.0" fill="#56d4dd" textLength="126.0" lengthAdjust="spacingAndGlyphs">PartitionsAdded</text>
+<text x="251.2" y="289.0" fill="#56d4dd" textLength="67.2" lengthAdjust="spacingAndGlyphs">payments</text>
+<text x="326.8" y="289.0" fill="#56d4dd" textLength="16.8" lengthAdjust="spacingAndGlyphs">+2</text>
+</g></svg>

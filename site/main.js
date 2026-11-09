@@ -11,11 +11,20 @@
     var dark = root.dataset.theme === 'dark';
     $('theme-ic').setAttribute('href', dark ? '#i-sun' : '#i-moon');
     $('theme').setAttribute('aria-label', 'Switch to ' + (dark ? 'light' : 'dark') + ' theme');
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#141310' : '#eae8e0';
     if (replay) replay.restyle();
   }
   $('theme').addEventListener('click', function () {
     root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
     try { localStorage.setItem('kaas-theme', root.dataset.theme); } catch (e) {}
+    themeUI();
+  });
+  // Until the visitor picks a theme, keep following the system.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+    var stored = null;
+    try { stored = localStorage.getItem('kaas-theme'); } catch (err) {}
+    if (stored) return;
+    root.dataset.theme = e.matches ? 'dark' : 'light';
     themeUI();
   });
 
@@ -153,6 +162,12 @@
     }, { rootMargin: '-42% 0px -52% 0px' });
     outs.forEach(function (o) { spy.observe(o); });
     outs[0].classList.add('on');
+    var liveObs = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting) return;
+      $('outs').classList.add('live');
+      liveObs.disconnect();
+    }, { rootMargin: '-30% 0px -30% 0px' });
+    liveObs.observe($('outs'));
   } else {
     all('.out,.stage').forEach(function (o) { o.classList.add('on'); });
   }
@@ -249,7 +264,7 @@
       ctx.font = font + 'px "Martian Mono", ui-monospace, Menlo, monospace';
       var small = w < 520, pad = small ? 10 : 16, p = presence(t), load = loadAt(t);
       var top = 14, chartH = small ? 78 : 92, rowsB = h - chartH - 24, g = 6, rh = (rowsB - top - g * 3) / 4;
-      var busX = pad + (small ? 10 : 18), labelX = busX + 12, rowL = labelX + (small ? 28 : 76), rowR = w - pad, cg = 3;
+      var busX = pad + (small ? 10 : 18), labelX = busX + 12, rowL = labelX + (small ? 28 : 88), rowR = w - pad, cg = 3;
       var cw = (rowR - rowL - cg * 7) / 8, ch = rh - 7;
       function rowY(b) { return top + b * (rh + g); }
       function cell(b, s) { return { x: rowL + s * (cw + cg), y: rowY(b) }; }
@@ -397,6 +412,10 @@
       });
       offEl.textContent = String(i).padStart(2, '0');
       lagEl.textContent = String(links.length - 1 - i);
+      $('bar-off').textContent = offEl.textContent;
+      $('bar-name').textContent = links[i].lastChild.textContent;
+      $('bar-lag').textContent = lagEl.textContent;
+      all('#bar-segs i').forEach(function (s, n) { s.classList.toggle('done', n <= i); });
       logEl.style.setProperty('--done', (links[i].parentNode.offsetTop) + 'px');
     }
     addEventListener('scroll', tick, { passive: true }); addEventListener('resize', tick); tick();
@@ -405,10 +424,16 @@
   /* ---- boundary diagram: each component explains itself ---- */
   (function () {
     var nodes = all('#bound .node'), note = $('bound-note');
+    function pick(n) {
+      nodes.forEach(function (o) { o.classList.toggle('on', o === n); o.setAttribute('aria-pressed', String(o === n)); });
+      note.textContent = n.dataset.note;
+    }
     nodes.forEach(function (n) {
-      function pick() { nodes.forEach(function (o) { o.classList.toggle('on', o === n); }); note.textContent = n.dataset.note; }
-      n.addEventListener('click', pick); n.addEventListener('mouseenter', pick); n.addEventListener('focus', pick);
+      n.addEventListener('mouseenter', function () { pick(n); });
+      // Only a deliberate choice is announced; hovering stays silent for screen readers.
+      n.addEventListener('click', function () { pick(n); live.textContent = n.dataset.note; });
     });
+    pick(nodes[0]);
   })();
 
   themeUI();

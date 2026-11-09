@@ -51,6 +51,10 @@ jobs:
             cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs || { echo "::error file=$f::syntax error"; exit 1; }
           done
       - run: node --test controlplane/console/webtest/*.test.mjs
+      - name: Marketing site
+        run: |
+          cp site/main.js /tmp/site.mjs && node --check /tmp/site.mjs
+          node --test test/site/*.test.mjs
 
   lint:
     runs-on: ubuntu-latest
